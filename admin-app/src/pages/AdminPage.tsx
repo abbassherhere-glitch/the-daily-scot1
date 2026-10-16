@@ -54,6 +54,7 @@ import {
   setActivePreviewRole
 } from '../services/adminApi';
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
+import { ModalFrame } from '../components/ModalFrame';
 
 /** D1 UTC timestamp ('YYYY-MM-DD HH:MM:SS' or ISO) -> value for a datetime-local input (local time). */
 function utcToLocalInput(value?: string | null): string {
@@ -441,14 +442,14 @@ export const AdminPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="bg-[#005EB8] text-white p-2 rounded">
-              <ShieldCheck className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" aria-hidden="true" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-headline font-black text-lg tracking-tight text-white uppercase">
-                  The Daily Scot
-                </span>
-                <span className="bg-neutral-800 text-neutral-400 text-[10px] font-bold px-1.5 py-0.5 rounded border border-neutral-700 uppercase tracking-widest">
+                <h1 className="font-headline font-black text-lg tracking-tight text-white uppercase">
+                  The Daily Scot <span className="sr-only">Newsroom</span>
+                </h1>
+                <span aria-hidden="true" className="bg-neutral-800 text-neutral-300 text-[10px] font-bold px-1.5 py-0.5 rounded border border-neutral-700 uppercase tracking-widest">
                   Newsroom
                 </span>
               </div>
@@ -462,7 +463,7 @@ export const AdminPage: React.FC = () => {
           <div className="flex items-center gap-4 text-xs">
             {currentUser && (
               <div className="flex items-center gap-2 bg-neutral-900 border border-neutral-800 px-3 py-1.5 rounded">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" aria-hidden="true" />
                 <span className="font-semibold text-neutral-200">{currentUser.name}</span>
                 <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${
                   currentUser.role === 'Owner'
@@ -477,11 +478,13 @@ export const AdminPage: React.FC = () => {
             )}
 
             <button
+             type="button"
               onClick={loadData}
               title="Refresh Newsroom Data"
+              aria-label="Refresh newsroom data"
               className="p-2 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded text-neutral-300 hover:text-white transition"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 motion-reduce:animate-none ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -498,6 +501,7 @@ export const AdminPage: React.FC = () => {
             <div className="flex items-center gap-2">
               {(['Owner', 'Editor', 'Journalist'] as UserRole[]).map((r) => (
                 <button
+                  type="button"
                   key={r}
                   onClick={() => {
                     setActivePreviewRole(r);
@@ -537,10 +541,11 @@ export const AdminPage: React.FC = () => {
         {errorMessage && (
           <div className="bg-red-950 border border-red-700 text-red-200 p-4 rounded flex items-center justify-between text-sm">
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" />
-              <span>{errorMessage}</span>
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0" aria-hidden="true" />
+              <span role="alert">{errorMessage}</span>
             </div>
             <button
+              type="button"
               onClick={loadData}
               className="px-3 py-1 bg-red-800 hover:bg-red-700 rounded text-xs font-bold text-white transition"
             >
@@ -552,6 +557,7 @@ export const AdminPage: React.FC = () => {
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-neutral-700 pb-2 overflow-x-auto">
           <button
+            type="button"
             onClick={() => {
               setActiveTab('articles');
               setStatusFilter('all');
@@ -567,6 +573,7 @@ export const AdminPage: React.FC = () => {
           </button>
 
           <button
+            type="button"
             onClick={() => {
               setActiveTab('review_queue');
               setStatusFilter('needs_review');
@@ -588,6 +595,7 @@ export const AdminPage: React.FC = () => {
 
           {isOwner && (
             <button
+              type="button"
               onClick={() => setActiveTab('users')}
               className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                 activeTab === 'users'
@@ -603,6 +611,7 @@ export const AdminPage: React.FC = () => {
           {(isOwner || isEditor) && (
             <>
               <button
+                type="button"
                 onClick={() => setActiveTab('audit')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                   activeTab === 'audit'
@@ -615,6 +624,7 @@ export const AdminPage: React.FC = () => {
               </button>
 
               <button
+                type="button"
                 onClick={() => setActiveTab('newsletter')}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                   activeTab === 'newsletter'
@@ -637,11 +647,11 @@ export const AdminPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-3 text-xs">
                 {activeTab === 'articles' && (
                   <div>
-                    <label className="text-neutral-400 mr-2 uppercase font-bold text-[10px]">Status:</label>
-                    <select
+                    <label htmlFor="admin-field-1" className="text-neutral-400 mr-2 uppercase font-bold text-[10px]">Status:</label>
+                    <select id="admin-field-1"
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1 text-neutral-200 outline-none"
+                      className="bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1 text-neutral-200 outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     >
                       <option value="all">All Statuses</option>
                       <option value="published">Published</option>
@@ -655,11 +665,11 @@ export const AdminPage: React.FC = () => {
                 )}
 
                 <div>
-                  <label className="text-neutral-400 mr-2 uppercase font-bold text-[10px]">Category:</label>
-                  <select
+                  <label htmlFor="admin-field-2" className="text-neutral-400 mr-2 uppercase font-bold text-[10px]">Category:</label>
+                  <select id="admin-field-2"
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
-                    className="bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1 text-neutral-200 outline-none"
+                    className="bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1 text-neutral-200 outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                   >
                     <option value="all">All Sections</option>
                     {CATEGORIES.map((cat) => (
@@ -672,6 +682,7 @@ export const AdminPage: React.FC = () => {
               </div>
 
               <button
+                type="button"
                 onClick={handleOpenCreateModal}
                 className="flex items-center gap-1.5 px-4 py-2 bg-[#005EB8] hover:bg-blue-600 text-white rounded text-xs font-bold uppercase tracking-wider transition shadow-sm"
               >
@@ -718,12 +729,17 @@ export const AdminPage: React.FC = () => {
                                   Lead
                                 </span>
                               ) : null}
-                              <span className="font-bold text-white hover:text-[#005EB8] cursor-pointer line-clamp-1" onClick={() => handleOpenEditModal(art)}>
+                              <button
+                               type="button"
+                                className="font-bold text-white hover:text-sky-300 hover:underline cursor-pointer line-clamp-1 text-left"
+                                onClick={() => handleOpenEditModal(art)}
+                              >
+                                <span className="sr-only">Edit: </span>
                                 {art.title}
-                              </span>
+                              </button>
                             </div>
                             <div className="text-[11px] text-neutral-400 flex items-center gap-2 mt-0.5">
-                              <span className="uppercase font-semibold text-[#005EB8]">{art.category}</span>
+                              <span className="uppercase font-semibold text-sky-400">{art.category}</span>
                               {art.area && <span>• {art.area}</span>}
                               {art.legal_check && art.legal_check !== 'none' && (
                                 <span className="text-amber-400 font-medium">⚠️ {art.legal_check}</span>
@@ -753,13 +769,13 @@ export const AdminPage: React.FC = () => {
                                 <Check className="w-3.5 h-3.5" /> Verified
                               </span>
                             ) : (
-                              <span className="text-neutral-500 italic">Unverified</span>
+                              <span className="text-neutral-400 italic">Unverified</span>
                             )}
                           </td>
 
                           <td className="py-3 px-3 text-neutral-300">
                             <div>{art.author_name || 'Staff Reporter'}</div>
-                            <div className="text-[10px] text-neutral-500">{art.author_role}</div>
+                            <div className="text-[10px] text-neutral-400">{art.author_role}</div>
                           </td>
 
                           <td className="py-3 px-3 text-right text-neutral-400 font-mono text-[11px]">
@@ -769,6 +785,7 @@ export const AdminPage: React.FC = () => {
                           <td className="py-3 px-4 text-center">
                             <div className="flex items-center justify-center gap-1.5">
                               <button
+                                type="button"
                                 onClick={() => handleOpenEditModal(art)}
                                 title="Edit Story"
                                 className="p-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded transition"
@@ -778,6 +795,7 @@ export const AdminPage: React.FC = () => {
                               
                               {canPublish && (
                                 <button
+                                  type="button"
                                   onClick={() => handleDeleteArticle(art.id, art.title)}
                                   title="Delete Article"
                                   className="p-1.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 rounded transition"
@@ -810,6 +828,7 @@ export const AdminPage: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setShowAddUserModal(true)}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[#005EB8] hover:bg-blue-600 text-white rounded text-xs font-bold uppercase transition"
               >
@@ -853,12 +872,13 @@ export const AdminPage: React.FC = () => {
                         {u.bio || '—'}
                       </td>
                       <td className="py-3 px-3">
-                        <span className={`font-bold ${u.active ? 'text-emerald-400' : 'text-neutral-500'}`}>
+                        <span className={`font-bold ${u.active ? 'text-emerald-400' : 'text-neutral-400'}`}>
                           {u.active ? 'Active' : 'Disabled'}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <button
+                          type="button"
                           onClick={async () => {
                             const newActive = u.active ? 0 : 1;
                             try {
@@ -956,6 +976,7 @@ export const AdminPage: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => getAdminSubscribers('csv')}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-white rounded text-xs font-bold uppercase transition"
               >
@@ -1002,15 +1023,15 @@ export const AdminPage: React.FC = () => {
 
       {/* MODAL 1: ARTICLE EDITOR */}
       {isEditorOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
+        <ModalFrame onClose={handleCloseEditor} labelledBy="editor-dialog-title" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-full max-w-4xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="bg-neutral-950 border-b border-neutral-800 px-6 py-4 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Edit3 className="w-4 h-4 text-[#005EB8]" />
+                <h2 id="editor-dialog-title" className="text-base font-bold text-white flex items-center gap-2">
+                  <Edit3 className="w-4 h-4 text-sky-400" />
                   <span>{editorMode === 'create' ? 'Draft New Story' : 'Edit Story'}</span>
-                </h3>
+                </h2>
                 <p className="text-xs text-neutral-400 mt-0.5">
                   The Daily Scot editorial desk • Role permissions enforced server-side
                 </p>
@@ -1019,7 +1040,7 @@ export const AdminPage: React.FC = () => {
               <div className="flex items-center gap-3">
                 {editorMode === 'edit' && (
                   <button
-                    type="button"
+                   type="button"
                     onClick={handleOpenHistoryModal}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded text-xs text-neutral-200 transition font-bold"
                   >
@@ -1028,10 +1049,12 @@ export const AdminPage: React.FC = () => {
                   </button>
                 )}
                 <button
+                 type="button"
                   onClick={handleCloseEditor}
-                  className="p-1.5 text-neutral-400 hover:text-white rounded hover:bg-neutral-800 transition"
+                  aria-label="Close editor"
+                  className="p-1.5 text-neutral-300 hover:text-white rounded hover:bg-neutral-800 transition"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
             </div>
@@ -1040,10 +1063,10 @@ export const AdminPage: React.FC = () => {
             <div className="p-6 overflow-y-auto space-y-4 flex-1 text-xs">
               {/* Headline */}
               <div>
-                <label className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                <label htmlFor="admin-field-3" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
                   Headline <span className="text-red-400">*</span>
                 </label>
-                <input
+                <input id="admin-field-3"
                   type="text"
                   value={formTitle}
                   onChange={(e) => {
@@ -1051,17 +1074,17 @@ export const AdminPage: React.FC = () => {
                     setIsDirty(true);
                   }}
                   placeholder="e.g. Clyde Metro green light for £1.2bn light rail link"
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-headline text-base outline-none focus:border-[#005EB8]"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-headline text-base outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                 />
               </div>
 
               {/* Slug & Standfirst Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                  <label htmlFor="admin-field-4" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
                     URL Slug
                   </label>
-                  <input
+                  <input id="admin-field-4"
                     type="text"
                     value={formSlug}
                     onChange={(e) => {
@@ -1069,22 +1092,23 @@ export const AdminPage: React.FC = () => {
                       setIsDirty(true);
                     }}
                     placeholder="auto-generated-from-headline"
-                    className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-mono text-xs outline-none focus:border-[#005EB8]"
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-mono text-xs outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                  <label htmlFor="admin-field-5" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
                     Section & Area
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    <select
+                    <select id="admin-field-5"
+                      aria-label="Section"
                       value={formCategory}
                       onChange={(e) => {
                         setFormCategory(e.target.value);
                         setIsDirty(true);
                       }}
-                      className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:border-[#005EB8]"
+                      className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                     >
                       {CATEGORIES.map((cat) => (
                         <option key={cat.id} value={cat.id}>
@@ -1094,12 +1118,13 @@ export const AdminPage: React.FC = () => {
                     </select>
 
                     <select
+                      aria-label="Area"
                       value={formArea}
                       onChange={(e) => {
                         setFormArea(e.target.value);
                         setIsDirty(true);
                       }}
-                      className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:border-[#005EB8]"
+                      className="bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                     >
                       {GLASGOW_DISTRICTS.map((d) => (
                         <option key={d} value={d}>
@@ -1113,10 +1138,10 @@ export const AdminPage: React.FC = () => {
 
               {/* Standfirst */}
               <div>
-                <label className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                <label htmlFor="admin-field-6" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
                   Standfirst (Intro / Sub-heading) <span className="text-red-400">*</span>
                 </label>
-                <textarea
+                <textarea id="admin-field-6"
                   rows={2}
                   value={formStandfirst}
                   onChange={(e) => {
@@ -1124,7 +1149,7 @@ export const AdminPage: React.FC = () => {
                     setIsDirty(true);
                   }}
                   placeholder="One to two sentences summarizing the news angle..."
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-serif text-sm leading-snug outline-none focus:border-[#005EB8]"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-serif text-sm leading-snug outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                 />
               </div>
 
@@ -1137,14 +1162,14 @@ export const AdminPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source Type</label>
-                    <select
+                    <label htmlFor="admin-field-7" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source Type</label>
+                    <select id="admin-field-7"
                       value={formSourceType}
                       onChange={(e) => {
                         setFormSourceType(e.target.value as SourceType);
                         setIsDirty(true);
                       }}
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     >
                       <option value="Own reporting">Own reporting</option>
                       <option value="Police Scotland">Police Scotland</option>
@@ -1156,8 +1181,8 @@ export const AdminPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source Name / Attribution</label>
-                    <input
+                    <label htmlFor="admin-field-8" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source Name / Attribution</label>
+                    <input id="admin-field-8"
                       type="text"
                       value={formSourceName}
                       onChange={(e) => {
@@ -1165,13 +1190,13 @@ export const AdminPage: React.FC = () => {
                         setIsDirty(true);
                       }}
                       placeholder="e.g. Police Scotland Greater Glasgow"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source URL / Link</label>
-                    <input
+                    <label htmlFor="admin-field-9" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Source URL / Link</label>
+                    <input id="admin-field-9"
                       type="text"
                       value={formSourceUrl}
                       onChange={(e) => {
@@ -1179,21 +1204,21 @@ export const AdminPage: React.FC = () => {
                         setIsDirty(true);
                       }}
                       placeholder="https://..."
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-neutral-700">
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Legal Risk Check</label>
-                    <select
+                    <label htmlFor="admin-field-10" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Legal Risk Check</label>
+                    <select id="admin-field-10"
                       value={formLegalCheck}
                       onChange={(e) => {
                         setFormLegalCheck(e.target.value as LegalCheckType);
                         setIsDirty(true);
                       }}
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     >
                       <option value="none">None (Standard reporting)</option>
                       <option value="contempt risk - active court case">Contempt risk - active court case</option>
@@ -1203,31 +1228,31 @@ export const AdminPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Embargo Until (Optional)</label>
-                    <input
+                    <label htmlFor="admin-field-11" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Embargo Until (Optional)</label>
+                    <input id="admin-field-11"
                       type="datetime-local"
                       value={formEmbargoUntil}
                       onChange={(e) => {
                         setFormEmbargoUntil(e.target.value);
                         setIsDirty(true);
                       }}
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     />
                   </div>
 
                   {canPublish && (
                     <div>
-                      <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Publish At (for scheduling)</label>
-                      <input
+                      <label htmlFor="admin-field-12" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Publish At (for scheduling)</label>
+                      <input id="admin-field-12"
                         type="datetime-local"
                         value={formPublishAt}
                         onChange={(e) => {
                           setFormPublishAt(e.target.value);
                           setIsDirty(true);
                         }}
-                        className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                       />
-                      <p className="text-[10px] text-neutral-500 mt-1">Your local time. Use “Schedule” to publish automatically at this time.</p>
+                      <p className="text-[10px] text-neutral-400 mt-1">Your local time. Use “Schedule” to publish automatically at this time.</p>
                     </div>
                   )}
                 </div>
@@ -1269,23 +1294,23 @@ export const AdminPage: React.FC = () => {
               {/* Photo & Caption */}
               <div className="bg-neutral-800 border border-neutral-700 p-3 rounded space-y-3">
                 <div className="flex items-center justify-between">
-                  <label className="font-bold uppercase tracking-wider text-neutral-300">
+                  <label htmlFor="admin-field-13" className="font-bold uppercase tracking-wider text-neutral-300">
                     Lead Photograph
                   </label>
-                  <label className="flex items-center gap-1.5 px-3 py-1 bg-[#005EB8] hover:bg-blue-600 text-white rounded text-xs font-bold cursor-pointer transition">
+                  <label className="flex items-center gap-1.5 px-3 py-1 bg-[#005EB8] hover:bg-blue-600 text-white rounded text-xs font-bold cursor-pointer transition focus-within:ring-2 focus-within:ring-sky-300">
                     <Upload className="w-3.5 h-3.5" />
                     <span>{uploadingImage ? 'Uploading...' : 'Upload Image to R2'}</span>
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp"
                       onChange={handleImageFileChange}
-                      className="hidden"
+                      className="sr-only"
                       disabled={uploadingImage}
                     />
                   </label>
                 </div>
 
-                <input
+                <input id="admin-field-13"
                   type="text"
                   value={formHeroImage}
                   onChange={(e) => {
@@ -1293,13 +1318,13 @@ export const AdminPage: React.FC = () => {
                     setIsDirty(true);
                   }}
                   placeholder="https://... or upload above"
-                  className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none"
+                  className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Credit</label>
-                    <input
+                    <label htmlFor="admin-field-14" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Credit</label>
+                    <input id="admin-field-14"
                       type="text"
                       value={formPhotoCredit}
                       onChange={(e) => {
@@ -1307,13 +1332,13 @@ export const AdminPage: React.FC = () => {
                         setIsDirty(true);
                       }}
                       placeholder="e.g. Colin Mearns / Staff"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Source</label>
-                    <input
+                    <label htmlFor="admin-field-15" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Source</label>
+                    <input id="admin-field-15"
                       type="text"
                       value={formPhotoSource}
                       onChange={(e) => {
@@ -1321,14 +1346,14 @@ export const AdminPage: React.FC = () => {
                         setIsDirty(true);
                       }}
                       placeholder="e.g. Staff Photographer, PA Media, Wire"
-                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Caption</label>
-                  <input
+                  <label htmlFor="admin-field-16" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Photo Caption</label>
+                  <input id="admin-field-16"
                     type="text"
                     value={formImageCaption}
                     onChange={(e) => {
@@ -1336,17 +1361,17 @@ export const AdminPage: React.FC = () => {
                       setIsDirty(true);
                     }}
                     placeholder="Caption describing image contents"
-                    className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none"
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                   />
                 </div>
               </div>
 
               {/* Story Body */}
               <div>
-                <label className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                <label htmlFor="admin-field-17" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
                   Article Body (HTML / Paragraphs separated by blank lines) <span className="text-red-400">*</span>
                 </label>
-                <textarea
+                <textarea id="admin-field-17"
                   rows={8}
                   value={formBody}
                   onChange={(e) => {
@@ -1354,16 +1379,16 @@ export const AdminPage: React.FC = () => {
                     setIsDirty(true);
                   }}
                   placeholder="Write the full report here. You can use <p>, <h2>, <h3>, <blockquote>, or separate paragraphs with blank lines..."
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded p-3 text-white font-serif text-sm leading-relaxed outline-none focus:border-[#005EB8]"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded p-3 text-white font-serif text-sm leading-relaxed outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                 />
               </div>
 
               {/* Correction Note (for updates to published articles) */}
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
+                <label htmlFor="admin-field-18" className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">
                   Correction Note (If updating a published story)
                 </label>
-                <input
+                <input id="admin-field-18"
                   type="text"
                   value={formCorrectionNote}
                   onChange={(e) => {
@@ -1371,7 +1396,7 @@ export const AdminPage: React.FC = () => {
                     setIsDirty(true);
                   }}
                   placeholder="e.g. This article was updated at 14:30 to clarify the council's response."
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
 
@@ -1424,7 +1449,7 @@ export const AdminPage: React.FC = () => {
             {/* Modal Footer Actions */}
             <div className="bg-neutral-950 border-t border-neutral-800 px-6 py-4 flex items-center justify-between">
               <button
-                type="button"
+               type="button"
                 onClick={handleCloseEditor}
                 className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded font-bold text-xs uppercase transition"
               >
@@ -1433,7 +1458,7 @@ export const AdminPage: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <button
-                  type="button"
+                 type="button"
                   onClick={() => handleSaveArticle('draft')}
                   className="flex items-center gap-1.5 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 text-white rounded font-bold text-xs uppercase tracking-wider transition"
                 >
@@ -1443,7 +1468,7 @@ export const AdminPage: React.FC = () => {
 
                 {!canPublish ? (
                   <button
-                    type="button"
+                   type="button"
                     onClick={() => handleSaveArticle('needs_review')}
                     className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs uppercase tracking-wider transition"
                   >
@@ -1453,7 +1478,7 @@ export const AdminPage: React.FC = () => {
                 ) : (
                   <>
                   <button
-                    type="button"
+                   type="button"
                     onClick={() => handleSaveArticle('scheduled')}
                     disabled={!formPublishAt}
                     title={formPublishAt ? 'Publish automatically at the chosen time' : 'Set a "Publish At" time first'}
@@ -1462,7 +1487,7 @@ export const AdminPage: React.FC = () => {
                     <span>Schedule</span>
                   </button>
                   <button
-                    type="button"
+                   type="button"
                     onClick={() => handleSaveArticle('published')}
                     className="flex items-center gap-1.5 px-5 py-2 bg-[#005EB8] hover:bg-blue-600 text-white rounded font-bold text-xs uppercase tracking-wider transition shadow-sm"
                   >
@@ -1474,23 +1499,25 @@ export const AdminPage: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* MODAL 2: REVISION HISTORY MODAL */}
       {isHistoryModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <ModalFrame onClose={() => setIsHistoryModalOpen(false)} labelledBy="history-dialog-title" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
             <div className="bg-neutral-950 border-b border-neutral-800 px-5 py-3.5 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm flex items-center gap-2">
+              <h2 id="history-dialog-title" className="font-bold text-white text-sm flex items-center gap-2">
                 <History className="w-4 h-4 text-blue-400" />
                 <span>Article Revision History</span>
-              </h3>
+              </h2>
               <button
+               type="button"
                 onClick={() => setIsHistoryModalOpen(false)}
-                className="text-neutral-400 hover:text-white"
+                aria-label="Close revision history"
+                className="p-1.5 text-neutral-300 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
@@ -1516,7 +1543,7 @@ export const AdminPage: React.FC = () => {
                       </div>
                       {canPublish && rev.kind !== 'applied' && (
                         <button
-                          type="button"
+                         type="button"
                           onClick={() => handleRestoreRevision(rev)}
                           className="flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold uppercase transition"
                         >
@@ -1534,58 +1561,60 @@ export const AdminPage: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
 
       {/* MODAL 3: ADD USER (Owner only) */}
       {showAddUserModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <ModalFrame onClose={() => setShowAddUserModal(false)} labelledBy="adduser-dialog-title" className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
           <div className="bg-neutral-900 border border-neutral-700 rounded-lg w-full max-w-md shadow-2xl overflow-hidden text-xs">
             <div className="bg-neutral-950 border-b border-neutral-800 px-5 py-3.5 flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm">Add Newsroom Staff</h3>
+              <h2 id="adduser-dialog-title" className="font-bold text-white text-sm">Add Newsroom Staff</h2>
               <button
+               type="button"
                 onClick={() => setShowAddUserModal(false)}
-                className="text-neutral-400 hover:text-white"
+                aria-label="Close"
+                className="p-1.5 text-neutral-300 hover:text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
 
             <div className="p-5 space-y-3">
               <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
+                <label htmlFor="admin-field-19" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
                   Full Name
                 </label>
-                <input
+                <input id="admin-field-19"
                   type="text"
                   value={newUserName}
                   onChange={(e) => setNewUserName(e.target.value)}
                   placeholder="e.g. Fiona Bruce"
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
+                <label htmlFor="admin-field-20" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
                   Staff Email (must match Cloudflare Access email)
                 </label>
-                <input
+                <input id="admin-field-20"
                   type="email"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   placeholder="name@dailyscot.co.uk"
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
+                <label htmlFor="admin-field-21" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
                   Role Permission
                 </label>
-                <select
+                <select id="admin-field-21"
                   value={newUserRole}
                   onChange={(e) => setNewUserRole(e.target.value as UserRole)}
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 >
                   <option value="Journalist">Journalist (Draft & submit for review)</option>
                   <option value="Editor">Editor (Publish, edit any article, breaking news)</option>
@@ -1595,29 +1624,29 @@ export const AdminPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
+                <label htmlFor="admin-field-22" className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">
                   Job Title / Beat Bio
                 </label>
-                <input
+                <input id="admin-field-22"
                   type="text"
                   value={newUserBio}
                   onChange={(e) => setNewUserBio(e.target.value)}
                   placeholder="e.g. City Chambers & Council Reporter"
-                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none"
+                  className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
             </div>
 
             <div className="bg-neutral-950 border-t border-neutral-800 px-5 py-3 flex items-center justify-end gap-2">
               <button
-                type="button"
+               type="button"
                 onClick={() => setShowAddUserModal(false)}
                 className="px-3 py-1.5 bg-neutral-800 text-neutral-300 rounded font-semibold text-xs"
               >
                 Cancel
               </button>
               <button
-                type="button"
+               type="button"
                 onClick={async () => {
                   if (!newUserName.trim() || !newUserEmail.trim()) {
                     alert('Name and Email are required');
@@ -1646,7 +1675,7 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalFrame>
       )}
     </div>
   );
