@@ -14,14 +14,14 @@ export async function onRequestGet(context: EventContext<Env, 'slug', any>): Pro
     const query = `
       SELECT 
         a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.area, 
-        a.hero_image, a.image_caption, a.author_id, a.status, a.is_breaking, a.is_featured, 
+        a.hero_image, a.image_caption, a.photo_credit, a.author_id, a.status, a.is_breaking, a.is_featured, 
         a.tags, a.seo_title, a.meta_description, a.published_at, a.created_at, a.updated_at,
         u.name AS author_name, u.role AS author_role, u.photo AS author_photo, u.bio AS author_bio,
         c.name AS category_name
       FROM articles a
       LEFT JOIN users u ON a.author_id = u.id
       LEFT JOIN categories c ON a.category = c.slug
-      WHERE a.slug = ? AND a.status = 'published' AND a.published_at <= datetime('now')
+      WHERE a.slug = ? AND a.status = 'published' AND datetime(a.published_at) <= datetime('now')
       LIMIT 1
     `;
 
