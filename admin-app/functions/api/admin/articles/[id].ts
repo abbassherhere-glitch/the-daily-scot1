@@ -1,16 +1,15 @@
-import { Env, EventContext, User, ArticleRecord, ArticleStatus } from '../../../types';
-import { sanitizeHtml, sanitizePlainText, generateSlug } from '../../../utils/sanitize';
+import { Env, EventContext, User, ArticleRecord } from '../../../types';
+import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
+import {
+  checkPublishRules,
+  jsonResponse,
+  normaliseLegalCheck,
+  normaliseSourceType,
+  normaliseStatus,
+  restrictStatusForRole,
+} from '../../../utils/articleRules';
 
-const VALID_STATUSES: ArticleStatus[] = [
-  'draft',
-  'needs_review',
-  'approved',
-  'published',
-  'scheduled',
-  'unpublished',
-  'archived',
-];
 
 export async function onRequestGet(
   context: EventContext<Env, 'id', { user: User }>
@@ -53,186 +52,201 @@ export async function onRequestPut(
     const roleErr = requireRole(user, ['Owner', 'Editor', 'Journalist']);
     if (roleErr) return roleErr;
 
-    const body = await context.request.json() as any;
+    const isEditor = user.role === 'Owner' || user.role === 'Editor';
+    const body = (await context.request.json()) as any;
 
     const existing = await context.env.DB.prepare('SELECT * FROM articles WHERE id = ?')
       .bind(id)
-      .first<ArticleRecord>();
+      .first<ArticleRecord & { breaking_until?: string | null }>();
 
-    if (!existing) {
-      return new Response(JSON.stringify({ error: 'Article not found' }), {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
+    if (!existing) return jsonResponse({ error: 'Article not found' }, 404);
 
-    // Role check: Journalists can only edit their own articles
+    // Journalists can only edit their own articles
     if (user.role === 'Journalist' && existing.author_id !== user.id) {
-      return new Response(
-        JSON.stringify({ error: 'Permission denied: Journalists may only edit their own articles' }),
-        { status: 403, headers: { 'Content-Type': 'application/json' } }
-      );
+      return jsonResponse({ error: 'Permission denied: Journalists may only edit their own articles' }, 403);
     }
 
     const title = sanitizePlainText(body.title || existing.title, 200);
-    const standfirst = sanitizePlainText(body.standfirst || existing.standfirst, 400);
     const cleanBody = body.body ? await sanitizeHtml(body.body) : existing.body;
+
+    // RULE 4.1: A Journalist editing a LIVE story must not change the live version.
+    // Their changes are stored as a proposal for an Editor to review and apply via "Restore".
+    if (user.role === 'Journalist' && ['published', 'scheduled'].includes(existing.status)) {
+      const revId = `rev-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      await context.env.DB.prepare(`
+        INSERT INTO article_revisions (
+          id, article_id, editor_email, previous_title, previous_body, change_summary, kind, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'proposal', datetime('now'))
+      `)
+        .bind(
+          revId,
+          id,
+          user.email,
+          title,
+          cleanBody,
+          sanitizePlainText(body.change_summary || `Proposed revision by ${user.name}`, 300)
+        )
+        .run();
+
+      await logAuditEvent(context.env, user, 'SUBMIT_REVISION_FOR_REVIEW', {
+        articleId: id,
+        beforeStatus: existing.status,
+        afterStatus: existing.status,
+        ip: getClientIp(context.request),
+        details: `Proposed changes to live story "${existing.title}" (${id}) – awaiting editor review (revision ${revId})`,
+      });
+
+      return jsonResponse(
+        {
+          success: true,
+          id,
+          status: existing.status,
+          slug: existing.slug,
+          proposal_id: revId,
+          message: 'Your changes were submitted for editor review. The live story is unchanged until an editor applies them.',
+        },
+        202
+      );
+    }
+
+    const standfirst = sanitizePlainText(body.standfirst || existing.standfirst, 400);
     const category = sanitizePlainText(body.category || existing.category, 50);
     const area = sanitizePlainText(body.area !== undefined ? body.area : existing.area || '', 50);
-    const heroImage = body.hero_image !== undefined ? body.hero_image : existing.hero_image;
+
+    let heroImage = existing.hero_image || null;
+    if (body.hero_image !== undefined) {
+      heroImage = body.hero_image ? sanitizeUrl(body.hero_image) : null;
+      if (body.hero_image && !heroImage) {
+        return jsonResponse({ error: 'Hero image must be an http(s) URL or an uploaded image path.' }, 400);
+      }
+    }
+
     const imageCaption = sanitizePlainText(body.image_caption !== undefined ? body.image_caption : existing.image_caption || '', 250);
-    const photoCredit = sanitizePlainText(body.photo_credit !== undefined ? body.photo_credit : (existing.photo_credit || ''), 100);
-    const photoSource = sanitizePlainText(body.photo_source !== undefined ? body.photo_source : (existing.photo_source || ''), 100);
-    const slug = body.slug ? generateSlug(body.slug) : existing.slug;
-    const tags = body.tags !== undefined ? (Array.isArray(body.tags) ? JSON.stringify(body.tags) : sanitizePlainText(body.tags, 300)) : existing.tags;
+    const photoCredit = sanitizePlainText(body.photo_credit !== undefined ? body.photo_credit : existing.photo_credit || '', 100);
+    const photoSource = sanitizePlainText(body.photo_source !== undefined ? body.photo_source : existing.photo_source || '', 100);
+    const slug = body.slug ? generateSlug(body.slug) || existing.slug : existing.slug;
+    const tags =
+      body.tags !== undefined
+        ? Array.isArray(body.tags)
+          ? JSON.stringify(body.tags.map((t: unknown) => sanitizePlainText(String(t), 40)).filter(Boolean).slice(0, 20))
+          : sanitizePlainText(body.tags, 300)
+        : existing.tags;
     const seoTitle = sanitizePlainText(body.seo_title || existing.seo_title || `${title} | The Daily Scot`, 150);
     const metaDescription = sanitizePlainText(body.meta_description || existing.meta_description || standfirst, 250);
 
-    const sourceType = body.source_type !== undefined ? body.source_type : (existing.source_type || 'Own reporting');
-    const sourceUrl = sanitizePlainText(body.source_url !== undefined ? body.source_url : (existing.source_url || ''), 300);
-    const sourceName = sanitizePlainText(body.source_name !== undefined ? body.source_name : (existing.source_name || ''), 150);
-    const verified = body.verified !== undefined ? (body.verified ? 1 : 0) : (existing.verified || 0);
-    const legalCheck = body.legal_check !== undefined ? body.legal_check : (existing.legal_check || 'none');
-    const legalChecked = body.legal_checked !== undefined ? (body.legal_checked ? 1 : 0) : (existing.legal_checked || 0);
-    const embargoUntil = body.embargo_until !== undefined ? body.embargo_until : existing.embargo_until;
-    const correctionNote = sanitizePlainText(body.correction_note !== undefined ? body.correction_note : (existing.correction_note || ''), 500);
+    const sourceType = normaliseSourceType(
+      body.source_type !== undefined ? body.source_type : existing.source_type,
+      existing.source_type || 'Own reporting'
+    );
+    const sourceUrl =
+      body.source_url !== undefined ? sanitizeUrl(body.source_url, 300) || '' : existing.source_url || '';
+    const sourceName = sanitizePlainText(body.source_name !== undefined ? body.source_name : existing.source_name || '', 150);
 
-    let status: ArticleStatus = (body.status as ArticleStatus) || existing.status;
-    if (!VALID_STATUSES.includes(status)) {
-      status = existing.status;
+    // Only Editors/Owners can mark a story verified or clear a legal flag
+    const verified = isEditor && body.verified !== undefined ? (body.verified ? 1 : 0) : existing.verified || 0;
+    const legalCheck = normaliseLegalCheck(
+      body.legal_check !== undefined ? body.legal_check : existing.legal_check,
+      existing.legal_check || 'none'
+    );
+    const legalChecked =
+      isEditor && body.legal_checked !== undefined ? (body.legal_checked ? 1 : 0) : existing.legal_checked || 0;
+    const embargoUntil =
+      body.embargo_until !== undefined ? toSqlDateTime(body.embargo_until) : toSqlDateTime(existing.embargo_until);
+    const correctionNote = sanitizePlainText(
+      body.correction_note !== undefined ? body.correction_note : existing.correction_note || '',
+      500
+    );
+
+    let status = restrictStatusForRole(user.role, normaliseStatus(body.status, existing.status));
+
+    // Breaking / featured are Editor-only
+    let isBreaking = isEditor
+      ? body.is_breaking !== undefined
+        ? body.is_breaking
+          ? 1
+          : 0
+        : existing.is_breaking
+      : 0;
+    let breakingUntil: string | null = null;
+    if (isBreaking) {
+      breakingUntil =
+        toSqlDateTime(body.breaking_until) ||
+        toSqlDateTime(existing.breaking_until) ||
+        toSqlDateTime(new Date(Date.now() + 6 * 60 * 60 * 1000));
+    }
+    const isFeatured = isEditor
+      ? body.is_featured !== undefined
+        ? body.is_featured
+          ? 1
+          : 0
+        : existing.is_featured
+      : 0;
+
+    const nowSql = toSqlDateTime(new Date())!;
+    let publishedAt = toSqlDateTime(existing.published_at);
+
+    if (status === 'scheduled') {
+      const requested = toSqlDateTime(body.published_at) || (existing.status === 'scheduled' ? publishedAt : null);
+      if (!requested || requested <= nowSql) {
+        return jsonResponse({ error: 'A scheduled story needs a "Publish at" time in the future.' }, 400);
+      }
+      publishedAt = requested;
+    } else if (status === 'published' && existing.status !== 'published') {
+      // Going live now (keep the original date when re-publishing a story that was live before)
+      publishedAt = publishedAt && publishedAt <= nowSql && existing.status === 'unpublished' ? publishedAt : nowSql;
     }
 
-    let isBreaking = body.is_breaking !== undefined ? (body.is_breaking ? 1 : 0) : existing.is_breaking;
-    let breakingUntil = body.breaking_until !== undefined ? body.breaking_until : (existing as any).breaking_until;
-
-    // Only Editor/Owner can set breaking. Journalist and Bot can't.
-    if (user.role === 'Journalist' || user.role === 'Bot') {
-      isBreaking = 0;
-      breakingUntil = null;
-    } else if (isBreaking === 1 && !breakingUntil) {
-      // When an Editor/Owner ticks "Breaking", default breaking_until to now + 6 hours
-      breakingUntil = new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString();
-    } else if (isBreaking === 0) {
-      breakingUntil = null;
+    if (status === 'published' || status === 'scheduled') {
+      const ruleError = checkPublishRules({
+        legalCheck,
+        legalChecked,
+        embargoUntil,
+        verified,
+        sourceType,
+        goLiveAt: status === 'published' ? nowSql : publishedAt!,
+      });
+      if (ruleError) return jsonResponse({ error: ruleError }, 400);
     }
 
-    let isFeatured = body.is_featured !== undefined ? (body.is_featured ? 1 : 0) : existing.is_featured;
-    let publishedAt = existing.published_at;
+    const statements = [];
 
-    // RULE 4.1: Journalists cannot edit published articles (create a needs_review revision instead)
-    if (existing.status === 'published' && user.role === 'Journalist') {
-      // 1. Snapshot previous published version into article_revisions
-      const revId = `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      await context.env.DB.prepare(`
-        INSERT INTO article_revisions (
-          id, article_id, editor_email, previous_title, previous_body, change_summary, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))
-      `)
-        .bind(
+    // Write an article_revisions snapshot on every edit of a live story
+    if (existing.status === 'published' && (existing.title !== title || existing.body !== cleanBody)) {
+      const revId = `rev-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+      statements.push(
+        context.env.DB.prepare(`
+          INSERT INTO article_revisions (
+            id, article_id, editor_email, previous_title, previous_body, change_summary, kind, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, 'snapshot', datetime('now'))
+        `).bind(
           revId,
           id,
           user.email,
           existing.title,
           existing.body,
-          body.change_summary || `Proposed revision by Journalist ${user.name}`
+          sanitizePlainText(body.change_summary || `Revision by ${user.name} (${user.role})`, 300)
         )
-        .run();
-
-      // 2. Transition article to needs_review for editors to approve
-      status = 'needs_review';
-      isBreaking = 0;
-      isFeatured = 0;
-    } else if (existing.status === 'published') {
-      // Editor or Owner editing an already published article:
-      // "Write an article_revisions row on every edit of a published article;"
-      const revId = `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      await context.env.DB.prepare(`
-        INSERT INTO article_revisions (
-          id, article_id, editor_email, previous_title, previous_body, change_summary, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))
-      `)
-        .bind(
-          revId,
-          id,
-          user.email,
-          existing.title,
-          existing.body,
-          body.change_summary || `Revision by ${user.name} (${user.role})`
-        )
-        .run();
-    }
-
-    // RULE 4.2: Role restrictions on publishing
-    if (user.role === 'Journalist') {
-      if (status === 'published' || status === 'approved') {
-        status = 'needs_review';
-      }
-      isBreaking = 0;
-      isFeatured = 0;
-    }
-
-    // RULE 4.3: Enforce strict publish rules when status === 'published'
-    if (status === 'published') {
-      if (user.role !== 'Owner' && user.role !== 'Editor') {
-        return new Response(
-          JSON.stringify({ error: 'Permission denied: Only Editors or Owners can publish articles' }),
-          { status: 403, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Block if legal_check != 'none' and legal_checked = 0
-      if (legalCheck !== 'none' && !legalChecked) {
-        return new Response(
-          JSON.stringify({
-            error: `Cannot publish: Legal check flag "${legalCheck}" has not been approved (legal_checked = 0).`,
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Block if embargo_until > now
-      if (embargoUntil && new Date(embargoUntil).getTime() > Date.now()) {
-        return new Response(
-          JSON.stringify({
-            error: `Cannot publish: Article is embargoed until ${embargoUntil}.`,
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Block if verified = 0 and source_type != 'Own reporting'
-      if (!verified && sourceType !== 'Own reporting') {
-        return new Response(
-          JSON.stringify({
-            error: `Cannot publish: Story sourced from "${sourceType}" must be marked as verified before publishing.`,
-          }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
-      }
-
-      if (!publishedAt) {
-        publishedAt = new Date().toISOString();
-      }
+      );
     }
 
     if (isFeatured === 1) {
-      await context.env.DB.prepare('UPDATE articles SET is_featured = 0 WHERE is_featured = 1 AND id != ?')
-        .bind(id)
-        .run();
+      statements.push(
+        context.env.DB.prepare('UPDATE articles SET is_featured = 0 WHERE is_featured = 1 AND id != ?').bind(id)
+      );
     }
 
-    await context.env.DB.prepare(`
-      UPDATE articles SET
-        slug = ?, title = ?, standfirst = ?, body = ?, category = ?, area = ?,
-        hero_image = ?, image_caption = ?, photo_credit = ?, photo_source = ?,
-        status = ?, is_breaking = ?, breaking_until = ?, is_featured = ?,
-        tags = ?, seo_title = ?, meta_description = ?,
-        source_type = ?, source_url = ?, source_name = ?, verified = ?,
-        legal_check = ?, legal_checked = ?, embargo_until = ?, correction_note = ?,
-        last_updated_by = ?, published_at = ?, updated_at = datetime("now")
-      WHERE id = ?
-    `)
-      .bind(
+    statements.push(
+      context.env.DB.prepare(`
+        UPDATE articles SET
+          slug = ?, title = ?, standfirst = ?, body = ?, category = ?, area = ?,
+          hero_image = ?, image_caption = ?, photo_credit = ?, photo_source = ?,
+          status = ?, is_breaking = ?, breaking_until = ?, is_featured = ?,
+          tags = ?, seo_title = ?, meta_description = ?,
+          source_type = ?, source_url = ?, source_name = ?, verified = ?,
+          legal_check = ?, legal_checked = ?, embargo_until = ?, correction_note = ?,
+          last_updated_by = ?, published_at = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `).bind(
         slug, title, standfirst, cleanBody, category, area,
         heroImage, imageCaption, photoCredit, photoSource,
         status, isBreaking, breakingUntil, isFeatured,
@@ -241,41 +255,31 @@ export async function onRequestPut(
         legalCheck, legalChecked, embargoUntil, correctionNote,
         user.email, publishedAt, id
       )
-      .run();
-
-    // Determine audit action
-    let action = 'UPDATE_ARTICLE';
-    if (existing.status !== 'published' && status === 'published') {
-      action = 'PUBLISH_ARTICLE';
-    } else if (existing.status === 'published' && status !== 'published') {
-      action = 'UNPUBLISH_ARTICLE';
-    } else if (existing.status === 'published' && user.role === 'Journalist') {
-      action = 'SUBMIT_REVISION_FOR_REVIEW';
-    }
-
-    await logAuditEvent(
-      context.env,
-      user,
-      action,
-      {
-        articleId: id,
-        beforeStatus: existing.status,
-        afterStatus: status,
-        ip: getClientIp(context.request),
-        details: `${action}: "${title}" (${id}) transitioned from ${existing.status} to ${status}`,
-      }
     );
 
-    return new Response(JSON.stringify({ success: true, id, status, slug }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
+    await context.env.DB.batch(statements);
+
+    let action = 'UPDATE_ARTICLE';
+    if (existing.status !== 'published' && status === 'published') action = 'PUBLISH_ARTICLE';
+    else if (existing.status !== 'scheduled' && status === 'scheduled') action = 'SCHEDULE_ARTICLE';
+    else if (existing.status === 'published' && status !== 'published') action = 'UNPUBLISH_ARTICLE';
+
+    await logAuditEvent(context.env, user, action, {
+      articleId: id,
+      beforeStatus: existing.status,
+      afterStatus: status,
+      ip: getClientIp(context.request),
+      details: `${action}: "${title}" (${id}) transitioned from ${existing.status} to ${status}`,
     });
+
+    return jsonResponse({ success: true, id, status, slug });
   } catch (err: any) {
     console.error('Failed to update article:', err);
-    return new Response(JSON.stringify({ error: 'Failed to update article' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const msg = String(err?.message || '');
+    if (msg.includes('UNIQUE constraint failed')) {
+      return jsonResponse({ error: 'Another article already uses this URL slug.' }, 409);
+    }
+    return jsonResponse({ error: 'Failed to update article' }, 500);
   }
 }
 
