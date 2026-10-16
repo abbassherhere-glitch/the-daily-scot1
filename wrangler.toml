@@ -1,4 +1,4 @@
-name = "the-daily-scot"
+name = "daily-scot-public"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
@@ -8,7 +8,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "daily-scot-db"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "53f397c9-efea-4a7e-b0ca-4b71f6965e76"
 
 # Public environment variables (non-secret only)
 # Note: Never put secrets in [vars]. Use wrangler secret:
