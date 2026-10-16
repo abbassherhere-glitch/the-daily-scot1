@@ -55,6 +55,22 @@ import {
 } from '../services/adminApi';
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
 
+/** D1 UTC timestamp ('YYYY-MM-DD HH:MM:SS' or ISO) -> value for a datetime-local input (local time). */
+function utcToLocalInput(value?: string | null): string {
+  if (!value) return '';
+  const d = new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value) ? value.replace(' ', 'T') + 'Z' : value);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** datetime-local value (local time) -> ISO string in UTC, or undefined when empty/invalid. */
+function localInputToIso(value: string): string | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
 export const AdminPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
   const [activeTab, setActiveTab] = useState<'articles' | 'review_queue' | 'users' | 'audit' | 'newsletter'>('articles');
@@ -111,6 +127,7 @@ export const AdminPage: React.FC = () => {
   const [formLegalCheck, setFormLegalCheck] = useState<LegalCheckType>('none');
   const [formLegalChecked, setFormLegalChecked] = useState(false);
   const [formEmbargoUntil, setFormEmbargoUntil] = useState('');
+  const [formPublishAt, setFormPublishAt] = useState('');
   const [formCorrectionNote, setFormCorrectionNote] = useState('');
 
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -182,6 +199,7 @@ export const AdminPage: React.FC = () => {
     setFormStatus('draft');
     setFormIsBreaking(false);
     setFormBreakingUntil('');
+    setFormPublishAt('');
     setFormIsFeatured(false);
     setFormSeoTitle('');
     setFormMetaDesc('');
@@ -213,7 +231,8 @@ export const AdminPage: React.FC = () => {
     setFormTags(Array.isArray(article.tags) ? article.tags.join(', ') : article.tags || '');
     setFormStatus(article.status || 'draft');
     setFormIsBreaking(Boolean(article.is_breaking || article.isBreaking));
-    setFormBreakingUntil(article.breaking_until ? article.breaking_until.slice(0, 16) : '');
+    setFormBreakingUntil(utcToLocalInput(article.breaking_until));
+    setFormPublishAt(article.status === 'scheduled' ? utcToLocalInput(article.published_at) : '');
     setFormIsFeatured(Boolean(article.is_featured || article.isFeaturedLead));
     setFormSeoTitle(article.seo_title || '');
     setFormMetaDesc(article.meta_description || '');
@@ -223,7 +242,7 @@ export const AdminPage: React.FC = () => {
     setFormVerified(Boolean(article.verified));
     setFormLegalCheck(article.legal_check || 'none');
     setFormLegalChecked(Boolean(article.legal_checked));
-    setFormEmbargoUntil(article.embargo_until || '');
+    setFormEmbargoUntil(utcToLocalInput(article.embargo_until));
     setFormCorrectionNote(article.correction_note || '');
     setIsDirty(false);
     setIsEditorOpen(true);
@@ -255,7 +274,10 @@ export const AdminPage: React.FC = () => {
 
   const handleRestoreRevision = async (rev: ArticleRevision) => {
     if (!currentEditId) return;
-    if (!window.confirm(`Are you sure you want to restore the version from ${rev.created_at}? This will overwrite current title and body.`)) {
+    const prompt = rev.kind === 'proposal'
+      ? `Apply ${rev.editor_email}'s proposed changes? This replaces the current title and body (a backup is kept).`
+      : `Are you sure you want to restore the version from ${rev.created_at}? This will overwrite current title and body.`;
+    if (!window.confirm(prompt)) {
       return;
     }
     try {
@@ -288,12 +310,21 @@ export const AdminPage: React.FC = () => {
     const finalStatus = targetStatus || formStatus;
 
     // Client-side pre-validation of publish rules
-    if (finalStatus === 'published') {
+    if (finalStatus === 'scheduled') {
+      const when = formPublishAt ? new Date(formPublishAt).getTime() : NaN;
+      if (isNaN(when) || when <= Date.now()) {
+        alert('Choose a "Publish at" time in the future to schedule this story.');
+        return;
+      }
+    }
+
+    if (finalStatus === 'published' || finalStatus === 'scheduled') {
       if (formLegalCheck !== 'none' && !formLegalChecked) {
         alert(`Cannot publish: Story has legal flag "${formLegalCheck}" but has not been cleared by Legal.`);
         return;
       }
-      if (formEmbargoUntil && new Date(formEmbargoUntil).getTime() > Date.now()) {
+      const goLive = finalStatus === 'scheduled' ? new Date(formPublishAt).getTime() : Date.now();
+      if (formEmbargoUntil && new Date(formEmbargoUntil).getTime() > goLive) {
         alert(`Cannot publish: Story is embargoed until ${formEmbargoUntil}.`);
         return;
       }
@@ -326,7 +357,10 @@ export const AdminPage: React.FC = () => {
       verified: formVerified ? 1 : 0,
       legal_check: formLegalCheck,
       legal_checked: formLegalChecked ? 1 : 0,
-      embargo_until: formEmbargoUntil || undefined,
+      // datetime-local inputs are in the editor's local time; the API stores UTC
+      embargo_until: localInputToIso(formEmbargoUntil) || '',
+      breaking_until: formIsBreaking ? localInputToIso(formBreakingUntil) || undefined : undefined,
+      published_at: finalStatus === 'scheduled' ? localInputToIso(formPublishAt) : undefined,
       correction_note: formCorrectionNote.trim() || undefined,
     };
 
@@ -336,7 +370,7 @@ export const AdminPage: React.FC = () => {
         showToast(`Article saved as ${res.status.toUpperCase()}`);
       } else if (currentEditId) {
         const res = await updateAdminArticle(currentEditId, payload);
-        showToast(`Article updated: ${res.status.toUpperCase()}`);
+        showToast((res as any).message || `Article updated: ${res.status.toUpperCase()}`);
       }
       setIsDirty(false);
       setIsEditorOpen(false);
@@ -1180,6 +1214,22 @@ export const AdminPage: React.FC = () => {
                       className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
                     />
                   </div>
+
+                  {canPublish && (
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-neutral-400 mb-1">Publish At (for scheduling)</label>
+                      <input
+                        type="datetime-local"
+                        value={formPublishAt}
+                        onChange={(e) => {
+                          setFormPublishAt(e.target.value);
+                          setIsDirty(true);
+                        }}
+                        className="w-full bg-neutral-900 border border-neutral-700 rounded px-2.5 py-1.5 text-white outline-none"
+                      />
+                      <p className="text-[10px] text-neutral-500 mt-1">Your local time. Use “Schedule” to publish automatically at this time.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-6 pt-2">
@@ -1401,6 +1451,16 @@ export const AdminPage: React.FC = () => {
                     <span>Submit for Editorial Review</span>
                   </button>
                 ) : (
+                  <>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveArticle('scheduled')}
+                    disabled={!formPublishAt}
+                    title={formPublishAt ? 'Publish automatically at the chosen time' : 'Set a "Publish At" time first'}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-violet-700 hover:bg-violet-600 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded font-bold text-xs uppercase tracking-wider transition"
+                  >
+                    <span>Schedule</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => handleSaveArticle('published')}
@@ -1409,6 +1469,7 @@ export const AdminPage: React.FC = () => {
                     <CheckCircle className="w-4 h-4" />
                     <span>Publish Immediately</span>
                   </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1444,17 +1505,23 @@ export const AdminPage: React.FC = () => {
                 revisionsList.map((rev) => (
                   <div key={rev.id} className="bg-neutral-800 border border-neutral-700 p-3 rounded space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="font-mono text-neutral-400 text-[10px]">
-                        {rev.created_at} • By {rev.editor_email}
+                      <div className="font-mono text-neutral-400 text-[10px] flex items-center gap-2">
+                        {rev.kind === 'proposal' && (
+                          <span className="bg-amber-500 text-black px-1.5 py-0.5 rounded font-bold uppercase">Proposed change</span>
+                        )}
+                        {rev.kind === 'applied' && (
+                          <span className="bg-emerald-700 text-white px-1.5 py-0.5 rounded font-bold uppercase">Applied</span>
+                        )}
+                        <span>{rev.created_at} UTC • By {rev.editor_email}</span>
                       </div>
-                      {canPublish && (
+                      {canPublish && rev.kind !== 'applied' && (
                         <button
                           type="button"
                           onClick={() => handleRestoreRevision(rev)}
                           className="flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold uppercase transition"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          <span>Restore</span>
+                          <span>{rev.kind === 'proposal' ? 'Apply changes' : 'Restore'}</span>
                         </button>
                       )}
                     </div>
