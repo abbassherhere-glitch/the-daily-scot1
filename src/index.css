@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@theme {
+  --font-headline: "Roboto Condensed", "Merriweather", -apple-system, sans-serif;
+  --font-serif-headline: "Merriweather", Georgia, serif;
+  --font-article: "Source Serif 4", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+
+  --color-scot-navy: #0B2545;
+  --color-scot-saltire: #005EB8;
+  --color-scot-red: #D92525;
+  --color-scot-border: #E5E7EB;
+  --color-scot-dark: #111827;
+  --color-scot-muted: #6B7280;
+}
+
+@layer base {
+  body {
+    background-color: #FFFFFF;
+    color: #111827;
+    font-family: var(--font-sans);
+  }
+}
+
+.font-headline {
+  font-family: var(--font-headline);
+  letter-spacing: -0.01em;
+}
+
+.font-serif-headline {
+  font-family: var(--font-serif-headline);
+}
+
+.font-article {
+  font-family: var(--font-article);
+}
+
+/* Print styling */
+@media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
