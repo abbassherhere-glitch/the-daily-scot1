@@ -59,7 +59,8 @@ async function verifyTurnstile(
   ip: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!secretKey) {
-    // If not configured in development, bypass with log
+    // Not configured: allow (rate limiting still applies) but make it visible in logs.
+    console.warn('[Newsletter] TURNSTILE_SECRET not set – signup spam protection is disabled');
     return { success: true };
   }
 
@@ -170,7 +171,7 @@ export async function onRequestPost(context: EventContext<Env, any, any>): Promi
     }
 
     const body = await context.request.json() as { email?: string; turnstile_token?: string };
-    const email = body?.email?.trim().toLowerCase();
+    const email = body?.email?.trim().toLowerCase().slice(0, 254);
 
     // 2. Validate email format
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -193,42 +194,80 @@ export async function onRequestPost(context: EventContext<Env, any, any>): Promi
       );
     }
 
-    // 4. Double opt-in: generate confirmation token
+    // 4. Double opt-in: generate confirmation token (and a permanent unsubscribe token on first signup)
     const token = crypto.randomUUID();
+    const unsubscribeToken = crypto.randomUUID();
 
     await context.env.DB.prepare(
-      `INSERT INTO newsletter_subscribers (email, confirmed, token, created_at)
-       VALUES (?, 0, ?, datetime("now"))
-       ON CONFLICT(email) DO UPDATE SET token = excluded.token, created_at = datetime("now")`
+      `INSERT INTO newsletter_subscribers (email, confirmed, token, unsubscribe_token, created_at)
+       VALUES (?, 0, ?, ?, datetime('now'))
+       ON CONFLICT(email) DO UPDATE SET
+         token = CASE WHEN newsletter_subscribers.confirmed = 1 THEN NULL ELSE excluded.token END,
+         unsubscribe_token = COALESCE(newsletter_subscribers.unsubscribe_token, excluded.unsubscribe_token)`
     )
-      .bind(email, token)
+      .bind(email, token, unsubscribeToken)
       .run();
 
+    const subscriber = await context.env.DB.prepare(
+      'SELECT confirmed, token, unsubscribe_token FROM newsletter_subscribers WHERE email = ?'
+    )
+      .bind(email)
+      .first<{ confirmed: number; token: string | null; unsubscribe_token: string | null }>();
+
+    // Already confirmed: don't send another email, but don't reveal subscription status either
+    if (subscriber && subscriber.confirmed === 1) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'Please check your email to confirm your subscription.' }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 5. Send double opt-in confirmation email via Resend if API key is present
-    const siteUrl = context.env.SITE_URL || new URL(context.request.url).origin;
-    const confirmLink = `${siteUrl}/api/newsletter?token=${token}&email=${encodeURIComponent(email)}`;
+    const siteUrl = (context.env.SITE_URL || new URL(context.request.url).origin).replace(/\/+$/, '');
+    const encodedEmail = encodeURIComponent(email);
+    const confirmLink = `${siteUrl}/api/newsletter?token=${subscriber?.token || token}&email=${encodedEmail}`;
+    const unsubscribeLink = `${siteUrl}/api/unsubscribe?token=${subscriber?.unsubscribe_token || unsubscribeToken}&email=${encodedEmail}`;
 
     if (context.env.RESEND_API_KEY) {
       try {
-        await fetch('https://api.resend.com/emails', {
+        const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${context.env.RESEND_API_KEY}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: 'The Daily Scot <newsletter@dailyscot.co.uk>',
+            from: context.env.NEWSLETTER_FROM || 'The Daily Scot <newsletter@dailyscot.co.uk>',
             to: [email],
             subject: 'Confirm your subscription to The Daily Scot',
-            html: `<p>Please confirm your subscription to The Daily Scot Morning Briefing by clicking the link below:</p><p><a href="${confirmLink}">Confirm Subscription</a></p>`,
+            headers: {
+              'List-Unsubscribe': `<${unsubscribeLink}>`,
+              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+            },
+            html:
+              `<p>Please confirm your subscription to The Daily Scot Morning Briefing by clicking the link below:</p>` +
+              `<p><a href="${confirmLink}">Confirm Subscription</a></p>` +
+              `<p style="font-size:12px;color:#666">If you did not request this, ignore this email or ` +
+              `<a href="${unsubscribeLink}">remove your address</a>.</p>`,
           }),
         });
+        if (!res.ok) {
+          console.error('Resend rejected confirmation email:', res.status, await res.text());
+          return new Response(
+            JSON.stringify({ error: 'We could not send the confirmation email. Please try again later.' }),
+            { status: 502, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
       } catch (e) {
-        console.warn('Failed to send verification email via Resend:', e);
+        console.error('Failed to send verification email via Resend:', e);
+        return new Response(
+          JSON.stringify({ error: 'We could not send the confirmation email. Please try again later.' }),
+          { status: 502, headers: { 'Content-Type': 'application/json' } }
+        );
       }
     } else {
-      // Note: TODO: Configure RESEND_API_KEY via `wrangler pages secret put RESEND_API_KEY` for production transactional email
-      console.log(`[Double Opt-In TODO] Confirmation email link for ${email}: ${confirmLink}`);
+      // Configure RESEND_API_KEY via `wrangler pages secret put RESEND_API_KEY` for production email
+      console.warn(`[Newsletter] RESEND_API_KEY not set – confirmation link for ${email}: ${confirmLink}`);
     }
 
     return new Response(

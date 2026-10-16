@@ -8,8 +8,8 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       FROM articles
       WHERE is_breaking = 1
         AND status = 'published'
-        AND published_at <= datetime('now')
-        AND (breaking_until IS NULL OR breaking_until > datetime('now'))
+        AND datetime(published_at) <= datetime('now')
+        AND (breaking_until IS NULL OR datetime(breaking_until) > datetime('now'))
       ORDER BY published_at DESC
       LIMIT 5
     `;

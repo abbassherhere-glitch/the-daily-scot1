@@ -23,7 +23,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
         COALESCE(SUM(pv.count), 0) AS total_views
       FROM articles a
       JOIN page_views pv ON a.id = pv.article_id
-      WHERE a.status = 'published' AND a.published_at <= datetime('now')
+      WHERE a.status = 'published' AND datetime(a.published_at) <= datetime('now')
       GROUP BY a.id
       ORDER BY total_views DESC
       LIMIT 5
@@ -49,66 +49,63 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
 
 /**
  * POST /api/views
- * Increments page view count for an article, strictly rate limited per IP per article
+ * Increments the daily page-view count for an article.
+ * De-duplicates per IP per article for 10 minutes using the edge Cache API (free, no D1 writes),
+ * so each counted view costs exactly ONE D1 write (D1 free tier: 100k writes/day).
  */
 export async function onRequestPost(context: EventContext<Env, any, any>): Promise<Response> {
   try {
     const ip = getClientIp(context.request);
-    const body = await context.request.json() as { article_id?: string; slug?: string };
+    const body = (await context.request.json().catch(() => ({}))) as { article_id?: string; slug?: string };
 
-    let articleId = body.article_id;
-
-    if (!articleId && body.slug) {
-      const art = await context.env.DB
-        .prepare("SELECT id FROM articles WHERE slug = ? AND status = 'published' LIMIT 1")
-        .bind(body.slug)
-        .first<{ id: string }>();
-      if (art) {
-        articleId = art.id;
-      }
-    }
-
-    if (!articleId) {
+    const slug = typeof body.slug === 'string' ? body.slug.slice(0, 120) : '';
+    const articleIdInput = typeof body.article_id === 'string' ? body.article_id.slice(0, 80) : '';
+    if (!slug && !articleIdInput) {
       return new Response(JSON.stringify({ error: 'Valid article_id or slug required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Rate limit per IP per article: 1 count per 10 minutes (600s)
-    const rateLimitKey = `rate:pv:${articleId}:${ip}`;
-    const now = Math.floor(Date.now() / 1000);
+    // Dedupe key (IP is hashed so it never leaves this function in clear text)
+    const ipHash = Array.from(
+      new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`pv:${ip}`)))
+    )
+      .slice(0, 12)
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const dedupeKey = new Request(
+      `https://pv-dedupe.internal/${encodeURIComponent(slug || articleIdInput)}/${ipHash}`
+    );
+    // @ts-ignore - caches.default is provided by the Workers runtime
+    const cache: Cache | undefined = typeof caches !== 'undefined' ? (caches as any).default : undefined;
 
-    const existingRate = await context.env.DB
-      .prepare('SELECT expires_at FROM rate_limits WHERE key = ?')
-      .bind(rateLimitKey)
-      .first<{ expires_at: number }>();
-
-    if (existingRate && existingRate.expires_at > now) {
-      // Already counted recently for this IP and article
+    if (cache && (await cache.match(dedupeKey))) {
       return new Response(JSON.stringify({ recorded: false, reason: 'rate_limited' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    // Record rate limit for this IP and article
-    await context.env.DB
-      .prepare('INSERT OR REPLACE INTO rate_limits (key, count, expires_at) VALUES (?, 1, ?)')
-      .bind(rateLimitKey, now + 600)
-      .run();
-
-    // Increment page_views in D1 table
-    await context.env.DB
-      .prepare(`
+    // Single write: only counts views for real, live articles
+    const result = await context.env.DB.prepare(`
         INSERT INTO page_views (article_id, day, count)
-        VALUES (?, date('now'), 1)
+        SELECT id, date('now'), 1 FROM articles
+        WHERE (slug = ? OR id = ?) AND status = 'published' AND datetime(published_at) <= datetime('now')
+        LIMIT 1
         ON CONFLICT(article_id, day) DO UPDATE SET count = count + 1
       `)
-      .bind(articleId)
+      .bind(slug, articleIdInput)
       .run();
 
-    return new Response(JSON.stringify({ recorded: true }), {
+    if (cache) {
+      context.waitUntil(
+        cache.put(dedupeKey, new Response('1', { headers: { 'Cache-Control': 'max-age=600' } }))
+      );
+    }
+
+    const recorded = Boolean((result as any)?.meta?.changes);
+    return new Response(JSON.stringify({ recorded }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
