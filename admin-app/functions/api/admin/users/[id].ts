@@ -1,0 +1,65 @@
+import { Env, EventContext, User } from '../../../types';
+import { sanitizePlainText } from '../../../utils/sanitize';
+import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
+
+export async function onRequestPut(
+  context: EventContext<Env, 'id', { user: User }>
+): Promise<Response> {
+  try {
+    const user = context.data.user;
+    const id = context.params.id as string;
+
+    // Only Owner manages users
+    const roleErr = requireRole(user, ['Owner']);
+    if (roleErr) return roleErr;
+
+    const body = await context.request.json() as any;
+
+    const existing = await context.env.DB.prepare('SELECT * FROM users WHERE id = ?')
+      .bind(id)
+      .first<User>();
+
+    if (!existing) {
+      return new Response(JSON.stringify({ error: 'User not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const name = sanitizePlainText(body.name || existing.name, 100);
+    const role = (body.role || existing.role) as 'Owner' | 'Editor' | 'Journalist' | 'Bot';
+    const bio = sanitizePlainText(body.bio !== undefined ? body.bio : existing.bio || '', 300);
+    const photo = body.photo !== undefined ? body.photo : existing.photo;
+    const active = body.active !== undefined ? (body.active ? 1 : 0) : existing.active;
+
+    await context.env.DB.prepare(`
+      UPDATE users SET name = ?, role = ?, bio = ?, photo = ?, active = ? WHERE id = ?
+    `)
+      .bind(name, role, bio, photo, active, id)
+      .run();
+
+    await logAuditEvent(
+      context.env,
+      user,
+      'UPDATE_USER',
+      {
+        articleId: null,
+        beforeStatus: existing.role,
+        afterStatus: role,
+        ip: getClientIp(context.request),
+        details: `Updated user ${existing.email} (Role: ${role}, Active: ${active})`,
+      }
+    );
+
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err: any) {
+    console.error('Failed to update user:', err);
+    return new Response(JSON.stringify({ error: 'Failed to update user' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
