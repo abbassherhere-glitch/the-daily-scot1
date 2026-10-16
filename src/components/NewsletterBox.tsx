@@ -125,7 +125,7 @@ export const NewsletterBox: React.FC<{ className?: string }> = ({ className = ''
           </div>
           {TURNSTILE_SITE_KEY && <div ref={widgetRef} className="min-h-[65px]" />}
           {error && (
-            <div className="flex items-start gap-1.5 text-[11px] text-red-200 bg-red-900/40 border border-red-500/40 rounded p-2">
+            <div role="alert" className="flex items-start gap-1.5 text-[11px] text-red-200 bg-red-900/40 border border-red-500/40 rounded p-2">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
               <span>{error}</span>
             </div>

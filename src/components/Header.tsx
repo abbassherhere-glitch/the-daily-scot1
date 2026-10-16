@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Menu, X, Bookmark, ChevronRight, Zap } from 'lucide-react';
+import { Search, Menu, X, Bookmark, Zap, Pause, Play } from 'lucide-react';
+import { SpaLink, categoryHref } from './SpaLink';
 import { CategoryType, Article } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
 
@@ -36,6 +37,28 @@ function weatherCodeToText(code: number): string {
   return 'Cloudy';
 }
 
+// The ticker only has headline data; App loads the full story when a stub is opened.
+function toStub(art: BreakingArticle): Article {
+  return {
+    id: art.id,
+    slug: art.slug,
+    title: art.title,
+    standfirst: art.standfirst || '',
+    category: art.category as CategoryType,
+    publishedAt: art.published_at || new Date().toISOString(),
+    content: [],
+    tags: [],
+    author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
+    heroImage: '',
+    heroCaption: '',
+    heroCredit: '',
+    readTime: '',
+    views: 0,
+    comments: [],
+    isPartial: true,
+  };
+}
+
 export const Header: React.FC<HeaderProps> = ({
   currentCategory,
   onSelectCategory,
@@ -48,7 +71,10 @@ export const Header: React.FC<HeaderProps> = ({
   const [weatherText, setWeatherText] = useState<string>('Glasgow: Loading weather...');
   const [breakingNews, setBreakingNews] = useState<BreakingArticle[]>([]);
   const [activeTickerIdx, setActiveTickerIdx] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  // Rotation pauses while hovered/focused, and stays paused if the reader presses Pause (WCAG 2.2.2)
+  const [isHovered, setIsHovered] = useState(false);
+  const [isUserPaused, setIsUserPaused] = useState(false);
+  const isPaused = isHovered || isUserPaused;
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   // Formatted date string
@@ -153,17 +179,18 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="font-medium text-neutral-800">{dateStr}</span>
-            <span className="text-neutral-400">|</span>
+            <span className="text-neutral-500" aria-hidden="true">|</span>
             <span className="text-neutral-700 font-medium">{weatherText}</span>
           </div>
 
           <div className="flex items-center gap-4 text-neutral-600">
             <button
+              type="button"
               onClick={onOpenSaved}
-              className="hover:text-[#005EB8] flex items-center gap-1 font-medium transition"
-              title="Saved reading list"
+              className="hover:text-[#005EB8] flex items-center gap-1 font-medium transition min-h-6"
+              aria-haspopup="dialog"
             >
-              <Bookmark className="w-3 h-3 text-neutral-500" />
+              <Bookmark className="w-3 h-3 text-neutral-600" aria-hidden="true" />
               <span>Saved ({savedCount})</span>
             </button>
           </div>
@@ -172,203 +199,177 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* 2. MASTHEAD */}
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between border-b border-neutral-200">
-        <div
-          onClick={() => onSelectCategory('all')}
-          className="cursor-pointer group flex items-baseline gap-2 select-none"
+        <SpaLink
+          href="/"
+          onNavigate={() => onSelectCategory('all')}
+          className="group flex items-baseline gap-2 select-none"
         >
-          <div className="flex items-center">
-            <span className="font-headline font-black text-2xl sm:text-3xl tracking-tight text-[#0B2545] uppercase">
-              {SITE_CONFIG.name}
-            </span>
-          </div>
+          <span className="font-headline font-black text-2xl sm:text-3xl tracking-tight text-[#0B2545] uppercase">
+            {SITE_CONFIG.name}
+          </span>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[#005EB8] hidden sm:inline border-l border-neutral-300 pl-2">
             Glasgow & West
           </span>
-        </div>
+          <span className="sr-only">– homepage</span>
+        </SpaLink>
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={onOpenSearch}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-neutral-800 hover:text-[#005EB8] hover:bg-neutral-100 border border-neutral-300 transition"
-            title="Search news"
+            aria-label="Search news"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-4 h-4" aria-hidden="true" />
             <span className="hidden sm:inline">Search</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="md:hidden p-1.5 text-neutral-800 hover:bg-neutral-100 border border-neutral-300"
-            aria-label="Toggle navigation menu"
+            aria-label={mobileMenuOpen ? 'Close sections menu' : 'Open sections menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-sections-menu"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
           </button>
         </div>
       </div>
 
       {/* 3. CANONICAL SECTIONS NAVIGATION BAR */}
       {/* Exact required order: Home, News, Glasgow, Scotland, Politics, Business, Property, Sport, What's On, Opinion */}
-      <nav className="bg-[#0B2545] text-white">
+      <nav className="bg-[#0B2545] text-white" aria-label="Sections">
         <div className="max-w-7xl mx-auto px-2 sm:px-4">
-          <div className="hidden md:flex items-center space-x-0.5 overflow-x-auto text-[13px] font-bold uppercase tracking-wider scrollbar-none">
+          <ul className="hidden md:flex items-center space-x-0.5 overflow-x-auto text-[13px] font-bold uppercase tracking-wider scrollbar-none">
             {SITE_CONFIG.sections.map((sec) => {
-              const isActive =
-                sec.slug === 'home'
-                  ? currentCategory === 'all'
-                  : currentCategory === sec.slug;
+              const isActive = sec.slug === 'home' ? currentCategory === 'all' : currentCategory === sec.slug;
               return (
-                <button
-                  key={sec.slug}
-                  onClick={() => handleSectionClick(sec.slug)}
-                  className={`px-3 py-2.5 transition whitespace-nowrap shrink-0 ${
-                    isActive
-                      ? 'bg-[#005EB8] text-white font-black'
-                      : 'text-neutral-200 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
-                  {sec.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Mobile Horizontal Section Scroll (no overflow) */}
-          <div className="md:hidden flex items-center overflow-x-auto text-xs font-bold uppercase tracking-wider py-1 scrollbar-none">
-            {SITE_CONFIG.sections.map((sec) => {
-              const isActive =
-                sec.slug === 'home'
-                  ? currentCategory === 'all'
-                  : currentCategory === sec.slug;
-              return (
-                <button
-                  key={sec.slug}
-                  onClick={() => handleSectionClick(sec.slug)}
-                  className={`px-2.5 py-1.5 whitespace-nowrap shrink-0 transition ${
-                    isActive
-                      ? 'bg-[#005EB8] text-white'
-                      : 'text-neutral-200 hover:text-white'
-                  }`}
-                >
-                  {sec.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Mobile Nav Menu Drawer (Full vertical list when toggle clicked) */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-2 space-y-0.5 border-t border-white/15">
-              {SITE_CONFIG.sections.map((sec) => {
-                const isActive =
-                  sec.slug === 'home'
-                    ? currentCategory === 'all'
-                    : currentCategory === sec.slug;
-                return (
-                  <button
-                    key={sec.slug}
-                    onClick={() => handleSectionClick(sec.slug)}
-                    className={`w-full text-left px-3 py-2 text-xs font-bold uppercase transition ${
-                      isActive ? 'bg-[#005EB8] text-white' : 'text-neutral-200 hover:bg-white/10'
+                <li key={sec.slug} className="shrink-0">
+                  <SpaLink
+                    href={categoryHref(sec.slug)}
+                    onNavigate={() => handleSectionClick(sec.slug)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`block px-3 py-2.5 transition whitespace-nowrap focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2 ${
+                      isActive ? 'bg-[#005EB8] text-white font-black' : 'text-neutral-200 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     {sec.label}
-                  </button>
+                  </SpaLink>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Mobile horizontal section scroller */}
+          <ul className="md:hidden flex items-center overflow-x-auto text-xs font-bold uppercase tracking-wider py-1 scrollbar-none">
+            {SITE_CONFIG.sections.map((sec) => {
+              const isActive = sec.slug === 'home' ? currentCategory === 'all' : currentCategory === sec.slug;
+              return (
+                <li key={sec.slug} className="shrink-0">
+                  <SpaLink
+                    href={categoryHref(sec.slug)}
+                    onNavigate={() => handleSectionClick(sec.slug)}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`block px-2.5 py-2 whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2 ${
+                      isActive ? 'bg-[#005EB8] text-white' : 'text-neutral-200 hover:text-white'
+                    }`}
+                  >
+                    {sec.label}
+                  </SpaLink>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Mobile Nav Menu Drawer (Full vertical list when toggle clicked) */}
+          {mobileMenuOpen && (
+            <ul id="mobile-sections-menu" className="md:hidden py-2 space-y-0.5 border-t border-white/15">
+              {SITE_CONFIG.sections.map((sec) => {
+                const isActive = sec.slug === 'home' ? currentCategory === 'all' : currentCategory === sec.slug;
+                return (
+                  <li key={sec.slug}>
+                    <SpaLink
+                      href={categoryHref(sec.slug)}
+                      onNavigate={() => handleSectionClick(sec.slug)}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`block w-full text-left px-3 py-2 text-xs font-bold uppercase transition focus-visible:outline-2 focus-visible:outline-white focus-visible:-outline-offset-2 ${
+                        isActive ? 'bg-[#005EB8] text-white' : 'text-neutral-200 hover:bg-white/10'
+                      }`}
+                    >
+                      {sec.label}
+                    </SpaLink>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           )}
         </div>
       </nav>
 
-      {/* 4. AUTOMATIC BREAKING NEWS TICKER */}
-      {/* Hidden completely when nothing is breaking */}
+      {/* 4. BREAKING NEWS TICKER (hidden when nothing is breaking) */}
+      {/* Not a live region: rotating headlines would interrupt screen readers every few seconds. */}
       {breakingNews.length > 0 && currentBreaking && (
-        <div
+        <section
+          aria-label="Breaking news"
           className="bg-neutral-900 text-white border-b border-neutral-300 px-4 py-1.5 transition-colors"
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          onFocus={() => setIsPaused(true)}
-          onBlur={() => setIsPaused(false)}
-          aria-live="polite"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          onFocus={() => setIsHovered(true)}
+          onBlur={() => setIsHovered(false)}
         >
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2 min-w-0 flex-1">
               <span className="bg-[#D92525] text-white text-[10px] font-black uppercase tracking-wider px-2 py-0.5 shrink-0 flex items-center gap-1">
-                <Zap className="w-3 h-3 fill-current" />
+                <Zap className="w-3 h-3 fill-current" aria-hidden="true" />
                 Breaking
               </span>
 
-              {/* Reduced motion: Show all headlines as a static clean list */}
+              {/* Reduced motion: show all headlines as a static list */}
               {prefersReducedMotion ? (
-                <div className="flex items-center gap-3 overflow-x-auto truncate">
+                <ul className="flex items-center gap-3 overflow-x-auto truncate">
                   {breakingNews.map((art, idx) => (
-                    <button
-                      key={art.id}
-                      onClick={() =>
-                        onSelectArticle({
-                          id: art.id,
-                          slug: art.slug,
-                          title: art.title,
-                          standfirst: art.standfirst || '',
-                          category: art.category as CategoryType,
-                          publishedAt: art.published_at || new Date().toISOString(),
-                          content: [],
-                          tags: [],
-                          author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
-                          heroImage: '',
-                          heroCaption: '',
-                          heroCredit: '',
-                          readTime: '',
-                          views: 0,
-                          comments: [],
-                        })
-                      }
-                      className="font-bold hover:underline hover:text-neutral-200 truncate text-left"
-                    >
-                      {art.title} {idx < breakingNews.length - 1 && '•'}
-                    </button>
+                    <li key={art.id} className="shrink-0">
+                      <SpaLink
+                        href={`/news/${encodeURIComponent(art.slug)}`}
+                        onNavigate={() => onSelectArticle(toStub(art))}
+                        className="font-bold hover:underline hover:text-neutral-200"
+                      >
+                        {art.title}
+                      </SpaLink>
+                      {idx < breakingNews.length - 1 && <span aria-hidden="true"> •</span>}
+                    </li>
                   ))}
-                </div>
+                </ul>
               ) : (
-                /* Animated Rotating Headline with fade */
-                <button
-                  onClick={() =>
-                    onSelectArticle({
-                      id: currentBreaking.id,
-                      slug: currentBreaking.slug,
-                      title: currentBreaking.title,
-                      standfirst: currentBreaking.standfirst || '',
-                      category: currentBreaking.category as CategoryType,
-                      publishedAt: currentBreaking.published_at || new Date().toISOString(),
-                      content: [],
-                      tags: [],
-                      author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
-                      heroImage: '',
-                      heroCaption: '',
-                      heroCredit: '',
-                      readTime: '',
-                      views: 0,
-                      comments: [],
-                    })
-                  }
+                <SpaLink
+                  href={`/news/${encodeURIComponent(currentBreaking.slug)}`}
+                  onNavigate={() => onSelectArticle(toStub(currentBreaking))}
                   className="font-bold hover:underline hover:text-neutral-200 truncate text-left transition-opacity duration-300"
                 >
                   {currentBreaking.title}
-                </button>
+                </SpaLink>
               )}
             </div>
 
-            <div className="text-[11px] text-neutral-400 shrink-0 hidden sm:flex items-center gap-1">
-              {breakingNews.length > 1 && !prefersReducedMotion && (
-                <span className="text-[10px] text-neutral-400 mr-2">
+            {breakingNews.length > 1 && !prefersReducedMotion && (
+              <div className="shrink-0 flex items-center gap-2 text-[11px] text-neutral-300">
+                <span className="hidden sm:inline" aria-hidden="true">
                   {activeTickerIdx + 1} of {breakingNews.length}
                 </span>
-              )}
-              <span className="text-[11px]">View</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
+                <button
+                  type="button"
+                  onClick={() => setIsUserPaused((v) => !v)}
+                  aria-pressed={isUserPaused}
+                  aria-label={isUserPaused ? 'Resume rotating breaking headlines' : 'Pause rotating breaking headlines'}
+                  className="flex items-center justify-center w-6 h-6 border border-neutral-600 hover:bg-white/10"
+                >
+                  {isUserPaused ? <Play className="w-3 h-3" aria-hidden="true" /> : <Pause className="w-3 h-3" aria-hidden="true" />}
+                </button>
+              </div>
+            )}
           </div>
-        </div>
+        </section>
       )}
     </header>
   );

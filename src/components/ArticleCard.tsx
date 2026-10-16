@@ -1,5 +1,6 @@
 import React from 'react';
 import { Article } from '../types/news';
+import { SpaLink, articleHref } from './SpaLink';
 
 interface ArticleCardProps {
   article: Article;
@@ -7,6 +8,11 @@ interface ArticleCardProps {
   onSelect: (article: Article) => void;
   className?: string;
 }
+
+// The headline link covers the whole card (so the card stays clickable) while keeping a single,
+// properly named link for keyboard and screen-reader users.
+const STRETCHED_LINK =
+  "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8] focus-visible:after:outline-offset-2";
 
 export const ArticleCard: React.FC<ArticleCardProps> = ({
   article,
@@ -37,15 +43,14 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   if (variant === 'lead') {
     return (
       <article
-        onClick={() => onSelect(article)}
-        className={`group cursor-pointer bg-white border border-neutral-200 hover:border-neutral-400 transition ${className}`}
+        className={`group relative cursor-pointer bg-white border border-neutral-200 hover:border-neutral-400 transition ${className}`}
       >
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-0">
           {/* Image Left */}
           <div className="sm:col-span-7 aspect-16/10 bg-neutral-100 overflow-hidden relative">
             <img
               src={article.heroImage}
-              alt={article.title}
+              alt=""
               className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
               loading="eager"
             />
@@ -71,7 +76,9 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
               </div>
 
               <h2 className="font-headline font-bold text-xl sm:text-2xl text-neutral-900 leading-tight group-hover:text-[#005EB8] group-hover:underline transition">
-                {article.title}
+                <SpaLink href={articleHref(article)} onNavigate={() => onSelect(article)} className={STRETCHED_LINK}>
+                  {article.title}
+                </SpaLink>
               </h2>
 
               <p className="mt-2 text-xs text-neutral-600 line-clamp-3 leading-relaxed font-serif">
@@ -93,18 +100,19 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   if (variant === 'text-only') {
     return (
       <article
-        onClick={() => onSelect(article)}
-        className={`group cursor-pointer py-2.5 border-b border-neutral-200 last:border-b-0 ${className}`}
+        className={`group relative cursor-pointer py-2.5 border-b border-neutral-200 last:border-b-0 ${className}`}
       >
         <div className="flex items-center gap-1.5 mb-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8]">
             {sectionLabel}
           </span>
-          <span className="text-[10px] text-neutral-400">• {timeStr}</span>
+          <span className="text-[10px] text-neutral-600">• {timeStr}</span>
         </div>
 
         <h3 className="font-headline font-bold text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug">
-          {article.title}
+          <SpaLink href={articleHref(article)} onNavigate={() => onSelect(article)} className={STRETCHED_LINK}>
+            {article.title}
+          </SpaLink>
         </h3>
       </article>
     );
@@ -114,13 +122,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   if (variant === 'thumb-left') {
     return (
       <article
-        onClick={() => onSelect(article)}
-        className={`group cursor-pointer py-3 border-b border-neutral-200 last:border-b-0 flex gap-3 items-start ${className}`}
+        className={`group relative cursor-pointer py-3 border-b border-neutral-200 last:border-b-0 flex gap-3 items-start ${className}`}
       >
         <div className="w-28 sm:w-32 aspect-16/10 shrink-0 bg-neutral-100 overflow-hidden">
           <img
             src={article.heroImage}
-            alt={article.title}
+            alt=""
             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
             loading="lazy"
           />
@@ -131,12 +138,14 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8]">
               {sectionLabel}
             </span>
-            <span className="text-[10px] text-neutral-400">• {timeStr}</span>
+            <span className="text-[10px] text-neutral-600">• {timeStr}</span>
           </div>
 
-          <h4 className="font-headline font-bold text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
-            {article.title}
-          </h4>
+          <h3 className="font-headline font-bold text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
+            <SpaLink href={articleHref(article)} onNavigate={() => onSelect(article)} className={STRETCHED_LINK}>
+              {article.title}
+            </SpaLink>
+          </h3>
         </div>
       </article>
     );
@@ -145,14 +154,13 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 4. STANDARD GRID CARD (Small 16:9 thumbnail, short title, time)
   return (
     <article
-      onClick={() => onSelect(article)}
-      className={`group cursor-pointer bg-white border border-neutral-200 hover:border-neutral-400 transition flex flex-col justify-between ${className}`}
+      className={`group relative cursor-pointer bg-white border border-neutral-200 hover:border-neutral-400 transition flex flex-col justify-between ${className}`}
     >
       <div>
         <div className="aspect-16/10 bg-neutral-100 overflow-hidden relative">
           <img
             src={article.heroImage}
-            alt={article.title}
+            alt=""
             className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
             loading="lazy"
           />
@@ -164,7 +172,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         </div>
 
         <div className="p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-400 mb-1">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-600 mb-1">
             <span className="text-[#005EB8] uppercase tracking-wider font-black">
               {sectionLabel}
             </span>
@@ -173,14 +181,16 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           </div>
 
           <h3 className="font-headline font-bold text-sm sm:text-base text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
-            {article.title}
+            <SpaLink href={articleHref(article)} onNavigate={() => onSelect(article)} className={STRETCHED_LINK}>
+              {article.title}
+            </SpaLink>
           </h3>
         </div>
       </div>
 
       <div className="px-3 pb-3 text-[11px] text-neutral-500 font-medium border-t border-neutral-100 pt-2 flex items-center justify-between">
         <span className="truncate">{article.locationTag || 'Glasgow'}</span>
-        <span className="text-neutral-400">{article.readTime}</span>
+        <span className="text-neutral-600">{article.readTime}</span>
       </div>
     </article>
   );
