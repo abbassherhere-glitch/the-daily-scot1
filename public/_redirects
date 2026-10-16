@@ -1,0 +1,5 @@
+# Cloudflare Pages SPA Routing
+/api/* /api/:splat 200
+/news/* /index.html 200
+/admin/* /index.html 200
+/* /index.html 200
