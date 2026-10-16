@@ -163,7 +163,10 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   return match || null;
 }
 
-export async function submitNewsletter(email: string): Promise<{ success: boolean; message: string }> {
+export async function submitNewsletter(
+  email: string,
+  turnstileToken?: string
+): Promise<{ success: boolean; message: string }> {
   const isLive = await checkApiAvailability();
 
   if (isLive) {
@@ -171,7 +174,7 @@ export async function submitNewsletter(email: string): Promise<{ success: boolea
       const res = await fetch('/api/newsletter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, turnstile_token: turnstileToken }),
       });
       if (res.ok) {
         return await res.json() as any;
@@ -193,7 +196,7 @@ export async function submitNewsletter(email: string): Promise<{ success: boolea
     subs.unshift({ email, confirmed: 1, created_at: new Date().toISOString() });
     localStorage.setItem(PREVIEW_SUBSCRIBERS_KEY, JSON.stringify(subs));
   }
-  return { success: true, message: 'Subscribed to The Glasgow Morning Briefing' };
+  return { success: true, message: 'Please check your email to confirm your subscription.' };
 }
 
 function parseBodyToBlocks(body: string): string[] {
@@ -213,6 +216,15 @@ function parseBodyToBlocks(body: string): string[] {
     .map((p) => p.trim())
     .filter((p) => p.length > 0)
     .map((p) => (p.startsWith('<') ? p : `<p>${p}</p>`));
+}
+
+// D1 returns timestamps as 'YYYY-MM-DD HH:MM:SS' (UTC). Convert to ISO so every browser parses them as UTC.
+function toIsoDate(value: string | null | undefined): string {
+  if (!value) return new Date().toISOString();
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value)) {
+    return value.replace(' ', 'T') + 'Z';
+  }
+  return value;
 }
 
 function transformD1RowToArticle(row: any): Article {
@@ -237,22 +249,24 @@ function transformD1RowToArticle(row: any): Article {
     category: row.category as CategoryType,
     subcategory: row.category_name || row.category,
     locationTag: row.area || undefined,
-    content: contentParagraphs.length > 0 ? contentParagraphs : [row.standfirst],
+    // List endpoints omit the body; mark those as partial so the full story is fetched when opened.
+    content: contentParagraphs,
+    isPartial: typeof row.body !== 'string',
     author: {
       name: row.author_name || 'Staff Reporter',
       role: row.author_role || 'The Daily Scot Newsdesk',
-      avatar: row.author_photo || 'https://picsum.photos/seed/reporter/240/240',
+      avatar: row.author_photo || '',
     },
-    publishedAt: row.published_at || row.created_at,
-    updatedAt: row.updated_at,
+    publishedAt: toIsoDate(row.published_at || row.created_at),
+    updatedAt: row.updated_at ? toIsoDate(row.updated_at) : undefined,
     readTime: `${Math.max(2, Math.ceil((row.body || '').split(' ').length / 180))} min read`,
-    heroImage: row.hero_image || 'https://picsum.photos/seed/glasgowlead/1200/800',
-    heroCaption: row.image_caption || 'The Daily Scot reporting.',
-    heroCredit: 'Photograph: The Daily Scot Staff',
+    heroImage: row.hero_image || '/placeholder-hero.svg',
+    heroCaption: row.image_caption || '',
+    heroCredit: row.photo_credit ? `Photograph: ${row.photo_credit}` : '',
     isBreaking: Boolean(row.is_breaking),
     isFeaturedLead: Boolean(row.is_featured),
     isTopStory: true,
-    views: 1240,
+    views: Number(row.total_views) || 0,
     comments: [],
     tags,
   };
