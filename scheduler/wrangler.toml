@@ -10,4 +10,4 @@ crons = ["*/5 * * * *"]
 [[d1_databases]]
 binding = "DB"
 database_name = "daily-scot-db"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "53f397c9-efea-4a7e-b0ca-4b71f6965e76"
