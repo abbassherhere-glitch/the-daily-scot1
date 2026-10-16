@@ -18,8 +18,8 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       `SELECT slug, title, category, published_at 
        FROM articles 
        WHERE status = 'published' 
-         AND published_at <= datetime('now') 
-         AND published_at >= datetime('now', '-48 hours')
+         AND datetime(published_at) <= datetime('now') 
+         AND datetime(published_at) >= datetime('now', '-48 hours')
        ORDER BY published_at DESC 
        LIMIT 1000`
     ).all<{ slug: string; title: string; category: string; published_at: string }>();

@@ -6,7 +6,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     const domain = url.origin;
 
     const { results: articles } = await context.env.DB.prepare(
-      "SELECT slug, category, updated_at FROM articles WHERE status = 'published' AND published_at <= datetime('now') ORDER BY published_at DESC LIMIT 1000"
+      "SELECT slug, category, updated_at FROM articles WHERE status = 'published' AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 1000"
     ).all<{ slug: string; category: string; updated_at: string }>();
 
     const categories = ['news', 'glasgow', 'scotland', 'politics', 'business', 'property', 'sport', 'whats-on', 'opinion'];

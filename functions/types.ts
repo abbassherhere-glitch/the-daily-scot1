@@ -33,6 +33,7 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   RESEND_API_KEY?: string;
   SITE_URL?: string;
+  NEWSLETTER_FROM?: string;
   NODE_ENV?: string;
   ENVIRONMENT?: string;
 }

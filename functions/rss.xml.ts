@@ -18,7 +18,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       SELECT a.slug, a.title, a.standfirst, a.category, a.published_at, u.name AS author_name
       FROM articles a
       LEFT JOIN users u ON a.author_id = u.id
-      WHERE a.status = 'published' AND a.published_at <= datetime('now')
+      WHERE a.status = 'published' AND datetime(a.published_at) <= datetime('now')
       ORDER BY a.published_at DESC
       LIMIT 50
     `).all<{
