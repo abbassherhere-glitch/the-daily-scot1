@@ -82,6 +82,7 @@ export interface ArticleRevision {
   previous_title: string;
   previous_body: string;
   change_summary?: string;
+  kind?: 'snapshot' | 'proposal' | 'applied';
   created_at: string;
 }
 
