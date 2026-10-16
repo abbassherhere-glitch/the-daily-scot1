@@ -61,40 +61,46 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
    - Go to **Storage & Databases** → **D1** → **Create database**.
    - Name: `daily-scot-db`.
    - Copy the generated **Database ID** (UUID).
-3. **Create the R2 Media Storage Bucket**:
+3. **Put the Database ID into all three config files** (replace `REPLACE_WITH_D1_ID`) and commit:
+   - `wrangler.toml` (public site)
+   - `admin-app/wrangler.toml` (newsroom)
+   - `scheduler/wrangler.toml` (scheduler)
+
+   > Because these projects have a `wrangler.toml`, Cloudflare Pages reads bindings and variables **from the file**, not from the dashboard. A placeholder ID will make deployments fail.
+4. **Create the R2 Media Storage Bucket**:
    - Go to **R2** → **Create bucket**.
    - Name: `daily-scot-media`.
-   - In bucket **Settings** → **Public access**, enable public access or connect your custom media domain (e.g. `https://media.dailyscot.co.uk` or the free `*.r2.dev` URL).
-4. **Run Migrations & Seed Sample Stories**:
-   In your terminal with Wrangler (or in Cloudflare D1 Web Console):
+   - In bucket **Settings** → **Public access**, connect your custom media domain (e.g. `https://media.dailyscot.co.uk`) or enable the `*.r2.dev` URL.
+5. **Run the migrations** (both are required; neither inserts demo content):
    ```bash
-   # Apply schema (articles, users, audit_log, newsletter_subscribers)
-   npx wrangler d1 execute daily-scot-db --file=./migrations/0001_init.sql --remote
-
-   # Seed sample Glasgow stories and staff
-   npx wrangler d1 execute daily-scot-db --file=./seed.sql --remote
+   npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql
+   npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0002_production_setup.sql
    ```
+   `0002` adds the section categories, the wire-ingest Bot user, newsletter unsubscribe tokens and revision proposals.
+
+   > `seed.demo.sql` contains **fictional demo stories for local testing only**. Never run it with `--remote`.
 
 ---
 
 ### Step 3: Deploy Project 1 — Public Website (`dailyscot.co.uk`)
 
 1. In Cloudflare Dashboard, go to **Workers & Pages** → **Create application** → **Pages** tab → **Connect to Git**.
-2. Select your `the-daily-scot` repository.
+2. Select your repository.
 3. Configure Public Build settings:
    - **Project Name**: `daily-scot-public`
    - **Framework preset**: `Vite`
    - **Build command**: `npm run build`
    - **Build output directory**: `dist`
-   - **Root directory**: `/`
-4. Click **Save and Deploy**.
-5. Bind Shared Resources:
-   - In `daily-scot-public` → **Settings** → **Functions**:
-     - **D1 database bindings**: Variable `DB` → Select `daily-scot-db`.
-     - **R2 bucket bindings**: Variable `MEDIA` → Select `daily-scot-media`.
-   - In **Settings** → **Environment variables**:
-     - `MEDIA_PUBLIC_URL`: `https://media.dailyscot.co.uk` (or your R2 public URL).
-6. Connect your primary public domain (e.g. `dailyscot.co.uk`) under **Custom domains**.
+   - **Root directory**: `/` (leave blank)
+4. **Build variables** (Settings → Variables and Secrets, type *Plaintext*):
+   - `VITE_TURNSTILE_SITE_KEY` – your Cloudflare Turnstile **site** key (enables spam protection on the newsletter form).
+5. **Runtime secrets**:
+   ```bash
+   npx wrangler pages secret put TURNSTILE_SECRET --project-name daily-scot-public
+   npx wrangler pages secret put RESEND_API_KEY   --project-name daily-scot-public
+   ```
+   Set the Turnstile site key and secret **together** – one without the other blocks or disables the check.
+6. Click **Save and Deploy**, then connect your domain (e.g. `dailyscot.co.uk`) under **Custom domains**.
 
 ---
 
@@ -103,40 +109,42 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
 Before deploying the newsroom app, protect the admin subdomain:
 
 1. In Cloudflare, navigate to **Zero Trust** ([one.dash.cloudflare.com](https://one.dash.cloudflare.com)).
-2. Go to **Settings** → **Custom Pages / General** and note your **Team domain** (e.g. `my-team`).
+2. Go to **Settings** → **Custom Pages** and note your **Team domain** (`<team>.cloudflareaccess.com` – you need just `<team>`).
 3. Go to **Access** → **Applications** → **Add an application** → **Self-hosted**:
    - **Application name**: `The Daily Scot Newsroom`
-   - **Application domain**: `admin.dailyscot.co.uk` (Path: `/*`)
+   - **Application domains**: `admin.dailyscot.co.uk` **and** `daily-scot-admin.pages.dev` **and** `*.daily-scot-admin.pages.dev` (preview deployments) – otherwise the `pages.dev` URLs bypass Access.
    - **Session Duration**: `24 hours`
 4. Define Policy:
    - **Policy name**: `Editorial Staff Only`
    - **Action**: `Allow`
-   - **Rules**: Include **Emails** or **Emails ending in** (e.g. `@dailyscot.co.uk` or your specific email).
-5. Save the application and copy its **Audience (AUD) tag** (a 64-character hash).
+   - **Rules**: Include **Emails** (named staff), and require MFA.
+5. For the wire bot, create a **Service Token** (Access → Service Auth) and add a second policy with **Action: Service Auth** including that token.
+6. Save the application and copy its **Application Audience (AUD) Tag**.
 
 ---
 
 ### Step 5: Deploy Project 2 — Newsroom CMS (`admin.dailyscot.co.uk`)
 
-1. In Cloudflare Dashboard, go to **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**.
-2. Select the same `the-daily-scot` repository.
+Cloudflare Pages only runs Functions from a `functions/` folder at the project's **root directory**, so the newsroom project uses `admin-app` as its root.
+
+1. Edit `admin-app/wrangler.toml` and set:
+   - `CF_ACCESS_TEAM_DOMAIN` = your team name from Step 4 (e.g. `dailyscot`)
+   - `CF_ACCESS_AUD` = the AUD tag from Step 4
+   - `MEDIA_PUBLIC_URL` = your R2 public URL
+
+   Until these are real values the newsroom refuses every login (HTTP 503) – this is deliberate.
+2. In Cloudflare Dashboard, go to **Workers & Pages** → **Create application** → **Pages** → **Connect to Git** and select the same repository.
 3. Configure Admin Build settings:
    - **Project Name**: `daily-scot-admin`
-   - **Framework preset**: `None` (or `Vite`)
-   - **Build command**: `npm run build:admin`
-   - **Build output directory**: `admin-app/dist`
-   - **Root directory**: `/`
-4. Click **Save and Deploy**.
-5. Bind Shared Resources & Access Credentials:
-   - In `daily-scot-admin` → **Settings** → **Functions**:
-     - **D1 database bindings**: Variable `DB` → Select `daily-scot-db`.
-     - **R2 bucket bindings**: Variable `MEDIA` → Select `daily-scot-media`.
-     - **Functions directory**: `admin-app/functions`
-   - In **Settings** → **Environment variables**:
-     - `CF_ACCESS_TEAM_DOMAIN`: Your Cloudflare Zero Trust team domain (e.g. `my-team`).
-     - `CF_ACCESS_AUD`: Your audience tag from Step 4.
-     - `MEDIA_PUBLIC_URL`: Your R2 media domain URL.
-6. Connect `admin.dailyscot.co.uk` under **Custom domains**.
+   - **Framework preset**: `None`
+   - **Root directory**: `admin-app`
+   - **Build command**: `cd .. && npm install && npm run build:admin`
+   - **Build output directory**: `dist`
+4. **Secrets** (for the wire-ingest bot):
+   ```bash
+   npx wrangler pages secret put BOT_CLIENT_ID --project-name daily-scot-admin   # the service token's Client ID
+   ```
+5. Click **Save and Deploy**, then connect `admin.dailyscot.co.uk` under **Custom domains**.
 
 ---
 
@@ -176,7 +184,9 @@ All access rules are enforced strictly server-side by `/admin-app/functions/api/
 | Edit Any Colleague's Story | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Publish Stories Directly | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Unpublish / Retract Stories | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Restore Past Revisions | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Restore Past Revisions / Apply Proposed Changes | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Propose Changes to a Live Story (held for review) | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Schedule Stories | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Set "Breaking News" Strip | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Set "Front-Page Lead" | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Delete Articles | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -196,11 +206,12 @@ A separate Cloudflare Worker handles cron-triggered publishing of scheduled stor
    cd scheduler
    npx wrangler deploy
    ```
-2. The cron trigger `*/5 * * * *` automatically evaluates every 5 minutes:
-   ```sql
-   SELECT id, title, published_at FROM articles WHERE status = 'scheduled' AND published_at <= datetime('now');
-   ```
-   Due stories are updated to `status = 'published'` and an immutable audit trail entry is logged.
+2. Every 5 minutes the worker:
+   - publishes stories whose status is `scheduled` and whose **Publish At** time has passed – re-checking the legal, embargo and verification rules first. A story that fails a rule is moved back to `needs_review` and the reason is written to the audit log;
+   - clears the Breaking flag from stories whose breaking window has ended;
+   - deletes expired newsletter rate-limit rows.
+
+   Editors schedule a story by setting **Publish At** in the editor and clicking **Schedule**. Times are entered in local time and stored in UTC.
 
 ---
 
@@ -214,17 +225,21 @@ Automated feeds and wire bots ingest drafts directly into the `needs_review` que
   - `CF-Access-Client-Secret`: `<Your Cloudflare Access Service Token Secret>`
 - **Payload Constraints**:
   - Automatically assigned `status: 'needs_review'`. Bots cannot publish, approve, or delete stories.
-  - Sourced media is capped at 5MB.
+  - `hero_image` may be an `https://` URL or a base64 `data:image/...` URL (JPEG/PNG/WebP, max 5MB) – data URLs are stored in R2 automatically.
+  - Duplicate headlines get a unique slug automatically.
   - Stories require editorial approval and legal check clearance before going live on the public site.
 
 ---
 
 ## Security Audit Hardening Highlights
 
-- **Cryptographic JWT Verification**: Every admin request cryptographically checks the `Cf-Access-Jwt-Assertion` against Cloudflare team public certs (`/cdn-cgi/access/certs`), verifying signature, `exp`, audience `aud`, and issuer `iss`. The `Cf-Access-Authenticated-User-Email` header is never trusted.
+- **Fail-Closed Configuration**: If `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD` are missing or still placeholders, every newsroom request is refused.
+- **Cryptographic JWT Verification**: Every admin request cryptographically checks the `Cf-Access-Jwt-Assertion` against Cloudflare team public certs (`/cdn-cgi/access/certs`), verifying the RS256 signature (always – tokens without a key ID are rejected), `exp`, `nbf`, audience `aud`, and issuer `iss`. The `Cf-Access-Authenticated-User-Email` header is never trusted.
 - **No Production Dev Bypass**: The development header bypass is disabled in all production builds and only operates if `env.ENVIRONMENT === 'local'` on `localhost`/`127.0.0.1`.
 - **HTMLRewriter Allow-list Sanitization**: Story HTML is processed using Cloudflare's native streaming `HTMLRewriter`. Only safe tags are allowed (`p, h2, h3, strong, em, a[href], ul, ol, li, blockquote, figure, figcaption, img[src,alt]`). All dangerous scripts, iframes, and inline event handlers (`onload`, `onclick`) are eliminated.
 - **Full Audit Logging**: Every newsroom action (create, edit, publish, unpublish, delete, user change, image upload) records an immutable entry into D1 `audit_log` with user ID, email, action type, article ID, before/after status transition, timestamp, and client IP (`cf-connecting-ip`).
+- **Journalist Edits to Live Stories Are Held for Review**: they are saved as a *proposed change* in revision history; the live article is untouched until an Editor clicks **Apply changes**.
+- **Newsletter Compliance**: double opt-in, Turnstile spam protection, and a per-subscriber unsubscribe link (`/api/unsubscribe`, also sent as a `List-Unsubscribe` header). Include `/api/unsubscribe?email=…&token=…` in every newsletter you send.
 - **Complete Client Bundle Separation**: The public site bundle contains zero admin components, no admin routes, no newsroom links, and no role switchers.
 - **Fail-Safe Reliability**: In production, if an API call fails, the application presents a proper error state rather than falling back to fake or mock stories. The admin CMS never pretends to save unpublished articles into browser local storage.
 
@@ -254,6 +269,6 @@ Before launching to live production, complete this essential security checklist 
    - Restrict API tokens to minimal required scopes (e.g. D1 edit, Pages edit).
 5. **Database Production Hygiene**:
    - **NEVER run `seed.demo.sql` on production!** That file is strictly for local sandbox fixtures.
-   - Apply only `migrations/0001_init.sql` to your production D1 instance.
+   - Apply only the files in `migrations/` (0001, then 0002) to your production D1 instance.
    - Store all credentials (`BOT_CLIENT_ID`, `TURNSTILE_SECRET`, `RESEND_API_KEY`) via `wrangler pages secret put` — never commit secrets to source control or plaintext `[vars]`.
 
