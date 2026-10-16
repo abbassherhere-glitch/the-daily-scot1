@@ -12,11 +12,55 @@ interface ArticleMetaRow {
   meta_description?: string;
   published_at?: string;
   updated_at?: string;
+  author_name?: string;
 }
 
-export async function onRequest(
-  context: EventContext<Env, any, any>
-): Promise<Response> {
+/** Escape a value for use inside a double-quoted HTML attribute. */
+function escapeAttr(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/** Escape text content (for <title>). */
+function escapeText(value: string): string {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** JSON that is safe to embed inside a <script> element. */
+function safeJsonForScript(data: unknown): string {
+  return JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+/** Only allow absolute http(s) image URLs (or site-relative paths, made absolute). */
+function safeImageUrl(value: string | undefined, origin: string): string | null {
+  if (!value) return null;
+  const str = value.trim();
+  if (str.startsWith('/') && !str.startsWith('//')) return `${origin}${str}`;
+  try {
+    const url = new URL(str);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** D1 'YYYY-MM-DD HH:MM:SS' (UTC) -> ISO 8601 */
+function toIso(value?: string): string | undefined {
+  if (!value) return undefined;
+  const d = new Date(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(value) ? value.replace(' ', 'T') + 'Z' : value);
+  return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+export async function onRequest(context: EventContext<Env, any, any>): Promise<Response> {
   const response = await context.next();
   const contentType = response.headers.get('content-type') || '';
 
@@ -34,16 +78,17 @@ export async function onRequest(
   }
 
   try {
-    const article = await context.env.DB
-      .prepare(`
-        SELECT 
-          id, slug, title, standfirst, category, hero_image, photo_credit,
-          seo_title, meta_description, published_at, updated_at
-        FROM articles
-        WHERE slug = ? AND status = 'published' AND published_at <= datetime('now')
+    const article = await context.env.DB.prepare(`
+        SELECT
+          a.id, a.slug, a.title, a.standfirst, a.category, a.hero_image, a.photo_credit,
+          a.seo_title, a.meta_description, a.published_at, a.updated_at,
+          u.name AS author_name
+        FROM articles a
+        LEFT JOIN users u ON a.author_id = u.id
+        WHERE a.slug = ? AND a.status = 'published' AND datetime(a.published_at) <= datetime('now')
         LIMIT 1
       `)
-      .bind(candidateSlug)
+      .bind(decodeURIComponent(candidateSlug))
       .first<ArticleMetaRow>();
 
     if (!article) {
@@ -51,61 +96,65 @@ export async function onRequest(
     }
 
     const title = article.seo_title || article.title;
-    const description = article.meta_description || article.standfirst;
-    const fullTitle = `${title} | The Daily Scot`;
-    const canonicalUrl = `${url.origin}/news/${article.slug}`;
-    const imageUrl = article.hero_image || `${url.origin}/og-default.jpg`;
+    const description = article.meta_description || article.standfirst || '';
+    const fullTitle = title.includes('The Daily Scot') ? title : `${title} | The Daily Scot`;
+    const canonicalUrl = `${url.origin}/news/${encodeURIComponent(article.slug)}`;
+    const imageUrl = safeImageUrl(article.hero_image, url.origin);
+    const published = toIso(article.published_at);
+    const modified = toIso(article.updated_at) || published;
 
-    const jsonLd = JSON.stringify({
+    const jsonLd = safeJsonForScript({
       '@context': 'https://schema.org',
       '@type': 'NewsArticle',
       headline: article.title,
       description: article.standfirst,
-      image: [imageUrl],
-      datePublished: article.published_at || new Date().toISOString(),
-      dateModified: article.updated_at || article.published_at || new Date().toISOString(),
-      mainEntityOfPage: {
-        '@type': 'WebPage',
-        '@id': canonicalUrl,
-      },
-      publisher: {
-        '@type': 'NewsMediaOrganization',
-        name: 'The Daily Scot',
-        url: url.origin,
-      },
+      ...(imageUrl ? { image: [imageUrl] } : {}),
+      ...(published ? { datePublished: published } : {}),
+      ...(modified ? { dateModified: modified } : {}),
+      ...(article.author_name ? { author: [{ '@type': 'Person', name: article.author_name }] } : {}),
+      mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+      publisher: { '@type': 'NewsMediaOrganization', name: 'The Daily Scot', url: url.origin },
     });
 
-    // @ts-ignore
-    if (typeof HTMLRewriter !== 'undefined') {
-      // @ts-ignore
-      return new HTMLRewriter()
-        .on('title', {
-          element(el: any) {
-            el.setInnerContent(fullTitle);
-          },
-        })
-        .on('head', {
-          element(el: any) {
-            // Append social meta tags and structured data
-            el.append(`<link rel="canonical" href="${canonicalUrl}" />`, { html: true });
-            el.append(`<meta name="description" content="${description.replace(/"/g, '&quot;')}" />`, { html: true });
-            el.append(`<meta property="og:title" content="${fullTitle.replace(/"/g, '&quot;')}" />`, { html: true });
-            el.append(`<meta property="og:description" content="${description.replace(/"/g, '&quot;')}" />`, { html: true });
-            el.append(`<meta property="og:url" content="${canonicalUrl}" />`, { html: true });
-            el.append(`<meta property="og:type" content="article" />`, { html: true });
-            el.append(`<meta property="og:image" content="${imageUrl}" />`, { html: true });
-            el.append(`<meta property="og:site_name" content="The Daily Scot" />`, { html: true });
-            el.append(`<meta name="twitter:card" content="summary_large_image" />`, { html: true });
-            el.append(`<meta name="twitter:title" content="${fullTitle.replace(/"/g, '&quot;')}" />`, { html: true });
-            el.append(`<meta name="twitter:description" content="${description.replace(/"/g, '&quot;')}" />`, { html: true });
-            el.append(`<meta name="twitter:image" content="${imageUrl}" />`, { html: true });
-            el.append(`<script type="application/ld+json">${jsonLd}</script>`, { html: true });
-          },
-        })
-        .transform(response);
-    }
+    const tags = [
+      `<link rel="canonical" href="${escapeAttr(canonicalUrl)}" />`,
+      `<meta name="description" content="${escapeAttr(description)}" />`,
+      `<meta property="og:title" content="${escapeAttr(fullTitle)}" />`,
+      `<meta property="og:description" content="${escapeAttr(description)}" />`,
+      `<meta property="og:url" content="${escapeAttr(canonicalUrl)}" />`,
+      `<meta property="og:type" content="article" />`,
+      `<meta property="og:site_name" content="The Daily Scot" />`,
+      imageUrl ? `<meta property="og:image" content="${escapeAttr(imageUrl)}" />` : '',
+      published ? `<meta property="article:published_time" content="${escapeAttr(published)}" />` : '',
+      `<meta name="twitter:card" content="${imageUrl ? 'summary_large_image' : 'summary'}" />`,
+      `<meta name="twitter:title" content="${escapeAttr(fullTitle)}" />`,
+      `<meta name="twitter:description" content="${escapeAttr(description)}" />`,
+      imageUrl ? `<meta name="twitter:image" content="${escapeAttr(imageUrl)}" />` : '',
+      `<script type="application/ld+json">${jsonLd}</script>`,
+    ]
+      .filter(Boolean)
+      .join('\n    ');
+
+    // @ts-ignore - HTMLRewriter is provided by the Workers runtime
+    return new HTMLRewriter()
+      .on('title', {
+        element(el: any) {
+          el.setInnerContent(escapeText(fullTitle), { html: true });
+        },
+      })
+      // Remove the generic site-wide tags from index.html so crawlers see the article's own
+      .on('meta[name="description"]', { element: (el: any) => el.remove() })
+      .on('meta[property^="og:"]', { element: (el: any) => el.remove() })
+      .on('meta[name^="twitter:"]', { element: (el: any) => el.remove() })
+      .on('link[rel="canonical"]', { element: (el: any) => el.remove() })
+      .on('head', {
+        element(el: any) {
+          el.append(tags, { html: true });
+        },
+      })
+      .transform(response);
   } catch (err) {
-    console.warn('HTMLRewriter injection exception:', err);
+    console.warn('Article meta injection failed:', err);
   }
 
   return response;
