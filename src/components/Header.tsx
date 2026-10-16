@@ -316,6 +316,11 @@ export const Header: React.FC<HeaderProps> = ({
                           tags: [],
                           author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
                           heroImage: '',
+                          heroCaption: '',
+                          heroCredit: '',
+                          readTime: '',
+                          views: 0,
+                          comments: [],
                         })
                       }
                       className="font-bold hover:underline hover:text-neutral-200 truncate text-left"
@@ -339,6 +344,11 @@ export const Header: React.FC<HeaderProps> = ({
                       tags: [],
                       author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
                       heroImage: '',
+                      heroCaption: '',
+                      heroCredit: '',
+                      readTime: '',
+                      views: 0,
+                      comments: [],
                     })
                   }
                   className="font-bold hover:underline hover:text-neutral-200 truncate text-left transition-opacity duration-300"
