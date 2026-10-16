@@ -60,6 +60,30 @@ function toIso(value?: string): string | undefined {
   return isNaN(d.getTime()) ? undefined : d.toISOString();
 }
 
+/**
+ * Unknown or unpublished story: serve the app shell (which shows a "Story not found" page)
+ * with a real 404 status and noindex, so search engines don't treat it as a valid page.
+ */
+function notFound(response: Response): Response {
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', 'public, max-age=60');
+  headers.set('X-Robots-Tag', 'noindex');
+  const page = new Response(response.body, { status: 404, statusText: 'Not Found', headers });
+  // @ts-ignore - HTMLRewriter is provided by the Workers runtime
+  return new HTMLRewriter()
+    .on('title', {
+      element(el: any) {
+        el.setInnerContent('Story not found | The Daily Scot');
+      },
+    })
+    .on('head', {
+      element(el: any) {
+        el.append('<meta name="robots" content="noindex" />', { html: true });
+      },
+    })
+    .transform(page);
+}
+
 export async function onRequest(context: EventContext<Env, any, any>): Promise<Response> {
   const response = await context.next();
   const contentType = response.headers.get('content-type') || '';
@@ -92,7 +116,14 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       .first<ArticleMetaRow>();
 
     if (!article) {
-      return response;
+      // /news/<section> is a section page, not a story
+      if (segments.length === 2) {
+        const section = await context.env.DB.prepare('SELECT 1 AS ok FROM categories WHERE slug = ?')
+          .bind(decodeURIComponent(candidateSlug))
+          .first<{ ok: number }>();
+        if (section) return response;
+      }
+      return notFound(response);
     }
 
     const title = article.seo_title || article.title;
