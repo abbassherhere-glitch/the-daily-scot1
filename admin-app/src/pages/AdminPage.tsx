@@ -429,17 +429,22 @@ export const AdminPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-neutral-100 font-sans selection:bg-[#005EB8] selection:text-white pb-20">
+      {/* Screen-reader announcement of toast messages (always in the page so it is announced) */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {toastMessage || ''}
+      </div>
+
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#005EB8] text-white px-5 py-3 rounded shadow-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider animate-bounce">
-          <CheckCircle className="w-4 h-4 text-emerald-300" />
+        <div aria-hidden="true" className="fixed bottom-6 right-6 z-50 bg-[#005EB8] text-white px-5 py-3 rounded shadow-xl flex items-center gap-2 text-xs font-bold uppercase tracking-wider motion-safe:animate-bounce">
+          <CheckCircle className="w-4 h-4 text-emerald-300" aria-hidden="true" />
           <span>{toastMessage}</span>
         </div>
       )}
 
       {/* ADMIN MASTHEAD */}
       <header className="bg-neutral-950 border-b border-neutral-800 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-[#005EB8] text-white p-2 rounded">
               <ShieldCheck className="w-5 h-5" aria-hidden="true" />
@@ -555,13 +560,14 @@ export const AdminPage: React.FC = () => {
         )}
 
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-neutral-700 pb-2 overflow-x-auto">
+        <div className="flex items-center gap-2 border-b border-neutral-700 pb-2 overflow-x-auto" role="group" aria-label="Newsroom views">
           <button
             type="button"
             onClick={() => {
               setActiveTab('articles');
               setStatusFilter('all');
             }}
+            aria-pressed={activeTab === 'articles'}
             className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'articles'
                 ? 'bg-[#005EB8] text-white shadow-xs'
@@ -578,9 +584,10 @@ export const AdminPage: React.FC = () => {
               setActiveTab('review_queue');
               setStatusFilter('needs_review');
             }}
+            aria-pressed={activeTab === 'review_queue'}
             className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'review_queue'
-                ? 'bg-amber-600 text-white shadow-xs'
+                ? 'bg-amber-700 text-white shadow-xs'
                 : 'bg-neutral-800 border border-neutral-700 text-neutral-300 hover:bg-neutral-700'
             }`}
           >
@@ -588,7 +595,9 @@ export const AdminPage: React.FC = () => {
             <span>Review Queue</span>
             {needsReviewCount > 0 && (
               <span className="ml-1 px-1.5 py-0.2 bg-amber-400 text-neutral-950 text-[10px] font-black rounded-full">
+                <span className="sr-only">, </span>
                 {needsReviewCount}
+                <span className="sr-only"> waiting</span>
               </span>
             )}
           </button>
@@ -597,6 +606,7 @@ export const AdminPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab('users')}
+              aria-pressed={activeTab === 'users'}
               className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                 activeTab === 'users'
                   ? 'bg-[#005EB8] text-white shadow-xs'
@@ -613,6 +623,7 @@ export const AdminPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('audit')}
+                aria-pressed={activeTab === 'audit'}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                   activeTab === 'audit'
                     ? 'bg-[#005EB8] text-white shadow-xs'
@@ -626,6 +637,7 @@ export const AdminPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setActiveTab('newsletter')}
+                aria-pressed={activeTab === 'newsletter'}
                 className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
                   activeTab === 'newsletter'
                     ? 'bg-[#005EB8] text-white shadow-xs'
@@ -693,16 +705,17 @@ export const AdminPage: React.FC = () => {
 
             {/* Articles Table */}
             <div className="bg-neutral-800 border border-neutral-700 rounded overflow-hidden shadow-xs">
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-sky-400" tabIndex={0} role="region" aria-label="Stories table">
                 <table className="w-full text-left text-xs border-collapse">
+                <caption className="sr-only">Stories</caption>
                   <thead>
                     <tr className="bg-neutral-950 text-neutral-400 uppercase border-b border-neutral-700 text-[11px] font-bold tracking-wider">
-                      <th className="py-3 px-4">Headline & Section</th>
-                      <th className="py-3 px-3">Status</th>
-                      <th className="py-3 px-3">Verification</th>
-                      <th className="py-3 px-3">Author</th>
-                      <th className="py-3 px-3 text-right">Updated</th>
-                      <th className="py-3 px-4 text-center">Actions</th>
+                      <th scope="col" className="py-3 px-4">Headline & Section</th>
+                      <th scope="col" className="py-3 px-3">Status</th>
+                      <th scope="col" className="py-3 px-3">Verification</th>
+                      <th scope="col" className="py-3 px-3">Author</th>
+                      <th scope="col" className="py-3 px-3 text-right">Updated</th>
+                      <th scope="col" className="py-3 px-4 text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-700">
@@ -788,9 +801,10 @@ export const AdminPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleOpenEditModal(art)}
                                 title="Edit Story"
+                                aria-label={`Edit "${art.title}"`}
                                 className="p-1.5 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded transition"
                               >
-                                <Edit3 className="w-3.5 h-3.5" />
+                                <Edit3 className="w-3.5 h-3.5" aria-hidden="true" />
                               </button>
                               
                               {canPublish && (
@@ -798,9 +812,10 @@ export const AdminPage: React.FC = () => {
                                   type="button"
                                   onClick={() => handleDeleteArticle(art.id, art.title)}
                                   title="Delete Article"
+                                  aria-label={`Delete "${art.title}"`}
                                   className="p-1.5 bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 rounded transition"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
                                 </button>
                               )}
                             </div>
@@ -837,15 +852,16 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-hidden">
+            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-x-auto focus:outline-none focus:ring-2 focus:ring-sky-400" tabIndex={0} role="region" aria-label="Newsroom staff table">
               <table className="w-full text-left text-xs border-collapse">
+                <caption className="sr-only">Newsroom staff</caption>
                 <thead>
                   <tr className="bg-neutral-950 text-neutral-400 uppercase border-b border-neutral-700 text-[11px] font-bold tracking-wider">
-                    <th className="py-3 px-4">Staff Member</th>
-                    <th className="py-3 px-3">Role</th>
-                    <th className="py-3 px-3">Bio</th>
-                    <th className="py-3 px-3">Status</th>
-                    <th className="py-3 px-4 text-center">Actions</th>
+                    <th scope="col" className="py-3 px-4">Staff Member</th>
+                    <th scope="col" className="py-3 px-3">Role</th>
+                    <th scope="col" className="py-3 px-3">Bio</th>
+                    <th scope="col" className="py-3 px-3">Status</th>
+                    <th scope="col" className="py-3 px-4 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-700">
@@ -890,6 +906,7 @@ export const AdminPage: React.FC = () => {
                             }
                           }}
                           className="px-2.5 py-1 bg-neutral-700 hover:bg-neutral-600 rounded text-[11px] font-semibold transition"
+                          aria-label={`${u.active ? 'Deactivate' : 'Activate'} ${u.name}`}
                         >
                           {u.active ? 'Deactivate' : 'Activate'}
                         </button>
@@ -914,16 +931,17 @@ export const AdminPage: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-hidden">
+            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-x-auto focus:outline-none focus:ring-2 focus:ring-sky-400" tabIndex={0} role="region" aria-label="Security audit log table">
               <table className="w-full text-left text-xs border-collapse">
+                <caption className="sr-only">Security audit log</caption>
                 <thead>
                   <tr className="bg-neutral-950 text-neutral-400 uppercase border-b border-neutral-700 text-[11px] font-bold tracking-wider">
-                    <th className="py-3 px-4">Timestamp</th>
-                    <th className="py-3 px-3">Staff / Email</th>
-                    <th className="py-3 px-3">Action</th>
-                    <th className="py-3 px-3">Status Transition</th>
-                    <th className="py-3 px-3">IP</th>
-                    <th className="py-3 px-3">Details</th>
+                    <th scope="col" className="py-3 px-4">Timestamp</th>
+                    <th scope="col" className="py-3 px-3">Staff / Email</th>
+                    <th scope="col" className="py-3 px-3">Action</th>
+                    <th scope="col" className="py-3 px-3">Status Transition</th>
+                    <th scope="col" className="py-3 px-3">IP</th>
+                    <th scope="col" className="py-3 px-3">Details</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-700">
@@ -985,13 +1003,14 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-hidden">
+            <div className="bg-neutral-800 border border-neutral-700 rounded overflow-x-auto focus:outline-none focus:ring-2 focus:ring-sky-400" tabIndex={0} role="region" aria-label="Newsletter subscribers table">
               <table className="w-full text-left text-xs border-collapse">
+                <caption className="sr-only">Newsletter subscribers</caption>
                 <thead>
                   <tr className="bg-neutral-950 text-neutral-400 uppercase border-b border-neutral-700 text-[11px] font-bold tracking-wider">
-                    <th className="py-3 px-4">Email</th>
-                    <th className="py-3 px-3">Confirmed Status</th>
-                    <th className="py-3 px-3 text-right">Subscribed Date</th>
+                    <th scope="col" className="py-3 px-4">Email</th>
+                    <th scope="col" className="py-3 px-3">Confirmed Status</th>
+                    <th scope="col" className="py-3 px-3 text-right">Subscribed Date</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-700">
@@ -1470,7 +1489,7 @@ export const AdminPage: React.FC = () => {
                   <button
                    type="button"
                     onClick={() => handleSaveArticle('needs_review')}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded font-bold text-xs uppercase tracking-wider transition"
+                    className="flex items-center gap-1.5 px-4 py-2 bg-amber-700 hover:bg-amber-800 text-white rounded font-bold text-xs uppercase tracking-wider transition"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>Submit for Editorial Review</span>
@@ -1523,7 +1542,7 @@ export const AdminPage: React.FC = () => {
 
             <div className="p-4 overflow-y-auto space-y-3 flex-1 text-xs">
               {loadingRevisions ? (
-                <div className="py-8 text-center text-neutral-400">Loading revisions...</div>
+                <div className="py-8 text-center text-neutral-400" role="status">Loading revisions…</div>
               ) : revisionsList.length === 0 ? (
                 <div className="py-8 text-center text-neutral-400">
                   No revisions found for this story yet. Revisions are created automatically whenever a published story is updated.
@@ -1545,7 +1564,7 @@ export const AdminPage: React.FC = () => {
                         <button
                          type="button"
                           onClick={() => handleRestoreRevision(rev)}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-[10px] font-bold uppercase transition"
+                          className="flex items-center gap-1 px-2.5 py-1 bg-amber-700 hover:bg-amber-800 text-white rounded text-[10px] font-bold uppercase transition"
                         >
                           <RotateCcw className="w-3 h-3" />
                           <span>{rev.kind === 'proposal' ? 'Apply changes' : 'Restore'}</span>
