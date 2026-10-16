@@ -17,6 +17,15 @@ import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 
+async function safeGetArticle(slug: string): Promise<Article | null> {
+  try {
+    return await getArticleBySlug(slug);
+  } catch (e) {
+    console.error('Failed to load article', slug, e);
+    return null;
+  }
+}
+
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search'>('home');
@@ -49,12 +58,16 @@ export default function App() {
 
   // 1. Initial Path Routing & History Listeners
   useEffect(() => {
-    const initRouting = async () => {
-      const list = await refreshArticles();
+    let articleCache: Article[] = [];
 
+    const routeFromLocation = async (list: Article[]) => {
       const path = window.location.pathname;
 
-      if (path === '/search') {
+      if (path === '/' || path === '') {
+        setCurrentArticle(null);
+        setCurrentCategory('all');
+        setCurrentView('home');
+      } else if (path === '/search') {
         setCurrentView('search');
       } else if (path.startsWith('/news/')) {
         const remaining = path.replace('/news/', '').replace(/\/$/, '');
@@ -69,7 +82,7 @@ export default function App() {
             setCurrentView('category');
           } else {
             // It's an article slug
-            const match = list.find((a) => a.slug === item) || (await getArticleBySlug(item));
+            const match = (await safeGetArticle(item)) || list.find((a) => a.slug === item);
             if (match) {
               setCurrentArticle(match);
               setCurrentCategory(match.category);
@@ -82,7 +95,7 @@ export default function App() {
         } else if (parts.length >= 2) {
           const cat = parts[0] as CategoryType;
           const slug = parts[1];
-          const match = list.find((a) => a.slug === slug) || (await getArticleBySlug(slug));
+          const match = (await safeGetArticle(slug)) || list.find((a) => a.slug === slug);
           if (match) {
             setCurrentArticle(match);
             setCurrentCategory(match.category);
@@ -95,6 +108,16 @@ export default function App() {
       }
     };
 
+    const initRouting = async () => {
+      articleCache = await refreshArticles();
+      await routeFromLocation(articleCache);
+    };
+
+    const handlePopState = () => {
+      routeFromLocation(articleCache);
+    };
+
+    initRouting();
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
@@ -163,7 +186,12 @@ export default function App() {
   }, [currentView, currentCategory, currentArticle]);
 
   // Handle article selection with Clean URL
-  const handleSelectArticle = (article: Article) => {
+  const handleSelectArticle = async (article: Article) => {
+    // Breaking-news ticker passes a lightweight stub with no body; load the full story.
+    if (article.isPartial || !article.content || article.content.length === 0) {
+      const full = await safeGetArticle(article.slug);
+      if (full) article = full;
+    }
     setCurrentArticle(article);
     setCurrentCategory(article.category);
     setCurrentView('article');
