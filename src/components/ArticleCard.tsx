@@ -64,7 +64,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           {/* Headline & Text Right */}
           <div className="sm:col-span-5 p-4 flex flex-col justify-between">
             <div>
-              <div className="flex items-center gap-2 mb-1.5">
+              <div className="flex flex-wrap items-center gap-x-2 mb-1.5">
                 <span className="text-[11px] font-black uppercase tracking-wider text-[#005EB8]">
                   {sectionLabel}
                 </span>
@@ -102,7 +102,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       <article
         className={`group relative cursor-pointer py-2.5 border-b border-neutral-200 last:border-b-0 ${className}`}
       >
-        <div className="flex items-center gap-1.5 mb-1">
+        <div className="flex flex-wrap items-center gap-x-1.5 mb-1">
           <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8]">
             {sectionLabel}
           </span>
@@ -134,7 +134,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1">
+          <div className="flex flex-wrap items-center gap-x-1.5 mb-1">
             <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8]">
               {sectionLabel}
             </span>
@@ -172,7 +172,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         </div>
 
         <div className="p-3">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold text-neutral-600 mb-1">
+          <div className="flex flex-wrap items-center gap-x-1.5 text-[10px] font-bold text-neutral-600 mb-1">
             <span className="text-[#005EB8] uppercase tracking-wider font-black">
               {sectionLabel}
             </span>
