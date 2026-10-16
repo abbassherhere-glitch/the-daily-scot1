@@ -134,11 +134,17 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
         {/* 3. BYLINE & TIMESTAMP ROW */}
         <div className="py-2.5 border-y border-neutral-200 flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-600">
           <div className="flex items-center gap-3">
-            <img
-              src={article.author.avatar}
-              alt={article.author.name}
-              className="w-9 h-9 rounded-full object-cover border border-neutral-300"
-            />
+            {article.author.avatar ? (
+              <img
+                src={article.author.avatar}
+                alt={article.author.name}
+                className="w-9 h-9 rounded-full object-cover border border-neutral-300"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-[#0B2545] text-white flex items-center justify-center font-bold text-sm">
+                {article.author.name.charAt(0)}
+              </div>
+            )}
             <div>
               <div className="font-bold text-neutral-900">
                 By {article.author.name}
@@ -293,7 +299,6 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             </div>
           </div>
 
-          </div>
         </div>
 
         {/* Right Column (4 cols) with MPU Ad Slot and Trending News */}
