@@ -4,6 +4,7 @@ import { Article, CategoryType } from '../types/news';
 import { CATEGORIES } from '../data/mockArticles';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
+import { SpaLink } from '../components/SpaLink';
 
 interface CategoryPageProps {
   category: CategoryType;
@@ -56,13 +57,21 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-6 bg-white">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8] border-b border-neutral-200 pb-2">
-        <button onClick={() => onSelectCategory('all')} className="hover:underline">
-          Home
-        </button>
-        <ChevronRight className="w-3 h-3 text-neutral-400" />
-        <span className="text-neutral-900">{categoryMeta.label}</span>
-      </div>
+      <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+          <li>
+            <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
+              Home
+            </SpaLink>
+          </li>
+          <li aria-hidden="true">
+            <ChevronRight className="w-3 h-3 text-neutral-500" />
+          </li>
+          <li className="text-neutral-900" aria-current="page">
+            {categoryMeta.label}
+          </li>
+        </ol>
+      </nav>
 
       {/* Category Section Header (Flat brand bar) */}
       <div className="border-b-4 border-[#0B2545] pb-3">
@@ -77,6 +86,8 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         {availableTags.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2 border-t border-neutral-100 text-xs">
             <button
+              type="button"
+              aria-pressed={selectedTag === 'all'}
               onClick={() => setSelectedTag('all')}
               className={`px-2.5 py-1 font-bold uppercase transition ${
                 selectedTag === 'all'
@@ -89,6 +100,8 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             {availableTags.map((tag) => (
               <button
                 key={tag}
+                type="button"
+                aria-pressed={selectedTag === tag}
                 onClick={() => setSelectedTag(tag)}
                 className={`px-2.5 py-1 font-semibold transition ${
                   selectedTag === tag
@@ -134,15 +147,17 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
 
           {/* Quick links block */}
           <div className="border border-neutral-200 p-4">
-            <h4 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
+            <h2 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
               Section Topics
-            </h4>
+            </h2>
             <div className="space-y-1.5 text-xs">
               {availableTags.map((t) => (
                 <button
                   key={t}
+                  type="button"
+                  aria-pressed={selectedTag === t}
                   onClick={() => setSelectedTag(t)}
-                  className="block text-neutral-700 hover:text-[#005EB8] hover:underline"
+                  className="block py-1 text-neutral-700 hover:text-[#005EB8] hover:underline"
                 >
                   › {t}
                 </button>

@@ -4,6 +4,7 @@ import { Article, CategoryType } from '../types/news';
 import { CATEGORIES } from '../data/mockArticles';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
+import { SpaLink } from '../components/SpaLink';
 
 interface SearchPageProps {
   articles: Article[];
@@ -57,13 +58,21 @@ export const SearchPage: React.FC<SearchPageProps> = ({
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-5 bg-white">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8] border-b border-neutral-200 pb-2">
-        <button onClick={() => onSelectCategory('all')} className="hover:underline">
-          Home
-        </button>
-        <ChevronRight className="w-3 h-3 text-neutral-400" />
-        <span className="text-neutral-900">Search</span>
-      </div>
+      <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+          <li>
+            <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
+              Home
+            </SpaLink>
+          </li>
+          <li aria-hidden="true">
+            <ChevronRight className="w-3 h-3 text-neutral-500" />
+          </li>
+          <li className="text-neutral-900" aria-current="page">
+            Search
+          </li>
+        </ol>
+      </nav>
 
       {/* Flat Search Header */}
       <div className="border-b-4 border-[#0B2545] pb-4">
@@ -72,34 +81,41 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         </h1>
 
         <div className="mt-3 flex gap-2 max-w-xl">
-          <div className="relative flex-1">
+          <form role="search" className="relative flex-1" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor="site-search" className="sr-only">
+              Search articles
+            </label>
             <input
-              type="text"
+              id="site-search"
+              type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Glasgow news, sport, traffic, property..."
-              className="w-full border border-neutral-300 p-2.5 text-sm font-sans focus:outline-hidden focus:border-[#005EB8]"
+              className="w-full border border-neutral-500 p-2.5 pr-10 text-sm font-sans focus:outline-2 focus:outline-[#005EB8] focus:border-[#005EB8] [&::-webkit-search-cancel-button]:hidden"
               autoFocus
             />
             {query && (
               <button
+                type="button"
                 onClick={() => setQuery('')}
-                className="absolute right-2.5 top-3 text-neutral-400 hover:text-neutral-700"
+                className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-neutral-600 hover:text-neutral-900"
+                aria-label="Clear search"
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4" aria-hidden="true" />
               </button>
             )}
-          </div>
+          </form>
         </div>
 
         {/* Suggested keywords */}
         <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-xs">
-          <span className="font-bold text-neutral-500 uppercase text-[10px]">Popular:</span>
+          <span className="font-bold text-neutral-600 uppercase text-[10px]">Popular:</span>
           {SUGGESTED_QUERIES.map((sq) => (
             <button
               key={sq}
+              type="button"
               onClick={() => setQuery(sq)}
-              className="px-2 py-0.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs border border-neutral-200"
+              className="px-2 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-xs border border-neutral-200"
             >
               {sq}
             </button>
@@ -108,9 +124,15 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       </div>
 
       {/* Category selector */}
-      <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 border-b border-neutral-200">
-        <span className="font-bold text-neutral-600 uppercase tracking-wider text-[11px] mr-1">Section:</span>
+      <div
+        role="group"
+        aria-labelledby="search-section-label"
+        className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 border-b border-neutral-200"
+      >
+        <span id="search-section-label" className="font-bold text-neutral-600 uppercase tracking-wider text-[11px] mr-1">Section:</span>
         <button
+          type="button"
+          aria-pressed={selectedCategory === 'all'}
           onClick={() => setSelectedCategory('all')}
           className={`px-2.5 py-1 font-bold uppercase transition ${
             selectedCategory === 'all'
@@ -123,6 +145,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         {CATEGORIES.map((c) => (
           <button
             key={c.id}
+            type="button"
+            aria-pressed={selectedCategory === c.id}
             onClick={() => setSelectedCategory(c.id)}
             className={`px-2.5 py-1 font-semibold transition ${
               selectedCategory === c.id
@@ -136,7 +160,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       </div>
 
       {/* Results Header */}
-      <div className="text-xs font-semibold text-neutral-600">
+      <h2 className="sr-only">Results</h2>
+      <div className="text-xs font-semibold text-neutral-600" role="status" aria-live="polite">
         Found {results.length} {results.length === 1 ? 'article' : 'articles'}
         {query ? ` for "${query}"` : ''}
       </div>

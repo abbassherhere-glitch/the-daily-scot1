@@ -11,6 +11,7 @@ import {
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
+import { SpaLink, articleHref, categoryHref } from '../components/SpaLink';
 import DOMPurify from 'dompurify';
 
 interface ArticlePageProps {
@@ -22,6 +23,9 @@ interface ArticlePageProps {
   onToggleSave: (id: string, e: React.MouseEvent) => void;
   onArticleUpdated?: () => void;
 }
+
+const STRETCHED_LINK =
+  "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8]";
 
 export const ArticlePage: React.FC<ArticlePageProps> = ({
   article,
@@ -71,11 +75,11 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
     const url = window.location.href;
     const text = `${article.title} - The Daily Scot`;
     if (network === 'twitter') {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
     } else if (network === 'facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank');
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'noopener,noreferrer');
     } else if (network === 'whatsapp') {
-      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
+      window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + url)}`, '_blank', 'noopener,noreferrer');
     } else if (network === 'copy') {
       navigator.clipboard.writeText(url);
       setCopiedLink(true);
@@ -99,27 +103,35 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
   return (
     <article className="max-w-7xl mx-auto px-4 py-4 space-y-6 bg-white">
       {/* 1. SECTION LABEL BREADCRUMB */}
-      <div className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8] border-b border-neutral-200 pb-2">
-        <button
-          onClick={() => onSelectCategory('all')}
-          className="hover:underline"
-        >
-          Home
-        </button>
-        <ChevronRight className="w-3 h-3 text-neutral-400" />
-        <button
-          onClick={() => onSelectCategory(article.category)}
-          className="hover:underline"
-        >
-          {article.category}
-        </button>
-        {article.subcategory && (
-          <>
-            <ChevronRight className="w-3 h-3 text-neutral-400" />
-            <span className="text-neutral-600">{article.subcategory}</span>
-          </>
-        )}
-      </div>
+      <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+          <li>
+            <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
+              Home
+            </SpaLink>
+          </li>
+          <li aria-hidden="true">
+            <ChevronRight className="w-3 h-3 text-neutral-500" />
+          </li>
+          <li>
+            <SpaLink
+              href={categoryHref(article.category)}
+              onNavigate={() => onSelectCategory(article.category)}
+              className="hover:underline inline-block py-1"
+            >
+              {article.category}
+            </SpaLink>
+          </li>
+          {article.subcategory && article.subcategory.toLowerCase() !== article.category.toLowerCase() && (
+            <>
+              <li aria-hidden="true">
+                <ChevronRight className="w-3 h-3 text-neutral-500" />
+              </li>
+              <li className="text-neutral-700">{article.subcategory}</li>
+            </>
+          )}
+        </ol>
+      </nav>
 
       {/* 2. HEADLINE & STANDFIRST */}
       <div className="max-w-4xl space-y-3">
@@ -155,46 +167,61 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             </div>
           </div>
 
-          <div className="text-[11px] text-neutral-500">
-            <span>Published: {dateFormatted}</span>
+          <div className="text-[11px] text-neutral-600">
+            <span>Published: <time dateTime={article.publishedAt}>{dateFormatted}</time></span>
           </div>
         </div>
 
-        {/* 4. SHARE BUTTONS ROW */}
-        <div className="flex items-center gap-2 pt-1 pb-2 border-b border-neutral-200 text-xs">
-          <span className="text-[10px] uppercase font-bold text-neutral-500 mr-1">Share:</span>
-          <button
-            onClick={() => handleShare('facebook')}
-            className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-          >
-            Facebook
-          </button>
-          <button
-            onClick={() => handleShare('twitter')}
-            className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-          >
-            X (Twitter)
-          </button>
-          <button
-            onClick={() => handleShare('whatsapp')}
-            className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-          >
-            WhatsApp
-          </button>
-          <button
-            onClick={() => handleShare('copy')}
-            className="px-2.5 py-1 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition flex items-center gap-1"
-          >
-            {copiedLink ? <Check className="w-3 h-3 text-emerald-600" /> : <Share2 className="w-3 h-3" />}
-            <span>{copiedLink ? 'Copied' : 'Copy'}</span>
-          </button>
+        {/* 4. SHARE BUTTONS ROW (wraps on narrow screens) */}
+        <div className="flex flex-wrap items-center gap-2 pt-1 pb-2 border-b border-neutral-200 text-xs">
+          <span id="share-label" className="text-[10px] uppercase font-bold text-neutral-600 mr-1">Share:</span>
+          <div role="group" aria-labelledby="share-label" className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleShare('facebook')}
+              aria-label="Share on Facebook (opens in a new window)"
+              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
+            >
+              Facebook
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShare('twitter')}
+              aria-label="Share on X, formerly Twitter (opens in a new window)"
+              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
+            >
+              X (Twitter)
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShare('whatsapp')}
+              aria-label="Share on WhatsApp (opens in a new window)"
+              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
+            >
+              WhatsApp
+            </button>
+            <button
+              type="button"
+              onClick={() => handleShare('copy')}
+              aria-label="Copy link to this story"
+              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition flex items-center gap-1"
+            >
+              {copiedLink ? <Check className="w-3 h-3 text-emerald-700" aria-hidden="true" /> : <Share2 className="w-3 h-3" aria-hidden="true" />}
+              <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
+          <span className="sr-only" role="status" aria-live="polite">
+            {copiedLink ? 'Link copied to clipboard' : ''}
+          </span>
 
           <button
+            type="button"
             onClick={(e) => onToggleSave(article.id, e)}
-            className="ml-auto px-2.5 py-1 border border-neutral-300 text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 font-semibold"
+            aria-pressed={isSaved}
+            className="sm:ml-auto px-2.5 py-1.5 border border-neutral-300 text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 font-semibold"
           >
-            <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-neutral-800' : ''}`} />
-            <span>{isSaved ? 'Saved' : 'Save'}</span>
+            <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-neutral-800' : ''}`} aria-hidden="true" />
+            <span>{isSaved ? 'Saved' : 'Save story'}</span>
           </button>
         </div>
       </div>
@@ -204,23 +231,23 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
         {/* Article Body Column (8 cols, max-w-[680px]) */}
         <div className="lg:col-span-8 space-y-5">
           {/* Main Hero Image */}
-          <div className="space-y-1.5">
+          <figure className="space-y-1.5">
             <div className="aspect-16/10 bg-neutral-100 overflow-hidden border border-neutral-200">
               <img
                 src={article.heroImage}
-                alt={article.title}
+                alt={article.heroCaption ? '' : article.title}
                 className="w-full h-full object-cover"
               />
             </div>
-            <figcaption className="text-xs text-neutral-500 font-sans flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+            <figcaption className="text-xs text-neutral-600 font-sans flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <span>{article.heroCaption}</span>
               {(article.heroCredit || (article as any).photoCredit) && (
-                <span className="font-semibold shrink-0 text-neutral-400">
+                <span className="font-semibold shrink-0 text-neutral-600">
                   {article.heroCredit || `Photograph: ${(article as any).photoCredit}`}
                 </span>
               )}
             </figcaption>
-          </div>
+          </figure>
 
           {/* Body Paragraphs with Inline "Read More" Links */}
           <div className="max-w-[680px] space-y-4 text-[18px] leading-[1.65] font-serif text-neutral-900">
@@ -245,12 +272,13 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
                     <span className="font-black uppercase tracking-wider text-[#005EB8] mr-2">
                       READ MORE:
                     </span>
-                    <button
-                      onClick={() => onSelectArticle(inlineReadMore1)}
-                      className="font-bold text-neutral-900 hover:text-[#005EB8] hover:underline text-left"
+                    <SpaLink
+                      href={articleHref(inlineReadMore1)}
+                      onNavigate={() => onSelectArticle(inlineReadMore1)}
+                      className="font-bold text-neutral-900 hover:text-[#005EB8] underline text-left"
                     >
                       {inlineReadMore1.title}
-                    </button>
+                    </SpaLink>
                   </div>
                 )}
 
@@ -272,12 +300,13 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
                     <span className="font-black uppercase tracking-wider text-[#005EB8] mr-2">
                       READ MORE:
                     </span>
-                    <button
-                      onClick={() => onSelectArticle(inlineReadMore2)}
-                      className="font-bold text-neutral-900 hover:text-[#005EB8] hover:underline text-left"
+                    <SpaLink
+                      href={articleHref(inlineReadMore2)}
+                      onNavigate={() => onSelectArticle(inlineReadMore2)}
+                      className="font-bold text-neutral-900 hover:text-[#005EB8] underline text-left"
                     >
                       {inlineReadMore2.title}
-                    </button>
+                    </SpaLink>
                   </div>
                 )}
               </React.Fragment>
@@ -286,7 +315,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
 
           {/* Tags */}
           <div className="pt-4 border-t border-neutral-200 max-w-[680px]">
-            <span className="text-xs font-bold uppercase text-neutral-500 mr-2">Tags:</span>
+            <span className="text-xs font-bold uppercase text-neutral-600 mr-2">Tags:</span>
             <div className="inline-flex flex-wrap gap-1.5 mt-1">
               {article.tags.map((t) => (
                 <span
@@ -307,34 +336,32 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
 
           {/* Trending in Glasgow list */}
           <div className="border border-neutral-200 p-4">
-            <h4 className="font-headline font-black text-sm uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
+            <h2 className="font-headline font-black text-sm uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
               Trending Stories
-            </h4>
-            <div className="divide-y divide-neutral-200">
+            </h2>
+            <ul className="divide-y divide-neutral-200">
               {otherStories.slice(0, 4).map((art) => (
-                <div
-                  key={art.id}
-                  onClick={() => onSelectArticle(art)}
-                  className="py-2.5 cursor-pointer group"
-                >
+                <li key={art.id} className="relative py-2.5 cursor-pointer group">
                   <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8] block mb-0.5">
                     {art.subcategory || art.category}
                   </span>
-                  <h5 className="font-headline font-bold text-xs text-neutral-900 group-hover:text-[#005EB8] group-hover:underline line-clamp-2">
-                    {art.title}
-                  </h5>
-                </div>
+                  <h3 className="font-headline font-bold text-xs text-neutral-900 group-hover:text-[#005EB8] group-hover:underline line-clamp-2">
+                    <SpaLink href={articleHref(art)} onNavigate={() => onSelectArticle(art)} className={STRETCHED_LINK}>
+                      {art.title}
+                    </SpaLink>
+                  </h3>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         </aside>
       </div>
 
       {/* 6. MORE ON THIS STORY (Bottom 3-column grid) */}
       <section className="pt-6 border-t-4 border-[#0B2545]">
-        <h3 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-4">
+        <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-4">
           More on this story
-        </h3>
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {relatedStories.map((rel) => (
             <ArticleCard
@@ -349,26 +376,27 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
 
       {/* 7. MOST READ SIMPLE LIST AT BOTTOM */}
       <section className="pt-6 border-t border-neutral-300">
-        <h3 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-3">
+        <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-3">
           Most Read Across Glasgow
-        </h3>
+        </h2>
         <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {mostRead.map((item, idx) => (
             <li
               key={item.id}
-              onClick={() => onSelectArticle(item)}
-              className="p-3 border border-neutral-200 cursor-pointer group flex flex-col justify-between"
+              className="relative p-3 border border-neutral-200 cursor-pointer group flex flex-col justify-between"
             >
               <div>
-                <span className="font-headline font-black text-2xl text-neutral-300 group-hover:text-[#005EB8]">
+                <span className="font-headline font-black text-2xl text-neutral-500 group-hover:text-[#005EB8]" aria-hidden="true">
                   #{idx + 1}
                 </span>
                 <span className="text-[10px] font-bold uppercase text-[#005EB8] block mt-1">
                   {item.subcategory || item.category}
                 </span>
-                <h4 className="font-headline font-bold text-xs text-neutral-900 group-hover:underline line-clamp-3 mt-1">
-                  {item.title}
-                </h4>
+                <h3 className="font-headline font-bold text-xs text-neutral-900 group-hover:underline line-clamp-3 mt-1">
+                  <SpaLink href={articleHref(item)} onNavigate={() => onSelectArticle(item)} className={STRETCHED_LINK}>
+                    {item.title}
+                  </SpaLink>
+                </h3>
               </div>
             </li>
           ))}

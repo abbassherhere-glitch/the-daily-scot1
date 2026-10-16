@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
+import { SpaLink, articleHref, categoryHref } from '../components/SpaLink';
 
 interface HomePageProps {
   articles: Article[];
@@ -50,6 +51,8 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-3 space-y-6">
+      <h1 className="sr-only">The Daily Scot – latest news from Glasgow and Scotland</h1>
+
       {/* Top Leaderboard Slot */}
       <AdBanner type="leaderboard" className="my-2" />
 
@@ -57,7 +60,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {selectedArea && selectedArea !== 'All' && (
         <div className="bg-neutral-100 border-l-4 border-[#005EB8] px-3 py-1.5 text-xs font-bold text-neutral-800 flex items-center justify-between">
           <span>Showing news for: {selectedArea}</span>
-          <span className="text-neutral-500 font-normal">{filteredList.length} stories</span>
+          <span className="text-neutral-600 font-normal">{filteredList.length} stories</span>
         </div>
       )}
 
@@ -79,10 +82,10 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="lg:col-span-4 bg-white border border-neutral-200 p-3.5 flex flex-col justify-between">
             <div>
               <div className="border-b-2 border-[#0B2545] pb-1.5 mb-2 flex items-center justify-between">
-                <h3 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900">
+                <h2 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900">
                   Latest Headlines
-                </h3>
-                <span className="text-[10px] text-neutral-400 font-semibold uppercase">Updated live</span>
+                </h2>
+                <span className="text-[10px] text-neutral-600 font-semibold uppercase">Updated live</span>
               </div>
 
               <div className="divide-y divide-neutral-200">
@@ -122,13 +125,14 @@ export const HomePage: React.FC<HomePageProps> = ({
               Glasgow News
             </h2>
           </div>
-          <button
-            onClick={() => onSelectCategory('glasgow')}
-            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5"
+          <SpaLink
+            href={categoryHref('glasgow')}
+            onNavigate={() => onSelectCategory('glasgow')}
+            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5 py-1"
           >
-            <span>See more</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+            <span>See more<span className="sr-only"> Glasgow news</span></span>
+            <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </SpaLink>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -162,13 +166,14 @@ export const HomePage: React.FC<HomePageProps> = ({
           <h2 className="font-headline font-black text-xl sm:text-2xl text-neutral-900 uppercase tracking-tight">
             Scottish Sport
           </h2>
-          <button
-            onClick={() => onSelectCategory('sport')}
-            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5"
+          <SpaLink
+            href={categoryHref('sport')}
+            onNavigate={() => onSelectCategory('sport')}
+            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5 py-1"
           >
-            <span>All Sport</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
+            <span>All Sport<span className="sr-only"> news</span></span>
+            <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </SpaLink>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -192,12 +197,13 @@ export const HomePage: React.FC<HomePageProps> = ({
               <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight">
                 Property & Homes
               </h2>
-              <button
-                onClick={() => onSelectCategory('property')}
-                className="text-xs font-bold text-[#005EB8] hover:underline"
+              <SpaLink
+                href={categoryHref('property')}
+                onNavigate={() => onSelectCategory('property')}
+                className="text-xs font-bold text-[#005EB8] hover:underline py-1"
               >
                 More Property →
-              </button>
+              </SpaLink>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -215,28 +221,33 @@ export const HomePage: React.FC<HomePageProps> = ({
           {/* MOST READ SIMPLE NUMBERED LIST (No box - exactly like Glasgow Times / MEN) */}
           <div className="lg:col-span-4">
             <div className="border-b-2 border-neutral-900 pb-1.5 mb-3">
-              <h3 className="font-headline font-black text-lg text-neutral-900 uppercase tracking-tight">
+              <h2 className="font-headline font-black text-lg text-neutral-900 uppercase tracking-tight">
                 Most Read
-              </h3>
+              </h2>
             </div>
 
             <ol className="divide-y divide-neutral-200">
               {mostRead.map((item, idx) => (
-                <li
-                  key={item.id}
-                  onClick={() => onSelectArticle(item)}
-                  className="py-2.5 flex items-start gap-3 cursor-pointer group"
-                >
-                  <span className="font-headline font-black text-2xl text-neutral-400 group-hover:text-[#005EB8] leading-none shrink-0 w-6">
+                <li key={item.id} className="relative py-2.5 flex items-start gap-3 cursor-pointer group">
+                  <span
+                    className="font-headline font-black text-2xl text-neutral-500 group-hover:text-[#005EB8] leading-none shrink-0 w-6"
+                    aria-hidden="true"
+                  >
                     {idx + 1}
                   </span>
                   <div className="min-w-0">
                     <span className="text-[10px] uppercase font-bold text-[#005EB8] block mb-0.5">
                       {item.subcategory || item.category}
                     </span>
-                    <h4 className="font-headline font-bold text-xs sm:text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
-                      {item.title}
-                    </h4>
+                    <h3 className="font-headline font-bold text-xs sm:text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
+                      <SpaLink
+                        href={articleHref(item)}
+                        onNavigate={() => onSelectArticle(item)}
+                        className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8]"
+                      >
+                        {item.title}
+                      </SpaLink>
+                    </h3>
                   </div>
                 </li>
               ))}
