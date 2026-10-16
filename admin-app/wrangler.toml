@@ -1,4 +1,4 @@
-name = "the-daily-scot-admin"
+name = "daily-scot-admin"
 compatibility_date = "2024-11-01"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
@@ -8,7 +8,7 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "daily-scot-db"
-database_id = "REPLACE_WITH_D1_ID"
+database_id = "53f397c9-efea-4a7e-b0ca-4b71f6965e76"
 
 # Shared Cloudflare R2 Media Storage Bucket Binding
 [[r2_buckets]]
@@ -25,4 +25,4 @@ bucket_name = "daily-scot-media"
 ENVIRONMENT = "production"
 CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_TEAM_NAME"
 CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_AUD_TAG"
-MEDIA_PUBLIC_URL = "https://media.dailyscot.co.uk"
+MEDIA_PUBLIC_URL = "https://pub-07c4607f377f40c898f392545faf8c94.r2.dev"
