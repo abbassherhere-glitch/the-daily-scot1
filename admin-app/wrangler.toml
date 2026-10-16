@@ -23,6 +23,6 @@ bucket_name = "daily-scot-media"
 #   npx wrangler pages secret put CF_ACCESS_SERVICE_CLIENT_SECRET --project-name daily-scot-admin
 [vars]
 ENVIRONMENT = "production"
-CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_TEAM_NAME"
-CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_AUD_TAG"
+CF_ACCESS_TEAM_DOMAIN = "little-glitter-42c7"
+CF_ACCESS_AUD = "fbb5050a315a4affcab876d8efe6b0aa8c945a24d0be795711cf8ec06ec84ea1"
 MEDIA_PUBLIC_URL = "https://pub-07c4607f377f40c898f392545faf8c94.r2.dev"
