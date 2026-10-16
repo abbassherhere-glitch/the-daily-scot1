@@ -1,5 +1,6 @@
 import { Env, EventContext, User } from '../../types';
-import { sanitizeHtml, sanitizePlainText, generateSlug } from '../../utils/sanitize';
+import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl } from '../../utils/sanitize';
+import { normaliseSourceType } from '../../utils/articleRules';
 import { logAuditEvent, getClientIp, requireRole } from '../../utils/auth';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit for bot ingested media
@@ -22,25 +23,54 @@ export async function onRequestPost(
     const cleanBody = await sanitizeHtml(rawBody);
     const category = sanitizePlainText(body.category || 'news', 50);
     const area = sanitizePlainText(body.area || 'All Glasgow', 50);
-    let heroImage = body.hero_image ? String(body.hero_image).trim() : null;
+    const rawHeroImage = body.hero_image ? String(body.hero_image).trim() : '';
+    let heroImage: string | null = null;
     const imageCaption = sanitizePlainText(body.image_caption || '', 250);
     const photoCredit = sanitizePlainText(body.photo_credit || 'Wire / Press Pool', 100);
     const photoSource = sanitizePlainText(body.photo_source || 'Syndicated Feed', 100);
     const customSlug = body.slug ? generateSlug(body.slug) : generateSlug(title);
     const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : sanitizePlainText(body.tags || '', 300);
 
-    const sourceType = body.source_type || 'Press release';
-    const sourceUrl = sanitizePlainText(body.source_url || '', 300);
+    const sourceType = normaliseSourceType(body.source_type, 'Press release');
+    const sourceUrl = sanitizeUrl(body.source_url, 300) || '';
     const sourceName = sanitizePlainText(body.source_name || 'Automated News Ingest Service', 150);
 
-    // Bot media payload validation (if base64 data URL provided)
-    if (heroImage && heroImage.startsWith('data:')) {
-      const approxBytes = Math.ceil((heroImage.length * 3) / 4);
+    // Media: base64 data URLs are stored in R2 (D1 rows are limited to ~2MB); other values must be http(s) URLs
+    if (rawHeroImage.startsWith('data:')) {
+      const match = /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(rawHeroImage);
+      if (!match) {
+        return new Response(JSON.stringify({ error: 'hero_image data URL must be a base64 JPEG, PNG or WebP' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const approxBytes = Math.floor((match[2].length * 3) / 4);
       if (approxBytes > MAX_IMAGE_SIZE_BYTES) {
         return new Response(
           JSON.stringify({ error: 'Ingested media image exceeds maximum allowed size (5MB)' }),
           { status: 400, headers: { 'Content-Type': 'application/json' } }
         );
+      }
+      const binary = atob(match[2]);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const mime = match[1] === 'image/jpg' ? 'image/jpeg' : match[1];
+      const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+      const now = new Date();
+      const key = `articles/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/ingest-${Date.now()}-${crypto.randomUUID().slice(0, 10)}.${ext}`;
+      await context.env.MEDIA.put(key, bytes, {
+        httpMetadata: { contentType: mime, cacheControl: 'public, max-age=31536000, immutable' },
+        customMetadata: { uploadedBy: user.email },
+      });
+      const publicBase = (context.env.MEDIA_PUBLIC_URL || '').replace(/\/+$/, '');
+      heroImage = publicBase ? `${publicBase}/${key}` : `/${key}`;
+    } else if (rawHeroImage) {
+      heroImage = sanitizeUrl(rawHeroImage);
+      if (!heroImage) {
+        return new Response(JSON.stringify({ error: 'hero_image must be an http(s) URL or a base64 image data URL' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
       }
     }
 
@@ -51,8 +81,11 @@ export async function onRequestPost(
       );
     }
 
-    const id = `ingest-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    const slug = customSlug || id;
+    const id = `ingest-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    let slug = customSlug || id;
+    // Wire copy often repeats headlines – keep slugs unique instead of failing
+    const clash = await context.env.DB.prepare('SELECT 1 FROM articles WHERE slug = ?').bind(slug).first();
+    if (clash) slug = `${slug.slice(0, 80)}-${crypto.randomUUID().slice(0, 6)}`;
 
     // INGEST RULE: Bot articles CANNOT be published directly. ALWAYS 'needs_review'.
     const forcedStatus = 'needs_review';
@@ -75,7 +108,7 @@ export async function onRequestPost(
         ?, ?,
         ?, ?, ?, ?,
         'none', ?, null,
-        null, datetime("now"), datetime("now")
+        null, datetime('now'), datetime('now')
       )
     `)
       .bind(

@@ -19,8 +19,14 @@ export async function onRequestGet(
 
   if (format === 'csv') {
     let csv = 'email,confirmed,created_at\r\n';
+    // Quote fields and neutralise spreadsheet formulas (CSV injection)
+    const cell = (v: unknown) => {
+      let str = String(v ?? '');
+      if (/^[=+\-@\t\r]/.test(str)) str = `'${str}`;
+      return `"${str.replace(/"/g, '""')}"`;
+    };
     results.forEach((row) => {
-      csv += `"${row.email}",${row.confirmed},"${row.created_at}"\r\n`;
+      csv += `${cell(row.email)},${row.confirmed},${cell(row.created_at)}\r\n`;
     });
 
     return new Response(csv, {
