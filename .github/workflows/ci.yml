@@ -1,0 +1,81 @@
+# Automatic build check for The Daily Scot.
+# Runs on every push and pull request. If any step fails, GitHub marks the commit with a red ✗
+# and emails you, so broken code is caught before Cloudflare Pages deploys it.
+name: Build check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Type-check, build and validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VITE_CONFIG_NATIVE_IGNORE_WARNING: 'true'
+      WRANGLER_SEND_METRICS: 'false'
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies (must match bun.lock)
+        run: bun install --frozen-lockfile
+
+      - name: Type-check (TypeScript)
+        run: npm run lint
+
+      - name: Build public site
+        run: npm run build
+
+      - name: Build newsroom (admin) site
+        run: npm run build:admin
+
+      - name: Compile public site Functions (as Cloudflare will)
+        run: npx -y wrangler@4 pages functions build --outdir="$RUNNER_TEMP/functions-public"
+
+      - name: Compile newsroom Functions (as Cloudflare will)
+        working-directory: admin-app
+        run: npx -y wrangler@4 pages functions build --outdir="$RUNNER_TEMP/functions-admin"
+
+      - name: Compile scheduler Worker
+        working-directory: scheduler
+        run: npx -y wrangler@4 deploy --dry-run --outdir="$RUNNER_TEMP/scheduler"
+
+      - name: Check database migrations apply cleanly
+        shell: python
+        run: |
+          import glob, sqlite3, sys
+          db = sqlite3.connect(":memory:")
+          db.execute("PRAGMA foreign_keys = ON")
+          files = sorted(glob.glob("migrations/*.sql")) + ["seed.demo.sql"]
+          for f in files:
+              print(f"Applying {f}")
+              try:
+                  db.executescript(open(f, encoding="utf-8").read())
+              except sqlite3.Error as e:
+                  sys.exit(f"::error file={f}::{e}")
+          for table in ("categories", "users", "articles"):
+              n = db.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+              print(f"{table}: {n}")
+          missing = db.execute("SELECT COUNT(*) FROM users WHERE role = 'Bot'").fetchone()[0]
+          if not missing:
+              sys.exit("::error::Bot user missing after migrations")
