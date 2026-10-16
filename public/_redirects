@@ -1,5 +1,5 @@
-# Cloudflare Pages SPA Routing
-/api/* /api/:splat 200
-/news/* /index.html 200
-/admin/* /index.html 200
-/* /index.html 200
+# Cloudflare Pages redirects.
+# No rules are needed: Pages serves index.html for unknown paths automatically (SPA mode,
+# because there is no 404.html), and /api/*, /news/*, /rss.xml and the sitemaps are handled
+# by Pages Functions in /functions. The previous "/* /index.html 200" and "/api/* /api/:splat 200"
+# rules were redundant and can trigger Pages' infinite-loop warning.
