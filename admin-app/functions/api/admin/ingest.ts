@@ -1,5 +1,5 @@
 import { Env, EventContext, User } from '../../types';
-import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl } from '../../utils/sanitize';
+import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, detectImageType } from '../../utils/sanitize';
 import { normaliseSourceType } from '../../utils/articleRules';
 import { logAuditEvent, getClientIp, requireRole } from '../../utils/auth';
 
@@ -35,6 +35,13 @@ export async function onRequestPost(
     const sourceUrl = sanitizeUrl(body.source_url, 300) || '';
     const sourceName = sanitizePlainText(body.source_name || 'Automated News Ingest Service', 150);
 
+    if (!title || !standfirst || !cleanBody) {
+      return new Response(
+        JSON.stringify({ error: 'title, standfirst, and body are required for ingest' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Media: base64 data URLs are stored in R2 (D1 rows are limited to ~2MB); other values must be http(s) URLs
     if (rawHeroImage.startsWith('data:')) {
       const match = /^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(rawHeroImage);
@@ -54,8 +61,16 @@ export async function onRequestPost(
       const binary = atob(match[2]);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-      const mime = match[1] === 'image/jpg' ? 'image/jpeg' : match[1];
-      const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+      // Verify the decoded bytes really are an image (the data URL's declared type can be faked)
+      const detected = detectImageType(bytes);
+      if (!detected) {
+        return new Response(JSON.stringify({ error: 'hero_image is not a valid JPG, PNG or WebP image' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const mime = detected.mime;
+      const ext = detected.ext;
       const now = new Date();
       const key = `articles/${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, '0')}/ingest-${Date.now()}-${crypto.randomUUID().slice(0, 10)}.${ext}`;
       await context.env.MEDIA.put(key, bytes, {
@@ -74,12 +89,6 @@ export async function onRequestPost(
       }
     }
 
-    if (!title || !standfirst || !cleanBody) {
-      return new Response(
-        JSON.stringify({ error: 'title, standfirst, and body are required for ingest' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
-    }
 
     const id = `ingest-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
     let slug = customSlug || id;
