@@ -1,0 +1,25 @@
+name = "the-daily-scot-admin"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+# Shared Cloudflare D1 Database Binding
+# Replace with your production D1 database UUID created in Cloudflare dashboard or via wrangler d1 create
+[[d1_databases]]
+binding = "DB"
+database_name = "daily-scot-db"
+database_id = "REPLACE_WITH_D1_ID"
+
+# Shared Cloudflare R2 Media Storage Bucket Binding
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "daily-scot-media"
+
+# Production Access Variables (Strictly No Local Dev Bypass)
+# Note: Never put secrets in [vars]. Use wrangler secret:
+#   wrangler pages secret put BOT_CLIENT_ID
+#   wrangler pages secret put CF_ACCESS_SERVICE_CLIENT_SECRET
+[vars]
+CF_ACCESS_TEAM_DOMAIN = "daily-scot-team"
+CF_ACCESS_AUD = "YOUR_CF_ACCESS_AUD_TAG"
+MEDIA_PUBLIC_URL = "https://media.dailyscot.co.uk"
