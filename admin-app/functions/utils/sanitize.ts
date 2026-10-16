@@ -175,3 +175,31 @@ export function sanitizeUrl(value: unknown, maxLength = 1000): string | null {
   }
   return null;
 }
+
+export type DetectedImage = { mime: 'image/jpeg' | 'image/png' | 'image/webp'; ext: 'jpg' | 'png' | 'webp' };
+
+/**
+ * Identifies an image from its first bytes ("magic numbers") rather than trusting the
+ * file name or the Content-Type the browser/bot claims. Returns null if it is not a
+ * JPEG, PNG or WebP image.
+ */
+export function detectImageType(bytes: Uint8Array): DetectedImage | null {
+  if (bytes.length < 12) return null;
+  // JPEG: FF D8 FF
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return { mime: 'image/jpeg', ext: 'jpg' };
+  }
+  // PNG: 89 50 4E 47 0D 0A 1A 0A
+  const png = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  if (png.every((b, i) => bytes[i] === b)) {
+    return { mime: 'image/png', ext: 'png' };
+  }
+  // WebP: "RIFF" ???? "WEBP"
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    return { mime: 'image/webp', ext: 'webp' };
+  }
+  return null;
+}
