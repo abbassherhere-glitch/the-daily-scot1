@@ -15,11 +15,14 @@ database_id = "REPLACE_WITH_D1_ID"
 binding = "MEDIA"
 bucket_name = "daily-scot-media"
 
-# Production Access Variables (Strictly No Local Dev Bypass)
-# Note: Never put secrets in [vars]. Use wrangler secret:
-#   wrangler pages secret put BOT_CLIENT_ID
-#   wrangler pages secret put CF_ACCESS_SERVICE_CLIENT_SECRET
+# Production Access Variables (no local dev bypass)
+# REQUIRED: the newsroom refuses ALL logins (HTTP 503) until both values below are set to your
+# real Cloudflare Zero Trust team name and the Access application's AUD tag.
+# Never put secrets in [vars]. Use:
+#   npx wrangler pages secret put BOT_CLIENT_ID --project-name daily-scot-admin
+#   npx wrangler pages secret put CF_ACCESS_SERVICE_CLIENT_SECRET --project-name daily-scot-admin
 [vars]
-CF_ACCESS_TEAM_DOMAIN = "daily-scot-team"
-CF_ACCESS_AUD = "YOUR_CF_ACCESS_AUD_TAG"
+ENVIRONMENT = "production"
+CF_ACCESS_TEAM_DOMAIN = "REPLACE_WITH_TEAM_NAME"
+CF_ACCESS_AUD = "REPLACE_WITH_ACCESS_AUD_TAG"
 MEDIA_PUBLIC_URL = "https://media.dailyscot.co.uk"
