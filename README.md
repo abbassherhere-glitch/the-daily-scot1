@@ -1,4 +1,7 @@
 # The Daily Scot 🏴󠁧󠁢󠁳󠁣󠁴󠁿
+
+[![Build check](https://github.com/abbassherhere-glitch/the-daily-scot1/actions/workflows/ci.yml/badge.svg)](https://github.com/abbassherhere-glitch/the-daily-scot1/actions/workflows/ci.yml)
+
 ### Independent Glasgow & Scotland Regional News Outlet
 
 *The Daily Scot* is a fast, robust regional broadsheet newspaper application engineered for production deployment on **Cloudflare Pages (Free Tier)**. It separates the **public-facing news site** from the **internal newsroom editorial CMS** across two distinct Cloudflare Pages projects sharing a single **Cloudflare D1** SQLite database and **Cloudflare R2** media storage bucket, secured by **Cloudflare Zero Trust (Access)**.
@@ -30,6 +33,22 @@
                                  daily-scot-db                  daily-scot-media
                               Articles, Users, Audit, Subs    Photographs (Max 5MB)
 ```
+
+---
+
+## Automatic Build Check (GitHub Actions)
+
+Every push to `main` and every pull request runs `.github/workflows/ci.yml`, which:
+
+1. installs dependencies exactly as pinned in `bun.lock`;
+2. type-checks all code (`npm run lint`);
+3. builds the public site and the newsroom;
+4. compiles both sets of Pages Functions and the scheduler Worker the same way Cloudflare does;
+5. applies every file in `migrations/` (plus the demo seed) to a test database to make sure they still work.
+
+If any step fails, the commit gets a red ✗ on GitHub and you are emailed. Open the **Actions** tab to see which step failed. You can also run it by hand from **Actions → Build check → Run workflow**.
+
+**Recommended:** make changes on a separate branch and open a pull request, and protect `main` on GitHub (**Settings → Branches → Add rule → Require status checks to pass → "Type-check, build and validate"**), so code that fails the check can't be merged. Cloudflare Pages deploys whatever lands on `main`, so this is what stops a broken build from going live.
 
 ---
 
