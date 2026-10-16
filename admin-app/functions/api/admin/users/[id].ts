@@ -1,5 +1,5 @@
 import { Env, EventContext, User } from '../../../types';
-import { sanitizePlainText } from '../../../utils/sanitize';
+import { sanitizePlainText, sanitizeUrl } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
 
 export async function onRequestPut(
@@ -28,9 +28,35 @@ export async function onRequestPut(
 
     const name = sanitizePlainText(body.name || existing.name, 100);
     const role = (body.role || existing.role) as 'Owner' | 'Editor' | 'Journalist' | 'Bot';
+    if (!['Owner', 'Editor', 'Journalist', 'Bot'].includes(role)) {
+      return new Response(JSON.stringify({ error: 'Role must be Owner, Editor, Journalist, or Bot' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
     const bio = sanitizePlainText(body.bio !== undefined ? body.bio : existing.bio || '', 300);
-    const photo = body.photo !== undefined ? body.photo : existing.photo;
+    const photo = body.photo !== undefined ? sanitizeUrl(body.photo) : existing.photo;
     const active = body.active !== undefined ? (body.active ? 1 : 0) : existing.active;
+
+    // Never leave the newsroom without an active Owner
+    const losesOwner = existing.role === 'Owner' && existing.active === 1 && (role !== 'Owner' || active !== 1);
+    if (losesOwner) {
+      if (existing.id === user.id) {
+        return new Response(
+          JSON.stringify({ error: 'You cannot demote or deactivate your own Owner account. Ask another Owner.' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+      const owners = await context.env.DB.prepare(
+        "SELECT COUNT(*) AS n FROM users WHERE role = 'Owner' AND active = 1"
+      ).first<{ n: number }>();
+      if (!owners || owners.n <= 1) {
+        return new Response(JSON.stringify({ error: 'At least one active Owner is required.' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     await context.env.DB.prepare(`
       UPDATE users SET name = ?, role = ?, bio = ?, photo = ?, active = ? WHERE id = ?

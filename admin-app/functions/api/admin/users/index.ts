@@ -1,5 +1,5 @@
 import { Env, EventContext, User } from '../../../types';
-import { sanitizePlainText } from '../../../utils/sanitize';
+import { sanitizePlainText, sanitizeUrl } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
 
 export async function onRequestGet(
@@ -36,9 +36,9 @@ export async function onRequestPost(
     const name = sanitizePlainText(body?.name || '', 100);
     const role = body?.role as 'Owner' | 'Editor' | 'Journalist' | 'Bot';
     const bio = sanitizePlainText(body?.bio || '', 300);
-    const photo = body?.photo ? String(body.photo).trim() : null;
+    const photo = sanitizeUrl(body?.photo);
 
-    if (!email || !name || !role) {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !name || !role) {
       return new Response(JSON.stringify({ error: 'Email, name, and role are required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +56,7 @@ export async function onRequestPost(
 
     await context.env.DB.prepare(`
       INSERT INTO users (id, email, name, role, bio, photo, active, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 1, datetime("now"))
+      VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))
     `)
       .bind(id, email, name, role, bio, photo)
       .run();
