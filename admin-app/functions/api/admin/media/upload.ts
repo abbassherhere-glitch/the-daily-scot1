@@ -1,5 +1,6 @@
 import { Env, EventContext, User } from '../../../types';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
+import { detectImageType } from '../../../utils/sanitize';
 
 const ALLOWED_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -45,24 +46,33 @@ export async function onRequestPost(
       );
     }
 
-    // Validate mime type
-    const fileType = file.type.toLowerCase();
-    const extension = ALLOWED_TYPES[fileType];
-    if (!extension) {
+    // Quick rejection based on the type the browser claims
+    if (!ALLOWED_TYPES[file.type.toLowerCase()]) {
       return new Response(
         JSON.stringify({ error: 'Unsupported file type. Allowed formats: JPG, PNG, WebP' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
 
+    const arrayBuffer = await file.arrayBuffer();
+
+    // Verify the actual file contents – the claimed type and file name can be faked
+    const detected = detectImageType(new Uint8Array(arrayBuffer, 0, Math.min(16, arrayBuffer.byteLength)));
+    if (!detected) {
+      return new Response(
+        JSON.stringify({ error: 'File is not a valid JPG, PNG or WebP image.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    const fileType = detected.mime;
+    const extension = detected.ext;
+
     // Generate clean, collision-free filename
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
     const randomHash = crypto.randomUUID().slice(0, 10);
     const key = `articles/${year}/${month}/scot-${Date.now()}-${randomHash}.${extension}`;
-
-    const arrayBuffer = await file.arrayBuffer();
 
     // Upload to Cloudflare R2 MEDIA bucket
     await context.env.MEDIA.put(key, arrayBuffer, {
