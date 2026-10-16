@@ -61,6 +61,7 @@ export interface Article {
   views: number;
   comments: Comment[];
   tags: string[];
+  isPartial?: boolean; // true when loaded from a list endpoint without the body
 }
 
 export interface WeatherData {
