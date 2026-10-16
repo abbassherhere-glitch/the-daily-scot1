@@ -46,42 +46,48 @@ export async function onRequestPost(
       });
     }
 
-    // Archive current state into revisions before rolling back
-    const snapshotId = `rev-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    await context.env.DB.prepare(`
-      INSERT INTO article_revisions (
-        id, article_id, editor_email, previous_title, previous_body, change_summary, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, datetime("now"))
-    `)
-      .bind(
+    const isProposal = (revision as any).kind === 'proposal';
+
+    // Archive current state, apply the revision, and mark a proposal as applied – atomically
+    const snapshotId = `rev-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
+    const statements = [
+      context.env.DB.prepare(`
+        INSERT INTO article_revisions (
+          id, article_id, editor_email, previous_title, previous_body, change_summary, kind, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'snapshot', datetime('now'))
+      `).bind(
         snapshotId,
         id,
         user.email,
         existing.title,
         existing.body,
-        `Automatic backup before restoring revision ${body.revision_id}`
-      )
-      .run();
-
-    // Restore title and body from the revision
-    await context.env.DB.prepare(`
-      UPDATE articles 
-      SET title = ?, body = ?, last_updated_by = ?, updated_at = datetime("now") 
-      WHERE id = ?
-    `)
-      .bind(revision.previous_title, revision.previous_body, user.email, id)
-      .run();
+        isProposal
+          ? `Automatic backup before applying proposal ${body.revision_id}`
+          : `Automatic backup before restoring revision ${body.revision_id}`
+      ),
+      context.env.DB.prepare(`
+        UPDATE articles 
+        SET title = ?, body = ?, last_updated_by = ?, updated_at = datetime('now') 
+        WHERE id = ?
+      `).bind(revision.previous_title, revision.previous_body, user.email, id),
+    ];
+    if (isProposal) {
+      statements.push(
+        context.env.DB.prepare("UPDATE article_revisions SET kind = 'applied' WHERE id = ?").bind(body.revision_id)
+      );
+    }
+    await context.env.DB.batch(statements);
 
     await logAuditEvent(
       context.env,
       user,
-      'RESTORE_REVISION',
+      isProposal ? 'APPLY_PROPOSED_REVISION' : 'RESTORE_REVISION',
       {
         articleId: id,
         beforeStatus: existing.status,
         afterStatus: existing.status,
         ip: getClientIp(context.request),
-        details: `Restored article "${existing.title}" (${id}) to revision ${body.revision_id}`,
+        details: `${isProposal ? 'Applied proposed changes to' : 'Restored'} article "${existing.title}" (${id}) from revision ${body.revision_id}`,
       }
     );
 

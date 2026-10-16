@@ -12,7 +12,7 @@ export async function onRequestGet(
     if (roleErr) return roleErr;
 
     const { results } = await context.env.DB.prepare(
-      `SELECT id, article_id, editor_email, previous_title, previous_body, change_summary, created_at 
+      `SELECT id, article_id, editor_email, previous_title, previous_body, change_summary, kind, created_at 
        FROM article_revisions 
        WHERE article_id = ? 
        ORDER BY created_at DESC`
