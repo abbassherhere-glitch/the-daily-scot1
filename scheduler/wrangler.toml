@@ -1,0 +1,13 @@
+name = "daily-scot-scheduler"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Shared Cloudflare D1 Database Binding
+# Replace with your production D1 database UUID created in Cloudflare dashboard
+[[d1_databases]]
+binding = "DB"
+database_name = "daily-scot-db"
+database_id = "REPLACE_WITH_D1_ID"
