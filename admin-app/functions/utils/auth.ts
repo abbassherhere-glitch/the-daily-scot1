@@ -34,9 +34,32 @@ export function getClientIp(request: Request): string {
   return '127.0.0.1';
 }
 
+const PLACEHOLDER_TEAM_DOMAINS = new Set(['', 'daily-scot-team', 'your-team', 'my-team']);
+const PLACEHOLDER_AUDS = new Set(['', 'YOUR_CF_ACCESS_AUD_TAG']);
+
+/**
+ * Returns an error message if Cloudflare Access is not properly configured, otherwise null.
+ * Authentication FAILS CLOSED: with placeholder or missing values nobody can sign in.
+ */
+export function getAccessConfigError(teamDomain?: string, expectedAud?: string): string | null {
+  if (!teamDomain || PLACEHOLDER_TEAM_DOMAINS.has(teamDomain.trim()) || /^REPLACE_WITH/i.test(teamDomain.trim())) {
+    return 'CF_ACCESS_TEAM_DOMAIN is not configured';
+  }
+  if (
+    !expectedAud ||
+    PLACEHOLDER_AUDS.has(expectedAud.trim()) ||
+    /^REPLACE_WITH/i.test(expectedAud.trim()) ||
+    /^x+$/i.test(expectedAud.trim())
+  ) {
+    return 'CF_ACCESS_AUD is not configured';
+  }
+  return null;
+}
+
 /**
  * Validates Cloudflare Access JWT Assertion header (Cf-Access-Jwt-Assertion).
- * Strictly verifies signature, expiration, team domain issuer, and audience.
+ * ALWAYS verifies the RS256 signature against the team's public certs, plus expiry,
+ * not-before, issuer and audience. Never skips a check.
  * Cloudflare Access service-token JWTs have no email, only common_name (the Client ID).
  */
 export async function verifyCloudflareAccessJwt(
@@ -45,64 +68,60 @@ export async function verifyCloudflareAccessJwt(
   expectedAud?: string
 ): Promise<{ email?: string; common_name?: string; sub: string } | null> {
   try {
+    if (getAccessConfigError(teamDomain, expectedAud)) return null;
+    const team = teamDomain!.trim();
+    const aud = expectedAud!.trim();
+
     const parts = jwt.split('.');
     if (parts.length !== 3) return null;
 
     const [headerB64, payloadB64, signatureB64] = parts;
-    const header = JSON.parse(base64UrlDecode(headerB64));
-    const payload: JwtPayload = JSON.parse(base64UrlDecode(payloadB64));
+    const header = JSON.parse(base64UrlDecode(headerB64)) as { alg?: string; kid?: string };
+    const payload: JwtPayload & { nbf?: number } = JSON.parse(base64UrlDecode(payloadB64));
 
-    // 1. Check expiration
-    const now = Math.floor(Date.now() / 1000);
-    if (!payload.exp || payload.exp < now) {
-      console.warn('CF Access JWT expired or missing exp');
+    // 1. Algorithm and key id are mandatory
+    if (header.alg !== 'RS256' || !header.kid) {
+      console.warn('CF Access JWT rejected: unexpected alg or missing kid');
       return null;
     }
 
-    // 2. Must have valid email OR common_name (for Cloudflare Access service tokens)
+    // 2. Cryptographic signature check against team certs (always)
+    const keyValid = await verifySignatureWithCerts(team, header.kid, `${headerB64}.${payloadB64}`, signatureB64);
+    if (!keyValid) {
+      console.warn('CF Access JWT signature verification failed');
+      return null;
+    }
+
+    // 3. Expiry / not-before (allow 60s clock skew)
+    const now = Math.floor(Date.now() / 1000);
+    if (!payload.exp || payload.exp < now - 60) {
+      console.warn('CF Access JWT expired or missing exp');
+      return null;
+    }
+    if (payload.nbf && payload.nbf > now + 60) {
+      console.warn('CF Access JWT not yet valid');
+      return null;
+    }
+
+    // 4. Issuer must be this team
+    if (payload.iss !== `https://${team}.cloudflareaccess.com`) {
+      console.warn('CF Access JWT ISS mismatch:', payload.iss);
+      return null;
+    }
+
+    // 5. Audience must include this Access application
+    const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+    if (!auds.includes(aud)) {
+      console.warn('CF Access JWT AUD mismatch');
+      return null;
+    }
+
+    // 6. Must identify a person (email) or a service token (common_name)
     const hasEmail = typeof payload.email === 'string' && payload.email.includes('@');
     const hasCommonName = typeof payload.common_name === 'string' && payload.common_name.trim().length > 0;
     if (!hasEmail && !hasCommonName) {
       console.warn('CF Access JWT missing email and common_name in payload');
       return null;
-    }
-
-    // 3. Verify issuer matches team domain
-    if (teamDomain && teamDomain !== 'daily-scot-team') {
-      const expectedIss = `https://${teamDomain}.cloudflareaccess.com`;
-      if (payload.iss !== expectedIss) {
-        console.warn('CF Access JWT ISS mismatch:', payload.iss, 'expected:', expectedIss);
-        return null;
-      }
-    } else if (teamDomain) {
-      const expectedIss = `https://${teamDomain}.cloudflareaccess.com`;
-      if (payload.iss && payload.iss !== expectedIss) {
-        console.warn('CF Access JWT ISS mismatch');
-        return null;
-      }
-    }
-
-    // 4. Check audience
-    if (expectedAud && expectedAud !== 'YOUR_CF_ACCESS_AUD_TAG') {
-      const auds = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
-      if (!auds.includes(expectedAud)) {
-        console.warn('CF Access JWT AUD mismatch');
-        return null;
-      }
-    }
-
-    // 5. Cryptographic signature check against team certs
-    if (teamDomain && teamDomain !== 'daily-scot-team' && header.kid) {
-      const keyValid = await verifySignatureWithCerts(
-        teamDomain,
-        header.kid,
-        `${headerB64}.${payloadB64}`,
-        signatureB64
-      );
-      if (!keyValid) {
-        console.warn('CF Access JWT Signature verification failed');
-        return null;
-      }
     }
 
     return {
@@ -116,6 +135,17 @@ export async function verifyCloudflareAccessJwt(
   }
 }
 
+async function fetchCerts(teamDomain: string, force = false): Promise<any[]> {
+  const now = Date.now();
+  if (force || !certsCache || now - certsCache.fetchedAt > CERTS_CACHE_TTL) {
+    const res = await fetch(`https://${teamDomain}.cloudflareaccess.com/cdn-cgi/access/certs`);
+    if (!res.ok) throw new Error(`Failed to fetch Access certs: HTTP ${res.status}`);
+    const data = (await res.json()) as { keys: any[] };
+    certsCache = { keys: data.keys || [], fetchedAt: now };
+  }
+  return certsCache!.keys;
+}
+
 async function verifySignatureWithCerts(
   teamDomain: string,
   kid: string,
@@ -123,16 +153,13 @@ async function verifySignatureWithCerts(
   signatureB64: string
 ): Promise<boolean> {
   try {
-    const now = Date.now();
-    if (!certsCache || now - certsCache.fetchedAt > CERTS_CACHE_TTL) {
-      const certsUrl = `https://${teamDomain}.cloudflareaccess.com/cdn-cgi/access/certs`;
-      const res = await fetch(certsUrl);
-      if (!res.ok) return false;
-      const data = await res.json() as { keys: any[] };
-      certsCache = { keys: data.keys || [], fetchedAt: now };
+    let keys = await fetchCerts(teamDomain);
+    let jwk = keys.find((k: any) => k.kid === kid);
+    if (!jwk) {
+      // Keys rotate – refresh once before giving up
+      keys = await fetchCerts(teamDomain, true);
+      jwk = keys.find((k: any) => k.kid === kid);
     }
-
-    const jwk = certsCache.keys.find((k: any) => k.kid === kid);
     if (!jwk) return false;
 
     const cryptoKey = await crypto.subtle.importKey(
@@ -143,10 +170,8 @@ async function verifySignatureWithCerts(
       ['verify']
     );
 
-    const encoder = new TextEncoder();
-    const dataBytes = encoder.encode(dataString);
-
-    const binarySig = atob(signatureB64.replace(/-/g, '+').replace(/_/g, '/'));
+    const dataBytes = new TextEncoder().encode(dataString);
+    const binarySig = base64UrlDecode(signatureB64);
     const sigBytes = new Uint8Array(binarySig.length);
     for (let i = 0; i < binarySig.length; i++) {
       sigBytes[i] = binarySig.charCodeAt(i);
@@ -156,6 +181,43 @@ async function verifySignatureWithCerts(
   } catch (e) {
     console.error('Error in verifySignatureWithCerts', e);
     return false;
+  }
+}
+
+/** Constant-time string comparison to avoid timing leaks on secrets. */
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const aBytes = enc.encode(a);
+  const bBytes = enc.encode(b);
+  let diff = aBytes.length ^ bBytes.length;
+  const len = Math.max(aBytes.length, bBytes.length);
+  for (let i = 0; i < len; i++) {
+    diff |= (aBytes[i] ?? 0) ^ (bBytes[i] ?? 0);
+  }
+  return diff === 0;
+}
+
+function jsonError(message: string, status: number): Response {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function isIngestPath(request: Request): boolean {
+  const path = new URL(request.url).pathname.replace(/\/+$/, '');
+  return path === '/api/admin/ingest';
+}
+
+/** Loads the Bot user row (must exist in D1 – created by migrations/0002). */
+async function loadBotUser(env: Env): Promise<User | null> {
+  try {
+    return await env.DB.prepare(
+      "SELECT id, email, name, role, bio, photo, active, created_at FROM users WHERE role = 'Bot' AND active = 1 ORDER BY created_at ASC LIMIT 1"
+    ).first<User>();
+  } catch (e) {
+    console.warn('Bot user lookup failed', e);
+    return null;
   }
 }
 
@@ -169,6 +231,16 @@ export async function authenticateAdminRequest(
 ): Promise<{ user: User | null; errorResponse?: Response }> {
   const jwt = request.headers.get('Cf-Access-Jwt-Assertion');
   let email: string | null = null;
+  const isLocalDev = env.ENVIRONMENT === 'local';
+
+  const configError = getAccessConfigError(env.CF_ACCESS_TEAM_DOMAIN, env.CF_ACCESS_AUD);
+  if (configError && !isLocalDev) {
+    console.error(`Admin auth disabled: ${configError}`);
+    return {
+      user: null,
+      errorResponse: jsonError(`Server misconfigured: ${configError}. Set it in the Pages project settings.`, 503),
+    };
+  }
 
   if (jwt) {
     const claims = await verifyCloudflareAccessJwt(
@@ -189,49 +261,17 @@ export async function authenticateAdminRequest(
     // Cloudflare Access service-token JWTs have no email, only common_name (the Client ID)
     if (!claims.email && claims.common_name) {
       const botClientId = env.BOT_CLIENT_ID || env.CF_ACCESS_SERVICE_CLIENT_ID;
-      if (botClientId && claims.common_name !== botClientId) {
-        return {
-          user: null,
-          errorResponse: new Response(
-            JSON.stringify({ error: 'Unauthorized: Unknown service token common_name' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-          ),
-        };
+      if (!botClientId || !timingSafeEqual(claims.common_name, botClientId)) {
+        return { user: null, errorResponse: jsonError('Unauthorized: Unknown service token', 403) };
       }
-
-      // Bot can ONLY access /api/admin/ingest
-      const url = new URL(request.url);
-      if (!url.pathname.includes('/api/admin/ingest')) {
-        return {
-          user: null,
-          errorResponse: new Response(
-            JSON.stringify({ error: 'Access Denied: Bot role may only access /api/admin/ingest' }),
-            { status: 403, headers: { 'Content-Type': 'application/json' } }
-          ),
-        };
+      if (!isIngestPath(request)) {
+        return { user: null, errorResponse: jsonError('Access Denied: Bot role may only access /api/admin/ingest', 403) };
       }
-
-      try {
-        const botUser = await env.DB.prepare(
-          "SELECT id, email, name, role, bio, photo, active, created_at FROM users WHERE role = 'Bot' AND active = 1 LIMIT 1"
-        ).first<User>();
-        if (botUser) {
-          return { user: botUser };
-        }
-      } catch (e) {
-        console.warn('Bot user lookup failed', e);
+      const botUser = await loadBotUser(env);
+      if (!botUser) {
+        return { user: null, errorResponse: jsonError('Bot user is not configured in the database', 500) };
       }
-
-      return {
-        user: {
-          id: 'usr-bot-service',
-          email: 'bot@service.local',
-          name: 'Cloudflare Ingest Bot',
-          role: 'Bot',
-          active: 1,
-          created_at: new Date().toISOString(),
-        },
-      };
+      return { user: botUser };
     }
 
     if (!claims.email) {
@@ -260,7 +300,7 @@ export async function authenticateAdminRequest(
   }
 
   // Local dev bypass ONLY when env.ENVIRONMENT === 'local' AND request host is localhost/127.0.0.1
-  if (!email && env.ENVIRONMENT === 'local') {
+  if (!email && isLocalDev) {
     try {
       const url = new URL(request.url);
       const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
@@ -305,8 +345,7 @@ export async function authenticateAdminRequest(
     }
 
     if (user.role === 'Bot') {
-      const url = new URL(request.url);
-      if (!url.pathname.includes('/api/admin/ingest')) {
+      if (!isIngestPath(request)) {
         return {
           user: null,
           errorResponse: new Response(
@@ -366,7 +405,7 @@ export async function logAuditEvent(
     await env.DB.prepare(`
       INSERT INTO audit_log (
         id, user_id, user_email, action, article_id, before_status, after_status, ip, details, created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime("now"))
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
     `)
       .bind(id, user.id, user.email, action, articleId, beforeStatus, afterStatus, ip, details)
       .run();
@@ -401,8 +440,9 @@ export function requireRole(
 }
 
 /**
- * Authenticates Cloudflare Access Service Token headers (CF-Access-Client-Id / CF-Access-Client-Secret)
- * Returns a Bot user object
+ * Authenticates Cloudflare Access Service Token headers (CF-Access-Client-Id / CF-Access-Client-Secret).
+ * Normally Cloudflare Access validates these at the edge and forwards a signed JWT instead; this path is a
+ * fallback and FAILS CLOSED unless both expected values are configured as secrets.
  */
 export async function authenticateServiceToken(
   request: Request,
@@ -414,49 +454,30 @@ export async function authenticateServiceToken(
   if (!clientId || !clientSecret) {
     return {
       user: null,
-      errorResponse: new Response(
-        JSON.stringify({ error: 'Unauthorized: Service token headers required (CF-Access-Client-Id, CF-Access-Client-Secret)' }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      ),
+      errorResponse: jsonError('Unauthorized: Service token headers required (CF-Access-Client-Id, CF-Access-Client-Secret)', 401),
     };
   }
 
   const expectedId = env.CF_ACCESS_SERVICE_CLIENT_ID;
   const expectedSecret = env.CF_ACCESS_SERVICE_CLIENT_SECRET;
 
-  if (expectedId && expectedSecret) {
-    if (clientId !== expectedId || clientSecret !== expectedSecret) {
-      return {
-        user: null,
-        errorResponse: new Response(
-          JSON.stringify({ error: 'Unauthorized: Invalid service token credentials' }),
-          { status: 401, headers: { 'Content-Type': 'application/json' } }
-        ),
-      };
-    }
+  if (!expectedId || !expectedSecret) {
+    return { user: null, errorResponse: jsonError('Unauthorized: Service token authentication is not configured', 401) };
   }
 
-  // Look up bot user or fallback to service bot
-  try {
-    const botUser = await env.DB.prepare(
-      "SELECT id, email, name, role, bio, photo, active, created_at FROM users WHERE role = 'Bot' AND active = 1 LIMIT 1"
-    ).first<User>();
-
-    if (botUser) {
-      return { user: botUser };
-    }
-  } catch (err) {
-    console.warn('Bot user lookup exception:', err);
+  const idOk = timingSafeEqual(clientId, expectedId);
+  const secretOk = timingSafeEqual(clientSecret, expectedSecret);
+  if (!idOk || !secretOk) {
+    return { user: null, errorResponse: jsonError('Unauthorized: Invalid service token credentials', 401) };
   }
 
-  return {
-    user: {
-      id: 'usr-bot-service',
-      email: 'ingest-bot@dailyscot.co.uk',
-      name: 'Cloudflare Ingest Bot',
-      role: 'Bot',
-      active: 1,
-      created_at: new Date().toISOString(),
-    },
-  };
+  if (!isIngestPath(request)) {
+    return { user: null, errorResponse: jsonError('Access Denied: Bot role may only access /api/admin/ingest', 403) };
+  }
+
+  const botUser = await loadBotUser(env);
+  if (!botUser) {
+    return { user: null, errorResponse: jsonError('Bot user is not configured in the database', 500) };
+  }
+  return { user: botUser };
 }

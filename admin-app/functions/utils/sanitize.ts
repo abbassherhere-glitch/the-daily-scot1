@@ -136,3 +136,42 @@ export function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 90);
 }
+
+/**
+ * Normalises any date/time input (ISO string, 'YYYY-MM-DD HH:MM:SS', Date) to SQLite's
+ * canonical UTC format 'YYYY-MM-DD HH:MM:SS' so it compares correctly with datetime('now').
+ * Returns null for empty or unparseable input.
+ */
+export function toSqlDateTime(value: unknown): string | null {
+  if (value === null || value === undefined || value === '') return null;
+  let date: Date;
+  if (value instanceof Date) {
+    date = value;
+  } else {
+    const str = String(value).trim();
+    // Already SQLite format (UTC, no zone) – treat as UTC
+    const sqlLike = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(str);
+    date = new Date(sqlLike ? str.replace(' ', 'T') + 'Z' : str);
+  }
+  if (isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 19).replace('T', ' ');
+}
+
+/**
+ * Allows only http(s) URLs or site-relative paths for image/link fields.
+ * Returns null for anything else (javascript:, data:, malformed, quotes, etc.).
+ */
+export function sanitizeUrl(value: unknown, maxLength = 1000): string | null {
+  if (value === null || value === undefined) return null;
+  const str = String(value).trim();
+  if (!str || str.length > maxLength) return null;
+  if (/["'<>\s\\]/.test(str)) return null;
+  if (str.startsWith('/') && !str.startsWith('//')) return str;
+  try {
+    const url = new URL(str);
+    if (url.protocol === 'https:' || url.protocol === 'http:') return url.toString();
+  } catch {
+    // fall through
+  }
+  return null;
+}
