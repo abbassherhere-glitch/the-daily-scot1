@@ -28,7 +28,7 @@ async function safeGetArticle(slug: string): Promise<Article | null> {
 
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'notfound'>('home');
   const [currentCategory, setCurrentCategory] = useState<CategoryType>('all');
   const [selectedArea, setSelectedArea] = useState<string>('All');
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
@@ -88,8 +88,9 @@ export default function App() {
               setCurrentCategory(match.category);
               setCurrentView('article');
             } else {
+              setCurrentArticle(null);
               setCurrentCategory('all');
-              setCurrentView('category');
+              setCurrentView('notfound');
             }
           }
         } else if (parts.length >= 2) {
@@ -101,8 +102,9 @@ export default function App() {
             setCurrentCategory(match.category);
             setCurrentView('article');
           } else {
+            setCurrentArticle(null);
             setCurrentCategory(cat || 'all');
-            setCurrentView('category');
+            setCurrentView('notfound');
           }
         }
       }
@@ -171,6 +173,22 @@ export default function App() {
       desc = `Latest ${catName} reporting, courts, and local news from Glasgow and Scotland.`;
     } else if (currentView === 'search') {
       title = "Search Articles | The Daily Scot";
+    } else if (currentView === 'notfound') {
+      title = 'Story not found | The Daily Scot';
+      desc = 'The page you were looking for could not be found.';
+    }
+
+    // Tell search engines not to index the "not found" page
+    let robots = document.querySelector('meta[name="robots"]');
+    if (currentView === 'notfound') {
+      if (!robots) {
+        robots = document.createElement('meta');
+        robots.setAttribute('name', 'robots');
+        document.head.appendChild(robots);
+      }
+      robots.setAttribute('content', 'noindex');
+    } else if (robots) {
+      robots.remove();
     }
 
     document.title = title;
@@ -301,6 +319,30 @@ export default function App() {
             onToggleSave={handleToggleSave}
             onArticleUpdated={refreshArticles}
           />
+        )}
+
+        {currentView === 'notfound' && (
+          <section className="max-w-xl mx-auto text-center py-20 px-4">
+            <p className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">Error 404</p>
+            <h1 className="font-headline font-black text-3xl text-neutral-900 mb-3">Story not found</h1>
+            <p className="text-neutral-600 mb-6">
+              This story may have been moved, unpublished, or the link may be incorrect.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <button
+                onClick={() => handleSelectCategory('all')}
+                className="px-4 py-2 bg-[#0B2545] text-white text-sm font-bold"
+              >
+                Go to the homepage
+              </button>
+              <button
+                onClick={handleOpenSearch}
+                className="px-4 py-2 border border-neutral-300 text-neutral-900 text-sm font-bold"
+              >
+                Search stories
+              </button>
+            </div>
+          </section>
         )}
 
         {currentView === 'search' && (
