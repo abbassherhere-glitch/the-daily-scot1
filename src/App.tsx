@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Article, CategoryType } from './types/news';
 import { 
   getPublicArticles, 
@@ -16,6 +16,7 @@ import { CategoryPage } from './pages/CategoryPage';
 import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { SpaLink } from './components/SpaLink';
 
 async function safeGetArticle(slug: string): Promise<Article | null> {
   try {
@@ -113,6 +114,7 @@ export default function App() {
     const initRouting = async () => {
       articleCache = await refreshArticles();
       await routeFromLocation(articleCache);
+      setRouteReady(true);
     };
 
     const handlePopState = () => {
@@ -123,6 +125,28 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Accessibility: after in-app navigation, move focus to the new page's content so screen-reader and
+  // keyboard users start at the top of the new page (the browser would do this on a full page load).
+  const mainRef = useRef<HTMLElement>(null);
+  const [routeReady, setRouteReady] = useState(false);
+  const lastRouteKey = useRef<string | null>(null);
+  useEffect(() => {
+    const key = `${currentView}|${currentCategory}|${currentArticle?.id || ''}`;
+    const previous = lastRouteKey.current;
+    lastRouteKey.current = routeReady ? key : null;
+    // Don't steal focus on the first page load, only after the reader navigates
+    if (!routeReady || previous === null || previous === key) return;
+    // The search page focuses its search box itself
+    if (currentView === 'search') return;
+    const heading = mainRef.current?.querySelector<HTMLElement>('h1');
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    } else {
+      mainRef.current?.focus({ preventScroll: true });
+    }
+  }, [currentView, currentCategory, currentArticle?.id, routeReady]);
 
   // 2. SEO Sync: Dynamic Document Title, Meta Tags, and NewsArticle JSON-LD
   useEffect(() => {
@@ -259,6 +283,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-white text-neutral-900 flex flex-col font-sans selection:bg-[#005EB8] selection:text-white">
       {/* Newspaper Header */}
+      {/* Skip link: first thing keyboard users reach on every page */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:text-[#0B2545] focus:px-4 focus:py-2 focus:font-bold focus:outline-3 focus:outline-[#005EB8]"
+      >
+        Skip to main content
+      </a>
+
       <Header
         currentCategory={currentCategory}
         onSelectCategory={handleSelectCategory}
@@ -270,19 +302,20 @@ export default function App() {
 
       {/* Production Error Banner if API fails */}
       {loadError && (
-        <div className="bg-red-50 border-b border-red-200 text-red-900 px-4 py-3">
+        <div className="bg-red-50 border-b border-red-200 text-red-900 px-4 py-3" role="alert">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 text-xs">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" aria-hidden="true" />
               <span className="font-medium">
                 Unable to load the latest stories: {loadError}
               </span>
             </div>
             <button
+              type="button"
               onClick={refreshArticles}
               className="flex items-center gap-1 font-bold text-red-700 hover:text-red-900 underline"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 motion-reduce:animate-none ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
               <span>Retry</span>
             </button>
           </div>
@@ -290,7 +323,7 @@ export default function App() {
       )}
 
       {/* Main View Router */}
-      <main className="flex-1">
+      <main id="main-content" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
         {currentView === 'home' && (
           <HomePage
             articles={articles}
@@ -329,18 +362,20 @@ export default function App() {
               This story may have been moved, unpublished, or the link may be incorrect.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
-              <button
-                onClick={() => handleSelectCategory('all')}
+              <SpaLink
+                href="/"
+                onNavigate={() => handleSelectCategory('all')}
                 className="px-4 py-2 bg-[#0B2545] text-white text-sm font-bold"
               >
                 Go to the homepage
-              </button>
-              <button
-                onClick={handleOpenSearch}
+              </SpaLink>
+              <SpaLink
+                href="/search"
+                onNavigate={handleOpenSearch}
                 className="px-4 py-2 border border-neutral-300 text-neutral-900 text-sm font-bold"
               >
                 Search stories
-              </button>
+              </SpaLink>
             </div>
           </section>
         )}

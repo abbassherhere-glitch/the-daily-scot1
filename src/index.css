@@ -45,3 +45,9 @@
     color: black !important;
   }
 }
+
+/* Headings receive focus programmatically after in-app navigation (for screen readers);
+   don't draw a focus box around them. */
+#main-content h1[tabindex='-1']:focus {
+  outline: none;
+}
