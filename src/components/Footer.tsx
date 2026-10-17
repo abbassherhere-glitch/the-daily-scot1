@@ -191,7 +191,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
                   <strong>Spam and abuse protection:</strong> when you submit the newsletter form, your IP address is checked by Cloudflare Turnstile and held for about 10 minutes to limit repeated sign-ups. Lawful basis: our legitimate interest in keeping the site secure.
                 </li>
                 <li>
-                  <strong>Reading statistics:</strong> we count how many times each article is read per day to show "most read" lists. These counts are not linked to you, your device or your IP address.
+                  <strong>Reading statistics:</strong> we count how many times each article is read per day to show "most read" lists. These counts are not linked to you, your device or your IP address. We also use Cloudflare Web Analytics to count visits to the site; it does not use cookies or track you across other websites.
                 </li>
                 <li>
                   <strong>Emails you send us:</strong> if you contact the newsdesk or make a complaint, we keep your message and contact details to respond and keep a record of it. Lawful basis: our legitimate interest in running the newsroom.
@@ -199,7 +199,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
               </ul>
               <h3 className="font-bold text-neutral-900">Who processes data for us</h3>
               <p>
-                Cloudflare hosts the site and database and provides Turnstile. Resend sends newsletter emails. Google Fonts supplies our typefaces and Open-Meteo supplies the weather panel; your browser contacts them directly, so they receive your IP address. Some of these providers may process data outside the UK under recognised safeguards such as the UK International Data Transfer Addendum. We do not sell your data or use it for advertising.
+                Cloudflare hosts the site and database and provides Turnstile and Web Analytics. Resend sends newsletter emails. Google Fonts supplies our typefaces and Open-Meteo supplies the weather panel; your browser contacts them directly, so they receive your IP address. Some of these providers may process data outside the UK under recognised safeguards such as the UK International Data Transfer Addendum. We do not sell your data or use it for advertising.
               </p>
               <h3 className="font-bold text-neutral-900">How long we keep it</h3>
               <p>
