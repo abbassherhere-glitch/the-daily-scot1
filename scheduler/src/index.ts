@@ -59,7 +59,7 @@ async function audit(env: Env, action: string, articleId: string | null, before:
   await env.DB.prepare(`
     INSERT INTO audit_log (
       id, user_id, user_email, action, article_id, before_status, after_status, ip, details, created_at
-    ) VALUES (?, 'system-scheduler', 'scheduler@worker.dailyscot.co.uk', ?, ?, ?, ?, NULL, ?, datetime('now'))
+    ) VALUES (?, 'system-scheduler', 'scheduler@worker.thedailyscot.co.uk', ?, ?, ?, ?, NULL, ?, datetime('now'))
   `)
     .bind(auditId, action, articleId, before, after, details)
     .run();

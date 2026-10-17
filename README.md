@@ -18,7 +18,7 @@
                                                            |
                          +---------------------------------+---------------------------------+
                          |                                                                   |
-          [ Public Project: dailyscot.co.uk ]                             [ Newsroom CMS: admin.dailyscot.co.uk ]
+          [ Public Project: thedailyscot.co.uk ]                             [ Newsroom CMS: admin.thedailyscot.co.uk ]
              React + Vite + Tailwind Frontend                                Protected by Cloudflare Zero Trust (Access)
              Zero admin code in client bundle                                Independent React + Vite Admin Bundle
              Read-only cached API (/functions/api/*)                         Full Editorial Newsroom (/admin-app/functions/api/admin/*)
@@ -89,7 +89,7 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
 4. **Create the R2 Media Storage Bucket**:
    - Go to **R2** → **Create bucket**.
    - Name: `daily-scot-media`.
-   - In bucket **Settings** → **Public access**, connect your custom media domain (e.g. `https://media.dailyscot.co.uk`) or enable the `*.r2.dev` URL.
+   - In bucket **Settings** → **Public access**, connect your custom media domain (e.g. `https://media.thedailyscot.co.uk`) or enable the `*.r2.dev` URL.
 5. **Run the migrations** (both are required; neither inserts demo content):
    ```bash
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql
@@ -101,7 +101,7 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
 
 ---
 
-### Step 3: Deploy Project 1 — Public Website (`dailyscot.co.uk`)
+### Step 3: Deploy Project 1 — Public Website (`thedailyscot.co.uk`)
 
 1. In Cloudflare Dashboard, go to **Workers & Pages** → **Create application** → **Pages** tab → **Connect to Git**.
 2. Select your repository.
@@ -119,7 +119,7 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
    npx wrangler pages secret put RESEND_API_KEY   --project-name daily-scot-public
    ```
    Set the Turnstile site key and secret **together** – one without the other blocks or disables the check.
-6. Click **Save and Deploy**, then connect your domain (e.g. `dailyscot.co.uk`) under **Custom domains**.
+6. Click **Save and Deploy**, then connect your domain (e.g. `thedailyscot.co.uk`) under **Custom domains**.
 
 ---
 
@@ -131,7 +131,7 @@ Before deploying the newsroom app, protect the admin subdomain:
 2. Go to **Settings** → **Custom Pages** and note your **Team domain** (`<team>.cloudflareaccess.com` – you need just `<team>`).
 3. Go to **Access** → **Applications** → **Add an application** → **Self-hosted**:
    - **Application name**: `The Daily Scot Newsroom`
-   - **Application domains**: `admin.dailyscot.co.uk` **and** `daily-scot-admin.pages.dev` **and** `*.daily-scot-admin.pages.dev` (preview deployments) – otherwise the `pages.dev` URLs bypass Access.
+   - **Application domains**: `admin.thedailyscot.co.uk` **and** `daily-scot-admin.pages.dev` **and** `*.daily-scot-admin.pages.dev` (preview deployments) – otherwise the `pages.dev` URLs bypass Access.
    - **Session Duration**: `24 hours`
 4. Define Policy:
    - **Policy name**: `Editorial Staff Only`
@@ -142,7 +142,7 @@ Before deploying the newsroom app, protect the admin subdomain:
 
 ---
 
-### Step 5: Deploy Project 2 — Newsroom CMS (`admin.dailyscot.co.uk`)
+### Step 5: Deploy Project 2 — Newsroom CMS (`admin.thedailyscot.co.uk`)
 
 Cloudflare Pages only runs Functions from a `functions/` folder at the project's **root directory**, so the newsroom project uses `admin-app` as its root.
 
@@ -163,7 +163,7 @@ Cloudflare Pages only runs Functions from a `functions/` folder at the project's
    ```bash
    npx wrangler pages secret put BOT_CLIENT_ID --project-name daily-scot-admin   # the service token's Client ID
    ```
-5. Click **Save and Deploy**, then connect `admin.dailyscot.co.uk` under **Custom domains**.
+5. Click **Save and Deploy**, then connect `admin.thedailyscot.co.uk` under **Custom domains**.
 
 ---
 
@@ -184,7 +184,7 @@ VALUES (
 ON CONFLICT(email) DO UPDATE SET role = 'Owner', active = 1;
 ```
 
-Now, navigating to `https://admin.dailyscot.co.uk` prompts Cloudflare Zero Trust authentication. Once verified, the server verifies the cryptographic JWT assertion and loads your Owner newsroom dashboard.
+Now, navigating to `https://admin.thedailyscot.co.uk` prompts Cloudflare Zero Trust authentication. Once verified, the server verifies the cryptographic JWT assertion and loads your Owner newsroom dashboard.
 
 ---
 
@@ -269,7 +269,7 @@ Automated feeds and wire bots ingest drafts directly into the `needs_review` que
 Before launching to live production, complete this essential security checklist in your Cloudflare dashboard:
 
 1. **Cloudflare Zero Trust (Access) Application**:
-   - Create an Access Self-Hosted Application protecting `admin.dailyscot.co.uk`.
+   - Create an Access Self-Hosted Application protecting `admin.thedailyscot.co.uk`.
    - **CRITICAL**: Add additional application rules protecting the admin `*.pages.dev` and preview deployment URLs so that direct `.pages.dev` URLs cannot bypass Access.
    - Configure Access Policy with action **Allow**:
      - Restricted exclusively to named staff emails (or corporate Google Workspace / Okta IdP).
