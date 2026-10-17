@@ -11,7 +11,7 @@ import {
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
-import { SpaLink, articleHref, categoryHref } from '../components/SpaLink';
+import { SpaLink, articleHref, authorHref, categoryHref, navigateTo } from '../components/SpaLink';
 import DOMPurify from 'dompurify';
 
 interface ArticlePageProps {
@@ -149,7 +149,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             {article.author.avatar ? (
               <img
                 src={article.author.avatar}
-                alt={article.author.name}
+                alt=""
                 className="w-9 h-9 rounded-full object-cover border border-neutral-300"
               />
             ) : (
@@ -159,7 +159,14 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             )}
             <div>
               <div className="font-bold text-neutral-900">
-                By {article.author.name}
+                By{' '}
+                <SpaLink
+                  href={authorHref(article.author)}
+                  onNavigate={() => navigateTo(authorHref(article.author))}
+                  className="hover:text-[#005EB8] underline decoration-neutral-300 underline-offset-2 hover:decoration-[#005EB8]"
+                >
+                  {article.author.name}
+                </SpaLink>
               </div>
               <div className="text-[11px] text-neutral-500">
                 {article.author.role}

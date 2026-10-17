@@ -88,6 +88,15 @@ export interface ArticleRevision {
 
 export type UserRole = 'Owner' | 'Editor' | 'Journalist' | 'Bot';
 
+/** Public credit line on a story. NULL/empty = The Daily Scot Staff. */
+export const STAFF_BYLINE = 'The Daily Scot Staff';
+
+/** One entry in the story editor's Byline dropdown ('staff', 'user:<id>' or 'guest'). */
+export interface BylineOption {
+  value: string;
+  label: string;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

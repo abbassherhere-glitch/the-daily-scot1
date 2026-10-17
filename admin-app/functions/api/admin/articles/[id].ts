@@ -9,6 +9,7 @@ import {
   normaliseStatus,
   restrictStatusForRole,
 } from '../../../utils/articleRules';
+import { displayByline, resolveByline } from '../../../utils/byline';
 
 
 export async function onRequestGet(
@@ -108,6 +109,14 @@ export async function onRequestPut(
         202
       );
     }
+
+    // Public credit line. Omitted = unchanged; re-sending the current byline is always accepted.
+    // author_id (the real poster) is never changed by an edit.
+    const bylineResult = await resolveByline(context.env, user, body.byline_choice, body.byline_guest_name, existing);
+    if ('error' in bylineResult) return jsonResponse({ error: bylineResult.error }, 400);
+    const byline = bylineResult.value;
+    const bylineChanged = displayByline(existing) !== displayByline(byline) ||
+      (existing.byline_user_id || null) !== (byline.byline_user_id || null);
 
     const standfirst = sanitizePlainText(body.standfirst || existing.standfirst, 400);
     const category = sanitizePlainText(body.category || existing.category, 50);
@@ -244,6 +253,7 @@ export async function onRequestPut(
           tags = ?, seo_title = ?, meta_description = ?,
           source_type = ?, source_url = ?, source_name = ?, verified = ?,
           legal_check = ?, legal_checked = ?, embargo_until = ?, correction_note = ?,
+          byline = ?, byline_slug = ?, byline_user_id = ?,
           last_updated_by = ?, published_at = ?, updated_at = datetime('now')
         WHERE id = ?
       `).bind(
@@ -253,6 +263,7 @@ export async function onRequestPut(
         tags, seoTitle, metaDescription,
         sourceType, sourceUrl, sourceName, verified,
         legalCheck, legalChecked, embargoUntil, correctionNote,
+        byline.byline, byline.byline_slug, byline.byline_user_id,
         user.email, publishedAt, id
       )
     );
@@ -269,7 +280,9 @@ export async function onRequestPut(
       beforeStatus: existing.status,
       afterStatus: status,
       ip: getClientIp(context.request),
-      details: `${action}: "${title}" (${id}) transitioned from ${existing.status} to ${status}`,
+      details:
+        `${action}: "${title}" (${id}) transitioned from ${existing.status} to ${status}` +
+        (bylineChanged ? `; byline changed from "${displayByline(existing)}" to "${displayByline(byline)}"` : ''),
     });
 
     return jsonResponse({ success: true, id, status, slug });

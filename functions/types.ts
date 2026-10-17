@@ -92,7 +92,11 @@ export interface ArticleRecord {
   created_at: string;
   updated_at: string;
   // Joined fields
+  byline?: string | null;
+  byline_slug?: string | null;
+  byline_user_id?: string | null;
   author_name?: string;
+  author_slug?: string;
   author_role?: string;
   author_photo?: string;
   category_name?: string;

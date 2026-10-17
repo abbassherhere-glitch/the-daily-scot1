@@ -1,4 +1,5 @@
 import { Env, EventContext } from '../types';
+import { BYLINE_JOIN, BYLINE_SELECT, STAFF_BYLINE_SLUG } from '../utils/byline';
 
 interface ArticleMetaRow {
   id: string;
@@ -13,6 +14,7 @@ interface ArticleMetaRow {
   published_at?: string;
   updated_at?: string;
   author_name?: string;
+  author_slug?: string;
 }
 
 /** Escape a value for use inside a double-quoted HTML attribute. */
@@ -106,9 +108,9 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
         SELECT
           a.id, a.slug, a.title, a.standfirst, a.category, a.hero_image, a.photo_credit,
           a.seo_title, a.meta_description, a.published_at, a.updated_at,
-          u.name AS author_name
+          ${BYLINE_SELECT}
         FROM articles a
-        LEFT JOIN users u ON a.author_id = u.id
+        ${BYLINE_JOIN}
         WHERE a.slug = ? AND a.status = 'published' AND datetime(a.published_at) <= datetime('now')
         LIMIT 1
       `)
@@ -144,7 +146,18 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       ...(heroUrl ? { image: [heroUrl] } : {}),
       ...(published ? { datePublished: published } : {}),
       ...(modified ? { dateModified: modified } : {}),
-      ...(article.author_name ? { author: [{ '@type': 'Person', name: article.author_name }] } : {}),
+      ...(article.author_name
+        ? {
+            author: [
+              {
+                // The staff desk is credited as the organisation, everyone else as a person
+                '@type': article.author_slug === STAFF_BYLINE_SLUG ? 'Organization' : 'Person',
+                name: article.author_name,
+                ...(article.author_slug ? { url: `${url.origin}/author/${encodeURIComponent(article.author_slug)}` } : {}),
+              },
+            ],
+          }
+        : {}),
       mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
       publisher: { '@type': 'NewsMediaOrganization', name: 'The Daily Scot', url: url.origin },
     });

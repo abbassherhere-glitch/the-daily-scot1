@@ -1,6 +1,7 @@
 import { Env, EventContext, User } from '../../../types';
 import { sanitizePlainText, sanitizeUrl } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
+import { generateSlug } from '../../../utils/sanitize';
 
 export async function onRequestPut(
   context: EventContext<Env, 'id', { user: User }>
@@ -58,11 +59,19 @@ export async function onRequestPut(
       }
     }
 
-    await context.env.DB.prepare(`
-      UPDATE users SET name = ?, role = ?, bio = ?, photo = ?, active = ? WHERE id = ?
-    `)
-      .bind(name, role, bio, photo, active, id)
-      .run();
+    const statements = [
+      context.env.DB.prepare(`
+        UPDATE users SET name = ?, role = ?, bio = ?, photo = ?, active = ? WHERE id = ?
+      `).bind(name, role, bio, photo, active, id),
+    ];
+    // Keep stories credited to this person in step with their new display name (and author page URL)
+    const newSlug = generateSlug(name);
+    if (name !== existing.name && newSlug) {
+      statements.push(
+        context.env.DB.prepare('UPDATE articles SET byline = ?, byline_slug = ? WHERE byline_user_id = ?').bind(name, newSlug, id)
+      );
+    }
+    await context.env.DB.batch(statements);
 
     await logAuditEvent(
       context.env,

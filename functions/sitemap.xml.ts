@@ -1,4 +1,5 @@
 import { Env, EventContext } from './types';
+import { STAFF_BYLINE_SLUG } from './utils/byline';
 
 export async function onRequestGet(context: EventContext<Env, any, any>): Promise<Response> {
   try {
@@ -8,6 +9,15 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     const { results: articles } = await context.env.DB.prepare(
       "SELECT slug, category, updated_at FROM articles WHERE status = 'published' AND datetime(published_at) <= datetime('now') ORDER BY published_at DESC LIMIT 1000"
     ).all<{ slug: string; category: string; updated_at: string }>();
+
+    // Author pages: every byline with at least one published story
+    const { results: authors } = await context.env.DB.prepare(
+      `SELECT COALESCE(NULLIF(byline_slug, ''), '${STAFF_BYLINE_SLUG}') AS slug, MAX(updated_at) AS updated_at
+       FROM articles
+       WHERE status = 'published' AND datetime(published_at) <= datetime('now')
+       GROUP BY 1
+       LIMIT 500`
+    ).all<{ slug: string; updated_at: string }>();
 
     const categories = ['news', 'glasgow', 'scotland', 'politics', 'business', 'property', 'sport', 'whats-on', 'opinion'];
 
@@ -20,6 +30,11 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     // Category pages
     categories.forEach((cat) => {
       xml += `  <url>\n    <loc>${domain}/news/${cat}</loc>\n    <changefreq>hourly</changefreq>\n    <priority>0.8</priority>\n  </url>\n`;
+    });
+
+    // Author pages
+    authors.forEach((author) => {
+      xml += `  <url>\n    <loc>${domain}/author/${encodeURIComponent(author.slug)}</loc>\n    <changefreq>daily</changefreq>\n    <priority>0.5</priority>\n  </url>\n`;
     });
 
     // Articles

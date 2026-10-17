@@ -4,6 +4,8 @@
     "/api/*",
     "/news",
     "/news/*",
+    "/author",
+    "/author/*",
     "/rss.xml",
     "/sitemap.xml",
     "/news-sitemap.xml"

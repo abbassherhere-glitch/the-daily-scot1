@@ -1,5 +1,6 @@
 import { Article, CategoryType } from '../types/news';
 import { INITIAL_ARTICLES, CATEGORIES } from '../data/mockArticles';
+import { STAFF_BYLINE, bylineSlug } from '../components/SpaLink';
 
 // Check if running in local development or AI Studio preview
 const isDevOrPreview =
@@ -163,6 +164,76 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
   return match || null;
 }
 
+export interface AuthorProfile {
+  slug: string;
+  name: string;
+  role: string;
+  bio: string | null;
+  photo: string | null;
+  type: 'staff_desk' | 'staff' | 'guest';
+}
+
+export interface AuthorPageResult {
+  author: AuthorProfile;
+  articles: Article[];
+  page: number;
+  totalPages: number;
+  total: number;
+}
+
+export const AUTHOR_PAGE_SIZE = 12;
+
+/** Author page: profile plus published stories with that byline, newest first. Null = not found (404). */
+export async function getAuthorPage(slug: string, page = 1): Promise<AuthorPageResult | null> {
+  const isLive = await checkApiAvailability();
+
+  if (isLive) {
+    try {
+      const res = await fetch(
+        `/api/authors/${encodeURIComponent(slug)}?page=${page}&limit=${AUTHOR_PAGE_SIZE}`
+      );
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`Author API returned status HTTP ${res.status}`);
+      const data = (await res.json()) as any;
+      return {
+        author: data.author,
+        articles: (data.articles || []).map((row: any) => transformD1RowToArticle(row)),
+        page: data.page,
+        totalPages: data.total_pages,
+        total: data.total,
+      };
+    } catch (err) {
+      if (!isDevOrPreview) {
+        console.error('Production author fetch error:', err);
+        throw err;
+      }
+      console.warn('Live author fetch failed in preview/dev', err);
+    }
+  } else if (!isDevOrPreview) {
+    throw new Error('Unable to connect to news service');
+  }
+
+  // Preview adapter (local development only)
+  const all = getPreviewArticles().filter((a) => (a.author.slug || bylineSlug(a.author.name)) === slug);
+  if (all.length === 0) return null;
+  const first = all[0].author;
+  const totalPages = Math.max(1, Math.ceil(all.length / AUTHOR_PAGE_SIZE));
+  return {
+    author: {
+      slug,
+      name: first.name,
+      role: first.role,
+      bio: first.bio || null,
+      photo: first.avatar || null,
+      type: first.name === STAFF_BYLINE ? 'staff_desk' : 'staff',
+    },
+    articles: all.slice((page - 1) * AUTHOR_PAGE_SIZE, page * AUTHOR_PAGE_SIZE),
+    page,
+    totalPages,
+    total: all.length,
+  };
+}
+
 export async function submitNewsletter(
   email: string,
   turnstileToken?: string
@@ -252,10 +323,14 @@ function transformD1RowToArticle(row: any): Article {
     // List endpoints omit the body; mark those as partial so the full story is fetched when opened.
     content: contentParagraphs,
     isPartial: typeof row.body !== 'string',
+    // The public API returns the story's byline (never the account that posted it).
+    // Stories with no byline are credited to The Daily Scot Staff.
     author: {
-      name: row.author_name || 'Staff Reporter',
+      name: row.author_name || STAFF_BYLINE,
       role: row.author_role || 'The Daily Scot Newsdesk',
       avatar: row.author_photo || '',
+      slug: row.author_slug || bylineSlug(row.author_name || STAFF_BYLINE),
+      bio: row.author_bio || undefined,
     },
     publishedAt: toIsoDate(row.published_at || row.created_at),
     updatedAt: row.updated_at ? toIsoDate(row.updated_at) : undefined,

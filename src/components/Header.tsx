@@ -48,7 +48,7 @@ function toStub(art: BreakingArticle): Article {
     publishedAt: art.published_at || new Date().toISOString(),
     content: [],
     tags: [],
-    author: { name: 'Staff Reporter', role: 'Reporter', avatar: '' },
+    author: { name: 'The Daily Scot Staff', role: 'The Daily Scot Newsdesk', avatar: '' },
     heroImage: '',
     heroCaption: '',
     heroCredit: '',

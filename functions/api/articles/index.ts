@@ -1,4 +1,5 @@
 import { Env, EventContext, ArticleRecord } from '../../types';
+import { BYLINE_JOIN, BYLINE_SELECT } from '../../utils/byline';
 
 export async function onRequestGet(context: EventContext<Env, any, any>): Promise<Response> {
   try {
@@ -17,10 +18,10 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
         a.id, a.slug, a.title, a.standfirst, a.category, a.area, 
         a.hero_image, a.image_caption, a.photo_credit, a.status, a.is_breaking, a.is_featured, 
         a.tags, a.seo_title, a.meta_description, a.published_at, a.created_at,
-        u.name AS author_name, u.role AS author_role, u.photo AS author_photo,
+        ${BYLINE_SELECT},
         c.name AS category_name
       FROM articles a
-      LEFT JOIN users u ON a.author_id = u.id
+      ${BYLINE_JOIN}
       LEFT JOIN categories c ON a.category = c.slug
       WHERE a.status = 'published' AND datetime(a.published_at) <= datetime('now')
     `;
