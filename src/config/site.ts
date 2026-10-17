@@ -8,6 +8,7 @@ export interface SectionConfig {
 export const SITE_CONFIG = {
   name: 'The Daily Scot',
   tagline: "Glasgow & Scotland's Local News",
+  siteUrl: 'thedailyscot.co.uk',
   companyName: '[Company name]',
   companyNumber: '[Company number]',
   contactEmail: '[Contact email]',
