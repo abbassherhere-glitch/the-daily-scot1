@@ -6,5 +6,5 @@ Disallow: /admin
 Disallow: /api/admin/
 
 # Sitemaps for Search Engines and Google News
-Sitemap: https://dailyscot.co.uk/sitemap.xml
-Sitemap: https://dailyscot.co.uk/news-sitemap.xml
+Sitemap: https://thedailyscot.co.uk/sitemap.xml
+Sitemap: https://thedailyscot.co.uk/news-sitemap.xml
