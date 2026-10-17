@@ -1621,7 +1621,7 @@ export const AdminPage: React.FC = () => {
                   type="email"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
-                  placeholder="name@dailyscot.co.uk"
+                  placeholder="name@thedailyscot.co.uk"
                   className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
