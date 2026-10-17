@@ -1,4 +1,5 @@
 import { Env, EventContext } from './types';
+import { BYLINE_JOIN, BYLINE_SELECT } from './utils/byline';
 
 function escapeXml(unsafe: string): string {
   return (unsafe || '')
@@ -15,9 +16,9 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     const domain = url.origin;
 
     const { results: articles } = await context.env.DB.prepare(`
-      SELECT a.slug, a.title, a.standfirst, a.category, a.published_at, u.name AS author_name
+      SELECT a.slug, a.title, a.standfirst, a.category, a.published_at, ${BYLINE_SELECT}
       FROM articles a
-      LEFT JOIN users u ON a.author_id = u.id
+      ${BYLINE_JOIN}
       WHERE a.status = 'published' AND datetime(a.published_at) <= datetime('now')
       ORDER BY a.published_at DESC
       LIMIT 50

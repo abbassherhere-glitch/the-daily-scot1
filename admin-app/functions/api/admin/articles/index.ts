@@ -9,6 +9,7 @@ import {
   normaliseStatus,
   restrictStatusForRole,
 } from '../../../utils/articleRules';
+import { resolveByline } from '../../../utils/byline';
 
 export async function onRequestGet(
   context: EventContext<Env, any, { user: User }>
@@ -34,6 +35,7 @@ export async function onRequestGet(
         a.source_type, a.source_url, a.source_name, a.verified,
         a.legal_check, a.legal_checked, a.embargo_until, a.correction_note,
         a.published_at, a.created_at, a.updated_at,
+        a.byline, a.byline_slug, a.byline_user_id,
         u.name AS author_name, u.email AS author_email, u.role AS author_role,
         c.name AS category_name,
         (SELECT COUNT(*) FROM article_revisions r WHERE r.article_id = a.id AND r.kind = 'proposal') AS pending_proposals
@@ -126,6 +128,12 @@ export async function onRequestPost(
       return jsonResponse({ error: 'Title, standfirst, and body are required' }, 400);
     }
 
+    // Public credit line (validated server-side; defaults to The Daily Scot Staff).
+    // author_id below always stays the logged-in user who really created the story.
+    const bylineResult = await resolveByline(context.env, user, body.byline_choice, body.byline_guest_name, null);
+    if ('error' in bylineResult) return jsonResponse({ error: bylineResult.error }, 400);
+    const byline = bylineResult.value;
+
     if (status === 'scheduled') {
       publishedAt = toSqlDateTime(body.published_at);
       if (!publishedAt || publishedAt <= nowSql) {
@@ -163,6 +171,7 @@ export async function onRequestPost(
           seo_title, meta_description,
           source_type, source_url, source_name, verified,
           legal_check, legal_checked, embargo_until, correction_note,
+          byline, byline_slug, byline_user_id,
           last_updated_by, published_at, created_at, updated_at
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?,
@@ -171,6 +180,7 @@ export async function onRequestPost(
           ?, ?,
           ?, ?, ?, ?,
           ?, ?, ?, ?,
+          ?, ?, ?,
           ?, ?, datetime('now'), datetime('now')
         )
       `).bind(
@@ -180,6 +190,7 @@ export async function onRequestPost(
         seoTitle, metaDescription,
         sourceType, sourceUrl, sourceName, verified,
         legalCheck, legalChecked, embargoUntil, correctionNote,
+        byline.byline, byline.byline_slug, byline.byline_user_id,
         user.email, publishedAt
       )
     );
@@ -190,7 +201,7 @@ export async function onRequestPost(
       beforeStatus: null,
       afterStatus: status,
       ip: getClientIp(context.request),
-      details: `Created article "${title}" (${id}) with status ${status}`,
+      details: `Created article "${title}" (${id}) with status ${status}, credited to "${byline.byline}"`,
     });
 
     return jsonResponse({ success: true, id, slug: finalSlug, status }, 201);

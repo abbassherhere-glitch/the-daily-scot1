@@ -1,6 +1,6 @@
 import React from 'react';
 import { Article } from '../types/news';
-import { SpaLink, articleHref } from './SpaLink';
+import { SpaLink, STAFF_BYLINE, articleHref, authorHref, navigateTo } from './SpaLink';
 
 interface ArticleCardProps {
   article: Article;
@@ -38,6 +38,21 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
   const timeStr = getTimeAgo(article.publishedAt);
   const sectionLabel = article.subcategory || article.category;
+
+  // Byline link to the author page. It sits above the card's stretched headline link (relative z-10)
+  // so it can be clicked on its own.
+  // (Lightweight stubs, e.g. "most read" rows, may have no author: credit the newsdesk.)
+  const author = article.author || { name: STAFF_BYLINE, role: '', avatar: '' };
+  const bylineHref = authorHref(author);
+  const bylineLink = (className: string) => (
+    <SpaLink
+      href={bylineHref}
+      onNavigate={() => navigateTo(bylineHref)}
+      className={`relative z-10 hover:text-[#005EB8] hover:underline ${className}`}
+    >
+      {author.name}
+    </SpaLink>
+  );
 
   // 1. LEAD STORY (Image Left, Headline Right, smaller, dense)
   if (variant === 'lead') {
@@ -87,7 +102,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </div>
 
             <div className="pt-3 mt-3 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
-              <span className="font-medium text-neutral-700">{article.author.name}</span>
+              {bylineLink('font-medium text-neutral-700')}
               <span>{timeStr}</span>
             </div>
           </div>
@@ -178,6 +193,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </span>
             <span>•</span>
             <span>{timeStr}</span>
+            {article.locationTag && (
+              <>
+                <span>•</span>
+                <span className="font-medium">{article.locationTag}</span>
+              </>
+            )}
           </div>
 
           <h3 className="font-headline font-bold text-sm sm:text-base text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
@@ -189,8 +210,8 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
       </div>
 
       <div className="px-3 pb-3 text-[11px] text-neutral-500 font-medium border-t border-neutral-100 pt-2 flex items-center justify-between">
-        <span className="truncate">{article.locationTag || 'Glasgow'}</span>
-        <span className="text-neutral-600">{article.readTime}</span>
+        <span className="truncate min-w-0">{bylineLink('text-neutral-700')}</span>
+        <span className="text-neutral-600 shrink-0 ml-2">{article.readTime}</span>
       </div>
     </article>
   );

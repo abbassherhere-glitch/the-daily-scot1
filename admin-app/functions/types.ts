@@ -93,6 +93,10 @@ export interface ArticleRecord {
   published_at?: string;
   created_at: string;
   updated_at: string;
+  // Public credit line (migration 0003). NULL = The Daily Scot Staff. author_id stays the real poster.
+  byline?: string | null;
+  byline_slug?: string | null;
+  byline_user_id?: string | null;
   author_name?: string;
   author_role?: string;
   author_photo?: string;

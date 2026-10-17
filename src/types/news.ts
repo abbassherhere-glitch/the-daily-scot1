@@ -23,6 +23,8 @@ export interface Author {
   name: string;
   role: string;
   avatar: string;
+  slug?: string; // byline URL slug for /author/<slug>; derived from the name when missing
+  bio?: string;
   twitter?: string;
 }
 

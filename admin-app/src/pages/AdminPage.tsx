@@ -34,7 +34,9 @@ import {
   ArticleStatus,
   SourceType,
   LegalCheckType,
-  ArticleRevision
+  ArticleRevision,
+  BylineOption,
+  STAFF_BYLINE
 } from '../types/news';
 import {
   getAdminCurrentUser,
@@ -51,7 +53,9 @@ import {
   getArticleRevisions,
   restoreArticleRevision,
   getActivePreviewRole,
-  setActivePreviewRole
+  setActivePreviewRole,
+  getAdminBylineOptions,
+  bulkUpdateBylines
 } from '../services/adminApi';
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
 import { ModalFrame } from '../components/ModalFrame';
@@ -70,6 +74,18 @@ function localInputToIso(value: string): string | undefined {
   if (!value) return undefined;
   const d = new Date(value);
   return isNaN(d.getTime()) ? undefined : d.toISOString();
+}
+
+/** The editor's Byline dropdown value for a stored article ('staff', 'user:<id>' or 'guest'). */
+function bylineChoiceFor(article: any): string {
+  if (article?.byline_user_id) return `user:${article.byline_user_id}`;
+  if (article?.byline && article.byline_slug && article.byline_slug !== 'the-daily-scot-staff') return 'guest';
+  return 'staff';
+}
+
+/** Public credit line shown for a stored article. */
+function bylineLabel(article: any): string {
+  return (article?.byline && String(article.byline).trim()) || STAFF_BYLINE;
 }
 
 export const AdminPage: React.FC = () => {
@@ -131,6 +147,19 @@ export const AdminPage: React.FC = () => {
   const [formPublishAt, setFormPublishAt] = useState('');
   const [formCorrectionNote, setFormCorrectionNote] = useState('');
 
+  // Byline (public credit line). The real poster stays recorded server-side as the author.
+  const [bylineOptions, setBylineOptions] = useState<BylineOption[]>([{ value: 'staff', label: STAFF_BYLINE }]);
+  const [allowGuestByline, setAllowGuestByline] = useState(false);
+  const [formBylineChoice, setFormBylineChoice] = useState('staff');
+  const [formBylineGuestName, setFormBylineGuestName] = useState('');
+  // A story's current byline that is no longer in the list (e.g. a deactivated staff member)
+  const [formBylineExtra, setFormBylineExtra] = useState<BylineOption | null>(null);
+
+  // Bulk byline change in the stories list (Owner / Editor)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBylineChoice, setBulkBylineChoice] = useState('staff');
+  const [bulkBusy, setBulkBusy] = useState(false);
+
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -158,6 +187,15 @@ export const AdminPage: React.FC = () => {
         category: categoryFilter,
       });
       setArticles(arts);
+      setSelectedIds((prev) => prev.filter((id) => arts.some((a: any) => a.id === id)));
+
+      try {
+        const byl = await getAdminBylineOptions();
+        setBylineOptions(byl.options);
+        setAllowGuestByline(byl.allowGuest);
+      } catch (e) {
+        console.warn('Byline options unavailable:', e);
+      }
 
       if (user.role === 'Owner') {
         const uList = await getAdminUsers();
@@ -212,6 +250,9 @@ export const AdminPage: React.FC = () => {
     setFormLegalChecked(false);
     setFormEmbargoUntil('');
     setFormCorrectionNote('');
+    setFormBylineChoice('staff');
+    setFormBylineGuestName('');
+    setFormBylineExtra(null);
     setIsDirty(false);
     setIsEditorOpen(true);
   };
@@ -245,6 +286,15 @@ export const AdminPage: React.FC = () => {
     setFormLegalChecked(Boolean(article.legal_checked));
     setFormEmbargoUntil(utcToLocalInput(article.embargo_until));
     setFormCorrectionNote(article.correction_note || '');
+    const choice = bylineChoiceFor(article);
+    setFormBylineChoice(choice);
+    setFormBylineGuestName(choice === 'guest' ? article.byline || '' : '');
+    // Keep the story's current byline selectable even if it is not in this user's list
+    // (a deactivated colleague, or a guest credit set by an editor). The server accepts an unchanged byline.
+    const needsExtra =
+      (choice.startsWith('user:') && !bylineOptions.some((o) => o.value === choice)) ||
+      (choice === 'guest' && !allowGuestByline);
+    setFormBylineExtra(needsExtra ? { value: choice, label: `${bylineLabel(article)} (current byline)` } : null);
     setIsDirty(false);
     setIsEditorOpen(true);
   };
@@ -308,6 +358,11 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
+    if (formBylineChoice === 'guest' && formBylineGuestName.trim().length < 2) {
+      alert('Enter the guest contributor\'s name for the byline.');
+      return;
+    }
+
     const finalStatus = targetStatus || formStatus;
 
     // Client-side pre-validation of publish rules
@@ -363,6 +418,9 @@ export const AdminPage: React.FC = () => {
       breaking_until: formIsBreaking ? localInputToIso(formBreakingUntil) || undefined : undefined,
       published_at: finalStatus === 'scheduled' ? localInputToIso(formPublishAt) : undefined,
       correction_note: formCorrectionNote.trim() || undefined,
+      // Validated server-side against the allowed options; never trusted as-is
+      byline_choice: formBylineChoice,
+      byline_guest_name: formBylineChoice === 'guest' ? formBylineGuestName.trim() : undefined,
     };
 
     try {
@@ -402,6 +460,29 @@ export const AdminPage: React.FC = () => {
       alert('Image upload failed: ' + err.message);
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Bulk byline change
+  const toggleSelected = (id: string) =>
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const handleBulkByline = async () => {
+    if (selectedIds.length === 0) return;
+    const label = bylineOptions.find((o) => o.value === bulkBylineChoice)?.label || STAFF_BYLINE;
+    if (!window.confirm(`Credit ${selectedIds.length} selected ${selectedIds.length === 1 ? 'story' : 'stories'} to "${label}"?`)) {
+      return;
+    }
+    setBulkBusy(true);
+    try {
+      const res = await bulkUpdateBylines(selectedIds, bulkBylineChoice);
+      showToast(`Byline set to ${res.byline} on ${res.updated} ${res.updated === 1 ? 'story' : 'stories'}`);
+      setSelectedIds([]);
+      loadData();
+    } catch (err: any) {
+      alert('Byline change failed: ' + err.message);
+    } finally {
+      setBulkBusy(false);
     }
   };
 
@@ -703,6 +784,45 @@ export const AdminPage: React.FC = () => {
               </button>
             </div>
 
+            {/* Bulk byline change (Owner / Editor) */}
+            {canPublish && selectedIds.length > 0 && (
+              <div className="bg-neutral-800 border border-sky-800 rounded px-4 py-2.5 flex flex-wrap items-center gap-3 text-xs" role="region" aria-label="Bulk byline change">
+                <span className="font-bold text-sky-300">
+                  {selectedIds.length} {selectedIds.length === 1 ? 'story' : 'stories'} selected
+                </span>
+                <label htmlFor="admin-bulk-byline" className="text-neutral-300 font-semibold">
+                  Change byline to
+                </label>
+                <select
+                  id="admin-bulk-byline"
+                  value={bulkBylineChoice}
+                  onChange={(e) => setBulkBylineChoice(e.target.value)}
+                  className="bg-neutral-900 border border-neutral-700 rounded px-2 py-1 text-white outline-none focus:ring-2 focus:ring-sky-400"
+                >
+                  {bylineOptions.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleBulkByline}
+                  disabled={bulkBusy}
+                  className="px-3 py-1 bg-[#005EB8] hover:bg-blue-600 disabled:opacity-50 text-white rounded font-bold uppercase tracking-wider"
+                >
+                  {bulkBusy ? 'Updating…' : 'Apply'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds([])}
+                  className="px-3 py-1 bg-neutral-700 hover:bg-neutral-600 text-neutral-200 rounded font-semibold"
+                >
+                  Clear selection
+                </button>
+              </div>
+            )}
+
             {/* Articles Table */}
             <div className="bg-neutral-800 border border-neutral-700 rounded overflow-hidden shadow-xs">
               <div className="overflow-x-auto focus:outline-none focus:ring-2 focus:ring-sky-400" tabIndex={0} role="region" aria-label="Stories table">
@@ -710,6 +830,17 @@ export const AdminPage: React.FC = () => {
                 <caption className="sr-only">Stories</caption>
                   <thead>
                     <tr className="bg-neutral-950 text-neutral-400 uppercase border-b border-neutral-700 text-[11px] font-bold tracking-wider">
+                      {canPublish && (
+                        <th scope="col" className="py-3 pl-4 pr-1 w-8">
+                          <input
+                            type="checkbox"
+                            aria-label="Select all stories in this list"
+                            checked={articles.length > 0 && articles.every((a) => selectedIds.includes(a.id))}
+                            onChange={(e) => setSelectedIds(e.target.checked ? articles.map((a) => a.id) : [])}
+                            className="accent-sky-500"
+                          />
+                        </th>
+                      )}
                       <th scope="col" className="py-3 px-4">Headline & Section</th>
                       <th scope="col" className="py-3 px-3">Status</th>
                       <th scope="col" className="py-3 px-3">Verification</th>
@@ -721,7 +852,7 @@ export const AdminPage: React.FC = () => {
                   <tbody className="divide-y divide-neutral-700">
                     {articles.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-neutral-400">
+                        <td colSpan={canPublish ? 7 : 6} className="py-12 text-center text-neutral-400">
                           {activeTab === 'review_queue' 
                             ? 'No stories pending review in the queue.' 
                             : 'No articles match the current filter.'}
@@ -730,6 +861,17 @@ export const AdminPage: React.FC = () => {
                     ) : (
                       articles.map((art) => (
                         <tr key={art.id} className="hover:bg-neutral-750 transition text-neutral-200">
+                          {canPublish && (
+                            <td className="py-3 pl-4 pr-1 align-top">
+                              <input
+                                type="checkbox"
+                                aria-label={`Select "${art.title}"`}
+                                checked={selectedIds.includes(art.id)}
+                                onChange={() => toggleSelected(art.id)}
+                                className="accent-sky-500 mt-0.5"
+                              />
+                            </td>
+                          )}
                           <td className="py-3 px-4 max-w-md">
                             <div className="flex items-center gap-2">
                               {art.is_breaking ? (
@@ -787,8 +929,12 @@ export const AdminPage: React.FC = () => {
                           </td>
 
                           <td className="py-3 px-3 text-neutral-300">
-                            <div>{art.author_name || 'Staff Reporter'}</div>
-                            <div className="text-[10px] text-neutral-400">{art.author_role}</div>
+                            {/* Public byline, with the account that really posted it underneath */}
+                            <div className="font-semibold">{bylineLabel(art)}</div>
+                            <div className="text-[10px] text-neutral-400">
+                              Posted by {art.author_name || 'unknown'}
+                              {art.author_role ? ` (${art.author_role})` : ''}
+                            </div>
                           </td>
 
                           <td className="py-3 px-3 text-right text-neutral-400 font-mono text-[11px]">
@@ -1095,6 +1241,61 @@ export const AdminPage: React.FC = () => {
                   placeholder="e.g. Clyde Metro green light for £1.2bn light rail link"
                   className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white font-headline text-base outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
                 />
+              </div>
+
+              {/* Byline: who the story is credited to on the public site */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="admin-field-byline" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                    Byline
+                  </label>
+                  <select
+                    id="admin-field-byline"
+                    value={formBylineChoice}
+                    onChange={(e) => {
+                      setFormBylineChoice(e.target.value);
+                      setIsDirty(true);
+                    }}
+                    aria-describedby="admin-field-byline-help"
+                    className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
+                  >
+                    {bylineOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                    {formBylineExtra && !bylineOptions.some((o) => o.value === formBylineExtra.value) && (
+                      <option value={formBylineExtra.value}>{formBylineExtra.label}</option>
+                    )}
+                    {allowGuestByline && <option value="guest">Other / guest contributor…</option>}
+                  </select>
+                  <p id="admin-field-byline-help" className="text-[11px] text-neutral-400 mt-1">
+                    Shown to readers.{' '}
+                    {editorMode === 'create'
+                      ? `Your account (${currentUser?.name || 'you'}) is still recorded as the poster.`
+                      : 'The original poster is still recorded internally.'}
+                  </p>
+                </div>
+
+                {formBylineChoice === 'guest' && allowGuestByline && (
+                  <div>
+                    <label htmlFor="admin-field-byline-guest" className="block font-bold uppercase tracking-wider text-neutral-300 mb-1">
+                      Guest contributor name <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      id="admin-field-byline-guest"
+                      type="text"
+                      maxLength={80}
+                      value={formBylineGuestName}
+                      onChange={(e) => {
+                        setFormBylineGuestName(e.target.value);
+                        setIsDirty(true);
+                      }}
+                      placeholder="e.g. Jane Smith"
+                      className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-white outline-none focus:ring-2 focus:ring-sky-400 focus:border-[#005EB8]"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Slug & Standfirst Grid */}

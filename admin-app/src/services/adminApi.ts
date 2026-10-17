@@ -1,4 +1,4 @@
-import { AdminUser, AuditEntry, SubscriberEntry, UserRole } from '../types/news';
+import { AdminUser, AuditEntry, BylineOption, STAFF_BYLINE, SubscriberEntry, UserRole } from '../types/news';
 
 // Determine if we are in local development or AI Studio preview
 const isDevOrPreview =
@@ -178,6 +178,7 @@ export async function createAdminArticle(articleData: any): Promise<{ success: b
     id,
     slug,
     status: finalStatus,
+    ...previewResolveByline(articleData.byline_choice, articleData.byline_guest_name),
     author_id: user.id,
     author_name: user.name,
     author_role: user.role,
@@ -214,7 +215,12 @@ export async function updateAdminArticle(id: string, articleData: any): Promise<
   const idx = list.findIndex((a: any) => a.id === id);
   if (idx < 0) throw new Error('Article not found in preview cache');
 
-  list[idx] = { ...list[idx], ...articleData, updated_at: new Date().toISOString() };
+  list[idx] = {
+    ...list[idx],
+    ...articleData,
+    ...(articleData.byline_choice ? previewResolveByline(articleData.byline_choice, articleData.byline_guest_name) : {}),
+    updated_at: new Date().toISOString(),
+  };
   localStorage.setItem(PREVIEW_ARTICLES_KEY, JSON.stringify(list));
 
   return { success: true, status: list[idx].status, slug: list[idx].slug };
@@ -242,6 +248,85 @@ export async function deleteAdminArticle(id: string): Promise<{ success: boolean
   const list = raw ? JSON.parse(raw) : [];
   localStorage.setItem(PREVIEW_ARTICLES_KEY, JSON.stringify(list.filter((a: any) => a.id !== id)));
   return { success: true };
+}
+
+// ---------------------------------------------------------------------------
+// BYLINES
+// ---------------------------------------------------------------------------
+
+/** Preview mode only: turn a byline choice into the stored columns (the live server does this itself). */
+function previewResolveByline(choice?: string, guestName?: string) {
+  if (choice?.startsWith('user:')) {
+    const u = DEFAULT_USERS.find((x) => x.id === choice.slice(5));
+    if (u) return { byline: u.name, byline_user_id: u.id };
+  }
+  if (choice === 'guest' && guestName?.trim()) return { byline: guestName.trim(), byline_user_id: null };
+  return { byline: STAFF_BYLINE, byline_user_id: null };
+}
+
+/** Options for the editor's Byline dropdown (validated again server-side on save). */
+export async function getAdminBylineOptions(): Promise<{ options: BylineOption[]; allowGuest: boolean }> {
+  const isLive = await checkLiveAdminApi();
+
+  if (isLive) {
+    const res = await fetch('/api/admin/bylines');
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      return { options: data.options || [], allowGuest: Boolean(data.allow_guest) };
+    }
+    if (!isDevOrPreview) {
+      throw new Error(`Failed to load byline options: HTTP ${res.status}`);
+    }
+  } else if (!isDevOrPreview) {
+    throw new Error('Unable to load byline options. Production API is unavailable.');
+  }
+
+  const me = await getAdminCurrentUser();
+  const canCreditAnyone = me.role === 'Owner' || me.role === 'Editor';
+  const people = canCreditAnyone ? DEFAULT_USERS.filter((u) => u.active && u.role !== 'Bot') : me.role === 'Journalist' ? [me] : [];
+  return {
+    options: [{ value: 'staff', label: STAFF_BYLINE }, ...people.map((u) => ({ value: `user:${u.id}`, label: u.name }))],
+    allowGuest: canCreditAnyone,
+  };
+}
+
+/** Owner/Editor: change the byline on several stories at once. */
+export async function bulkUpdateBylines(
+  ids: string[],
+  bylineChoice: string,
+  guestName?: string
+): Promise<{ success: boolean; updated: number; unchanged: number; byline: string }> {
+  const isLive = await checkLiveAdminApi();
+
+  if (isLive) {
+    const res = await fetch('/api/admin/bylines', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, byline_choice: bylineChoice, byline_guest_name: guestName }),
+    });
+    if (!res.ok) {
+      const err = (await res.json().catch(() => ({ error: 'Failed to update bylines' }))) as any;
+      throw new Error(err.error || `Byline update failed: HTTP ${res.status}`);
+    }
+    return (await res.json()) as any;
+  }
+
+  if (!isDevOrPreview) {
+    throw new Error('Production error: Cannot update bylines without connection to Cloudflare D1.');
+  }
+
+  const next = previewResolveByline(bylineChoice, guestName);
+  const raw = localStorage.getItem(PREVIEW_ARTICLES_KEY);
+  const list = raw ? JSON.parse(raw) : [];
+  let updated = 0;
+  for (const a of list) {
+    if (ids.includes(a.id)) {
+      Object.assign(a, next, { updated_at: new Date().toISOString() });
+      updated++;
+    }
+  }
+  localStorage.setItem(PREVIEW_ARTICLES_KEY, JSON.stringify(list));
+  return { success: true, updated, unchanged: ids.length - updated, byline: next.byline };
 }
 
 // ---------------------------------------------------------------------------

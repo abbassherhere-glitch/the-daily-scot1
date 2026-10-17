@@ -90,12 +90,14 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
    - Go to **R2** → **Create bucket**.
    - Name: `daily-scot-media`.
    - In bucket **Settings** → **Public access**, connect your custom media domain (e.g. `https://media.thedailyscot.co.uk`) or enable the `*.r2.dev` URL.
-5. **Run the migrations** (both are required; neither inserts demo content):
+5. **Run the migrations** (all are required, in order; none inserts demo content):
    ```bash
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0002_production_setup.sql
+   npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0003_bylines.sql
    ```
    `0002` adds the section categories, the wire-ingest Bot user, newsletter unsubscribe tokens and revision proposals.
+   `0003` adds story bylines (the public credit line and `/author/<name>` pages). Run it once; a second run stops with a harmless "duplicate column" error.
 
    > `seed.demo.sql` contains **fictional demo stories for local testing only**. Never run it with `--remote`.
 
@@ -288,6 +290,6 @@ Before launching to live production, complete this essential security checklist 
    - Restrict API tokens to minimal required scopes (e.g. D1 edit, Pages edit).
 5. **Database Production Hygiene**:
    - **NEVER run `seed.demo.sql` on production!** That file is strictly for local sandbox fixtures.
-   - Apply only the files in `migrations/` (0001, then 0002) to your production D1 instance.
+   - Apply only the files in `migrations/` (0001, 0002, then 0003) to your production D1 instance.
    - Store all credentials (`BOT_CLIENT_ID`, `TURNSTILE_SECRET`, `RESEND_API_KEY`) via `wrangler pages secret put` — never commit secrets to source control or plaintext `[vars]`.
 

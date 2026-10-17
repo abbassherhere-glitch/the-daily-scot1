@@ -15,6 +15,7 @@ import { HomePage } from './pages/HomePage';
 import { CategoryPage } from './pages/CategoryPage';
 import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
+import { AuthorPage } from './pages/AuthorPage';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { SpaLink } from './components/SpaLink';
 
@@ -29,7 +30,11 @@ async function safeGetArticle(slug: string): Promise<Article | null> {
 
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'notfound'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'author' | 'notfound'>('home');
+  // Author pages (/author/<slug>?page=N). authorName: undefined while loading, null when not found.
+  const [authorSlug, setAuthorSlug] = useState('');
+  const [authorPageNum, setAuthorPageNum] = useState(1);
+  const [authorName, setAuthorName] = useState<string | null | undefined>(undefined);
   const [currentCategory, setCurrentCategory] = useState<CategoryType>('all');
   const [selectedArea, setSelectedArea] = useState<string>('All');
   const [currentArticle, setCurrentArticle] = useState<Article | null>(null);
@@ -70,6 +75,24 @@ export default function App() {
         setCurrentView('home');
       } else if (path === '/search') {
         setCurrentView('search');
+      } else if (path === '/author' || path.startsWith('/author/')) {
+        let slug = '';
+        try {
+          slug = decodeURIComponent(path.replace(/^\/author\/?/, '').replace(/\/$/, '')).toLowerCase();
+        } catch {
+          slug = '';
+        }
+        const pageNum = Math.max(1, parseInt(new URLSearchParams(window.location.search).get('page') || '1', 10) || 1);
+        setCurrentArticle(null);
+        setCurrentCategory('all');
+        if (!slug || slug.includes('/')) {
+          setCurrentView('notfound');
+        } else {
+          setAuthorSlug(slug);
+          setAuthorName(undefined); // AuthorPage reports the name (or not found) once loaded
+          setAuthorPageNum(pageNum);
+          setCurrentView('author');
+        }
       } else if (path.startsWith('/news/')) {
         const remaining = path.replace('/news/', '').replace(/\/$/, '');
         const parts = remaining.split('/');
@@ -132,7 +155,7 @@ export default function App() {
   const [routeReady, setRouteReady] = useState(false);
   const lastRouteKey = useRef<string | null>(null);
   useEffect(() => {
-    const key = `${currentView}|${currentCategory}|${currentArticle?.id || ''}`;
+    const key = `${currentView}|${currentCategory}|${currentArticle?.id || ''}|${currentView === 'author' ? `${authorSlug}:${authorPageNum}` : ''}`;
     const previous = lastRouteKey.current;
     lastRouteKey.current = routeReady ? key : null;
     // Don't steal focus on the first page load, only after the reader navigates
@@ -146,7 +169,7 @@ export default function App() {
     } else {
       mainRef.current?.focus({ preventScroll: true });
     }
-  }, [currentView, currentCategory, currentArticle?.id, routeReady]);
+  }, [currentView, currentCategory, currentArticle?.id, routeReady, authorSlug, authorPageNum]);
 
   // 2. SEO Sync: Dynamic Document Title, Meta Tags, and NewsArticle JSON-LD
   useEffect(() => {
@@ -197,6 +220,14 @@ export default function App() {
       desc = `Latest ${catName} reporting, courts, and local news from Glasgow and Scotland.`;
     } else if (currentView === 'search') {
       title = "Search Articles | The Daily Scot";
+    } else if (currentView === 'author') {
+      if (authorName === null) {
+        title = 'Author not found | The Daily Scot';
+        desc = 'There are no published stories with this byline.';
+      } else if (authorName) {
+        title = `${authorName}${authorPageNum > 1 ? ` – page ${authorPageNum}` : ''} | The Daily Scot`;
+        desc = `The latest stories from ${authorName} at The Daily Scot.`;
+      }
     } else if (currentView === 'notfound') {
       title = 'Story not found | The Daily Scot';
       desc = 'The page you were looking for could not be found.';
@@ -204,7 +235,7 @@ export default function App() {
 
     // Tell search engines not to index the "not found" page
     let robots = document.querySelector('meta[name="robots"]');
-    if (currentView === 'notfound') {
+    if (currentView === 'notfound' || (currentView === 'author' && authorName === null)) {
       if (!robots) {
         robots = document.createElement('meta');
         robots.setAttribute('name', 'robots');
@@ -225,7 +256,7 @@ export default function App() {
     if (ogDesc) ogDesc.setAttribute('content', desc);
 
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, [currentView, currentCategory, currentArticle]);
+  }, [currentView, currentCategory, currentArticle, authorSlug, authorPageNum, authorName]);
 
   // Handle article selection with Clean URL
   const handleSelectArticle = async (article: Article) => {
@@ -351,6 +382,16 @@ export default function App() {
             isSaved={savedIds.includes(currentArticle.id)}
             onToggleSave={handleToggleSave}
             onArticleUpdated={refreshArticles}
+          />
+        )}
+
+        {currentView === 'author' && authorSlug && (
+          <AuthorPage
+            slug={authorSlug}
+            page={authorPageNum}
+            onSelectArticle={handleSelectArticle}
+            onSelectCategory={handleSelectCategory}
+            onLoaded={(result) => setAuthorName(result ? result.author.name : null)}
           />
         )}
 
