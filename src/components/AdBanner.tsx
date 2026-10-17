@@ -1,25 +1,81 @@
 import React from 'react';
+import { HOUSE_AD } from '../config/ads';
 
 interface AdBannerProps {
   type: 'leaderboard' | 'mpu' | 'mobile';
   className?: string;
 }
 
+// Advertiser brand colours (Mondus Pro)
+const AD_BG = '#1E252B';
+const AD_ACCENT = '#7EC8E3';
+const AD_GRADIENT = 'linear-gradient(90deg, #7EC8E3 0%, #5DD3A6 50%, #E2C15A 100%)';
+
+const Label: React.FC<{ small?: boolean }> = ({ small }) => (
+  <div
+    className={`${small ? 'text-[9px] mb-0.5' : 'text-[10px] mb-1'} uppercase font-semibold tracking-wider text-neutral-600`}
+  >
+    Advertisement
+  </div>
+);
+
+const Mark: React.FC<{ size: number }> = ({ size }) => (
+  <span
+    aria-hidden="true"
+    className="inline-flex flex-col justify-center gap-[2px] rounded-full overflow-hidden shrink-0"
+    style={{ width: size, height: size }}
+  >
+    {[0, 1, 2, 3].map((i) => (
+      <span key={i} className="block h-[3px] w-full rounded-full" style={{ background: AD_GRADIENT, opacity: 1 - i * 0.15 }} />
+    ))}
+  </span>
+);
+
+const Wordmark: React.FC<{ size?: 'sm' | 'md' }> = ({ size = 'md' }) => (
+  <span className="inline-flex items-center gap-2 whitespace-nowrap shrink-0">
+    <Mark size={size === 'sm' ? 16 : 22} />
+    <span className={`font-bold text-white tracking-tight ${size === 'sm' ? 'text-[13px]' : 'text-base'}`}>
+      {HOUSE_AD.advertiser}
+    </span>
+  </span>
+);
+
+const linkProps = {
+  href: HOUSE_AD.url,
+  target: '_blank',
+  rel: 'sponsored noopener',
+  'aria-label': `${HOUSE_AD.advertiser} (advertisement): ${HOUSE_AD.headline}`,
+};
+
 export const AdBanner: React.FC<AdBannerProps> = ({ type, className = '' }) => {
   if (type === 'mpu') {
     return (
       <div className={`w-full max-w-[300px] mx-auto my-4 text-center no-print ${className}`}>
-        <div className="text-[10px] uppercase font-semibold tracking-wider text-neutral-600 mb-1">
-          Advertisement
-        </div>
-        <div className="w-full max-w-[300px] h-[250px] mx-auto bg-neutral-100 border border-neutral-200 flex flex-col items-center justify-center text-neutral-600">
-          <span className="text-xs font-semibold tracking-wider uppercase text-neutral-600">
-            300 × 250 MPU
-          </span>
-          <span className="text-[10px] text-neutral-600 mt-1">
-            Display Advertising
-          </span>
-        </div>
+        <Label />
+        <a
+          {...linkProps}
+          className="group block w-full max-w-[300px] h-[250px] mx-auto text-left p-5 flex flex-col justify-between border border-neutral-800 hover:border-neutral-600 transition"
+          style={{ background: AD_BG }}
+        >
+          <Wordmark />
+          <div>
+            <p className="text-white font-bold text-[19px] leading-tight">On-site IT engineers, when you need them.</p>
+            <p className="text-neutral-300 text-[12px] leading-snug mt-2">{HOUSE_AD.body}</p>
+          </div>
+          <div className="flex items-end justify-between gap-2">
+            <ul className="text-[10px] text-neutral-400 space-y-0.5">
+              {HOUSE_AD.points.map((p) => (
+                <li key={p}>✓ {p}</li>
+              ))}
+            </ul>
+            <span
+              className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-sm group-hover:brightness-110"
+              style={{ background: AD_ACCENT, color: AD_BG }}
+            >
+              {HOUSE_AD.cta} →
+            </span>
+          </div>
+        </a>
       </div>
     );
   }
@@ -27,30 +83,41 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, className = '' }) => {
   if (type === 'mobile') {
     return (
       <div className={`w-full max-w-[320px] mx-auto my-3 text-center no-print ${className}`}>
-        <div className="text-[9px] uppercase font-semibold tracking-wider text-neutral-600 mb-0.5">
-          Advertisement
-        </div>
-        <div className="w-full max-w-[320px] h-[50px] mx-auto bg-neutral-100 border border-neutral-200 flex items-center justify-center text-neutral-600 text-[11px] font-semibold">
-          320 × 50 Mobile Banner
-        </div>
+        <Label small />
+        <a
+          {...linkProps}
+          className="flex w-full max-w-[320px] h-[50px] mx-auto items-center justify-between gap-2 px-3 border border-neutral-800"
+          style={{ background: AD_BG }}
+        >
+          <Wordmark size="sm" />
+          <span className="text-[11px] text-neutral-200 truncate">{HOUSE_AD.shortLine}</span>
+          <span className="text-[13px] font-bold" style={{ color: AD_ACCENT }} aria-hidden="true">→</span>
+        </a>
       </div>
     );
   }
 
-  // Standard 728x90 Leaderboard (Responsive on smaller screens)
+  // Standard 728x90 Leaderboard (responsive on smaller screens)
   return (
     <div className={`w-full max-w-[728px] mx-auto my-4 text-center no-print ${className}`}>
-      <div className="text-[10px] uppercase font-semibold tracking-wider text-neutral-600 mb-1">
-        Advertisement
-      </div>
-      <div className="w-full h-[90px] bg-neutral-100 border border-neutral-200 flex flex-col items-center justify-center text-neutral-600">
-        <span className="text-xs font-semibold tracking-wider uppercase text-neutral-600">
-          728 × 90 Leaderboard
+      <Label />
+      <a
+        {...linkProps}
+        className="group relative flex w-full min-h-[90px] items-center justify-between gap-4 px-4 sm:px-6 py-3 text-left border border-neutral-800 hover:border-neutral-600 transition overflow-hidden"
+        style={{ background: AD_BG }}
+      >
+        <span className="absolute left-0 top-0 h-[3px] w-full" style={{ background: AD_GRADIENT }} aria-hidden="true" />
+        <span className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-5 min-w-0">
+          <Wordmark />
+          <span className="text-white font-semibold text-[13px] sm:text-[15px] leading-snug">{HOUSE_AD.headline}</span>
         </span>
-        <span className="text-[10px] text-neutral-600 mt-0.5 hidden sm:inline">
-          Standard Regional Display Slot
+        <span
+          className="shrink-0 text-[11px] sm:text-xs font-bold px-3 py-2 rounded-sm group-hover:brightness-110"
+          style={{ background: AD_ACCENT, color: AD_BG }}
+        >
+          {HOUSE_AD.cta} →
         </span>
-      </div>
+      </a>
     </div>
   );
 };
