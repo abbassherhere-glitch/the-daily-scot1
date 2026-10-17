@@ -130,7 +130,9 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
     const description = article.meta_description || article.standfirst || '';
     const fullTitle = title.includes('The Daily Scot') ? title : `${title} | The Daily Scot`;
     const canonicalUrl = `${url.origin}/news/${encodeURIComponent(article.slug)}`;
-    const imageUrl = safeImageUrl(article.hero_image, url.origin);
+    const heroUrl = safeImageUrl(article.hero_image, url.origin);
+    // Social previews fall back to the site's default share image when a story has no photo
+    const imageUrl = heroUrl || `${url.origin}/og-default.png`;
     const published = toIso(article.published_at);
     const modified = toIso(article.updated_at) || published;
 
@@ -139,7 +141,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       '@type': 'NewsArticle',
       headline: article.title,
       description: article.standfirst,
-      ...(imageUrl ? { image: [imageUrl] } : {}),
+      ...(heroUrl ? { image: [heroUrl] } : {}),
       ...(published ? { datePublished: published } : {}),
       ...(modified ? { dateModified: modified } : {}),
       ...(article.author_name ? { author: [{ '@type': 'Person', name: article.author_name }] } : {}),
