@@ -180,7 +180,7 @@ export default function App() {
         publisher: {
           '@type': 'NewsMediaOrganization',
           name: 'The Daily Scot',
-          url: 'https://dailyscot.co.uk',
+          url: 'https://thedailyscot.co.uk',
         },
         articleSection: currentArticle.category,
         keywords: currentArticle.tags.join(', '),
