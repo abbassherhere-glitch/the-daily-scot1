@@ -237,7 +237,7 @@ export async function onRequestPost(context: EventContext<Env, any, any>): Promi
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            from: context.env.NEWSLETTER_FROM || 'The Daily Scot <newsletter@dailyscot.co.uk>',
+            from: context.env.NEWSLETTER_FROM || 'The Daily Scot <newsletter@thedailyscot.co.uk>',
             to: [email],
             subject: 'Confirm your subscription to The Daily Scot',
             headers: {
