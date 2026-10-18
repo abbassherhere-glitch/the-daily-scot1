@@ -29,16 +29,52 @@ const SECURITY_HEADERS: Record<string, string> = {
   ].join('; '),
 };
 
+/**
+ * One address per page. Returns where to send the visitor (301), or null if the address is already right:
+ *   - www.thedailyscot.co.uk/...  -> https://thedailyscot.co.uk/...
+ *   - /news/politics/             -> /news/politics   (no trailing slash; /news/ goes straight to /)
+ * The query string is kept. The API is left alone.
+ */
+function canonicalRedirect(url: URL): string | null {
+  let changed = false;
+  const target = new URL(url.toString());
+
+  if (target.hostname.toLowerCase().startsWith('www.')) {
+    target.hostname = target.hostname.slice(4);
+    target.protocol = 'https:';
+    changed = true;
+  }
+
+  if (target.pathname.length > 1 && target.pathname.endsWith('/') && !target.pathname.startsWith('/api/')) {
+    const trimmed = target.pathname.replace(/\/+$/, '') || '/';
+    target.pathname = trimmed.toLowerCase() === '/news' ? '/' : trimmed;
+    changed = true;
+  }
+
+  return changed ? target.toString() : null;
+}
+
 export async function onRequest(context: EventContext<Env, any, any>): Promise<Response> {
   let response: Response;
-  try {
-    response = await context.next();
-  } catch (err) {
-    console.error('Unhandled function error:', err);
-    response = new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
+  const redirectTo = ['GET', 'HEAD'].includes(context.request.method)
+    ? canonicalRedirect(new URL(context.request.url))
+    : null;
+
+  if (redirectTo) {
+    response = new Response(null, {
+      status: 301,
+      headers: { Location: redirectTo, 'Cache-Control': 'public, max-age=86400' },
     });
+  } else {
+    try {
+      response = await context.next();
+    } catch (err) {
+      console.error('Unhandled function error:', err);
+      response = new Response(JSON.stringify({ error: 'Internal server error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   // Copy so headers are mutable (responses from fetch/assets can be immutable)
