@@ -16,8 +16,13 @@ import { CategoryPage } from './pages/CategoryPage';
 import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
 import { AuthorPage } from './pages/AuthorPage';
+import { InfoPage } from './pages/InfoPage';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { SpaLink } from './components/SpaLink';
+import { SITE_CONFIG } from './config/site';
+import { HOME_TITLE, SITE_DESCRIPTION, sectionSeo, withBrand } from './config/seoText';
+import { InfoPageId, infoPageByPath, infoPageIndexable } from './config/infoPages';
+import { HeadSeo, applyHeadSeo, serverWroteHead } from './utils/seoHead';
 
 async function safeGetArticle(slug: string): Promise<Article | null> {
   try {
@@ -30,7 +35,9 @@ async function safeGetArticle(slug: string): Promise<Article | null> {
 
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'author' | 'notfound'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'author' | 'info' | 'notfound'>('home');
+  // Company / legal pages (/about, /privacy...)
+  const [infoPageId, setInfoPageId] = useState<InfoPageId | null>(null);
   // Author pages (/author/<slug>?page=N). authorName: undefined while loading, null when not found.
   const [authorSlug, setAuthorSlug] = useState('');
   const [authorPageNum, setAuthorPageNum] = useState(1);
@@ -75,6 +82,11 @@ export default function App() {
         setCurrentView('home');
       } else if (path === '/search') {
         setCurrentView('search');
+      } else if (infoPageByPath(path)) {
+        setCurrentArticle(null);
+        setCurrentCategory('all');
+        setInfoPageId(infoPageByPath(path)!.id);
+        setCurrentView('info');
       } else if (path === '/author' || path.startsWith('/author/')) {
         let slug = '';
         try {
@@ -131,6 +143,12 @@ export default function App() {
             setCurrentView('notfound');
           }
         }
+      } else {
+        // Any other address isn't a page of the site: say so (and keep it out of Google) instead of
+        // showing the homepage's content under a made-up URL
+        setCurrentArticle(null);
+        setCurrentCategory('all');
+        setCurrentView('notfound');
       }
     };
 
@@ -148,6 +166,22 @@ export default function App() {
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // A section page needs that section's own stories: the list above is only the latest 20 across the whole site,
+  // so an older section (Property, Opinion...) would otherwise look empty.
+  const [sectionStories, setSectionStories] = useState<{ category: string; list: Article[] } | null>(null);
+  useEffect(() => {
+    if (currentView !== 'category' || currentCategory === 'all') return;
+    let cancelled = false;
+    getPublicArticles({ category: currentCategory, limit: 50 })
+      .then((list) => {
+        if (!cancelled) setSectionStories({ category: currentCategory, list });
+      })
+      .catch((e) => console.error('Failed to load section stories', currentCategory, e));
+    return () => {
+      cancelled = true;
+    };
+  }, [currentView, currentCategory]);
 
   // Accessibility: after in-app navigation, move focus to the new page's content so screen-reader and
   // keyboard users start at the top of the new page (the browser would do this on a full page load).
@@ -171,90 +205,61 @@ export default function App() {
     }
   }, [currentView, currentCategory, currentArticle?.id, routeReady, authorSlug, authorPageNum]);
 
-  // 2. SEO Sync: Dynamic Document Title, Meta Tags, and NewsArticle JSON-LD
+  // 2. SEO sync: title, description, canonical link and robots for the page the reader is on.
+  // On the first load the server has already written all of these (plus the structured data) for this exact
+  // address, using the newsroom's own SEO title and description, so leave them alone until the reader navigates.
+  const firstUrl = useRef(window.location.pathname + window.location.search);
+  const hasNavigated = useRef(false);
   useEffect(() => {
-    let title = "The Daily Scot | Glasgow & Scotland's News";
-    let desc = "Latest breaking news, Glasgow council, traffic, Celtic, Rangers, courts and local Scottish reporting.";
+    if (!hasNavigated.current) {
+      if (serverWroteHead() && window.location.pathname + window.location.search === firstUrl.current) return;
+      hasNavigated.current = true;
+    }
 
-    const existingLd = document.getElementById('daily-scot-jsonld');
-    if (existingLd) existingLd.remove();
+    const origin = `https://${SITE_CONFIG.siteUrl}`;
+    let seo: HeadSeo = { title: HOME_TITLE, description: SITE_DESCRIPTION, canonical: `${origin}/` };
 
     if (currentView === 'article' && currentArticle) {
-      title = `${currentArticle.title} - The Daily Scot`;
-      desc = currentArticle.standfirst;
-
-      const jsonLd = {
-        '@context': 'https://schema.org',
-        '@type': 'NewsArticle',
-        mainEntityOfPage: {
-          '@type': 'WebPage',
-          '@id': window.location.href,
-        },
-        headline: currentArticle.title,
-        description: currentArticle.standfirst,
-        image: [currentArticle.heroImage],
-        datePublished: currentArticle.publishedAt,
-        dateModified: currentArticle.updatedAt || currentArticle.publishedAt,
-        author: {
-          '@type': 'Person',
-          name: currentArticle.author.name,
-          jobTitle: currentArticle.author.role,
-        },
-        publisher: {
-          '@type': 'NewsMediaOrganization',
-          name: 'The Daily Scot',
-          url: 'https://thedailyscot.co.uk',
-        },
-        articleSection: currentArticle.category,
-        keywords: currentArticle.tags.join(', '),
+      seo = {
+        title: withBrand(currentArticle.seoTitle || currentArticle.title),
+        description: currentArticle.metaDescription || currentArticle.standfirst,
+        canonical: `${origin}/news/${encodeURIComponent(currentArticle.slug)}`,
       };
-
-      const script = document.createElement('script');
-      script.id = 'daily-scot-jsonld';
-      script.type = 'application/ld+json';
-      script.text = JSON.stringify(jsonLd);
-      document.head.appendChild(script);
     } else if (currentView === 'category' && currentCategory !== 'all') {
-      const catName = currentCategory.charAt(0).toUpperCase() + currentCategory.slice(1);
-      title = `${catName} News | The Daily Scot`;
-      desc = `Latest ${catName} reporting, courts, and local news from Glasgow and Scotland.`;
+      const label = SITE_CONFIG.sections.find((sec) => sec.slug === currentCategory)?.label || currentCategory;
+      seo = { ...sectionSeo(currentCategory, label), canonical: `${origin}/news/${encodeURIComponent(currentCategory)}` };
     } else if (currentView === 'search') {
-      title = "Search Articles | The Daily Scot";
+      // Search results are different for every search and not worth a place in Google
+      seo = { title: withBrand('Search stories'), description: 'Search stories from The Daily Scot.', noindex: true };
     } else if (currentView === 'author') {
-      if (authorName === null) {
-        title = 'Author not found | The Daily Scot';
-        desc = 'There are no published stories with this byline.';
-      } else if (authorName) {
-        title = `${authorName}${authorPageNum > 1 ? ` – page ${authorPageNum}` : ''} | The Daily Scot`;
-        desc = `The latest stories from ${authorName} at The Daily Scot.`;
-      }
+      if (authorName === undefined) return; // still loading: keep the tags as they are
+      seo =
+        authorName === null
+          ? { title: withBrand('Author not found'), description: 'There are no published stories with this byline.', noindex: true }
+          : {
+              title: withBrand(`${authorName}${authorPageNum > 1 ? ` – page ${authorPageNum}` : ''}`),
+              description: `The latest stories from ${authorName} at ${SITE_CONFIG.name}.`,
+              canonical: `${origin}/author/${encodeURIComponent(authorSlug)}${authorPageNum > 1 ? `?page=${authorPageNum}` : ''}`,
+            };
+    } else if (currentView === 'info') {
+      const info = infoPageByPath(window.location.pathname);
+      if (!info) return;
+      // Kept out of Google until the details in site.ts that this page depends on are real (see infoPageIndexable)
+      seo = {
+        title: withBrand(info.title),
+        description: info.description,
+        canonical: `${origin}${info.path}`,
+        noindex: !infoPageIndexable(info),
+      };
     } else if (currentView === 'notfound') {
-      title = 'Story not found | The Daily Scot';
-      desc = 'The page you were looking for could not be found.';
+      seo = {
+        title: withBrand('Page not found'),
+        description: 'The page you were looking for could not be found.',
+        noindex: true,
+      };
     }
 
-    // Tell search engines not to index the "not found" page
-    let robots = document.querySelector('meta[name="robots"]');
-    if (currentView === 'notfound' || (currentView === 'author' && authorName === null)) {
-      if (!robots) {
-        robots = document.createElement('meta');
-        robots.setAttribute('name', 'robots');
-        document.head.appendChild(robots);
-      }
-      robots.setAttribute('content', 'noindex');
-    } else if (robots) {
-      robots.remove();
-    }
-
-    document.title = title;
-
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute('content', desc);
-    const ogTitle = document.querySelector('meta[property="og:title"]');
-    if (ogTitle) ogTitle.setAttribute('content', title);
-    const ogDesc = document.querySelector('meta[property="og:description"]');
-    if (ogDesc) ogDesc.setAttribute('content', desc);
-
+    applyHeadSeo(seo);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [currentView, currentCategory, currentArticle, authorSlug, authorPageNum, authorName]);
 
@@ -367,7 +372,7 @@ export default function App() {
         {currentView === 'category' && (
           <CategoryPage
             category={currentCategory}
-            articles={articles}
+            articles={sectionStories?.category === currentCategory ? sectionStories.list : articles}
             onSelectArticle={handleSelectArticle}
             onSelectCategory={handleSelectCategory}
           />
@@ -395,12 +400,16 @@ export default function App() {
           />
         )}
 
+        {currentView === 'info' && infoPageId && (
+          <InfoPage id={infoPageId} onSelectCategory={handleSelectCategory} />
+        )}
+
         {currentView === 'notfound' && (
           <section className="max-w-xl mx-auto text-center py-20 px-4">
             <p className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">Error 404</p>
-            <h1 className="font-headline font-black text-3xl text-neutral-900 mb-3">Story not found</h1>
+            <h1 className="font-headline font-black text-3xl text-neutral-900 mb-3">Page not found</h1>
             <p className="text-neutral-600 mb-6">
-              This story may have been moved, unpublished, or the link may be incorrect.
+              This page may have been moved, unpublished, or the link may be incorrect.
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               <SpaLink

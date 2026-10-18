@@ -8,3 +8,18 @@
 
 /api/*
   Cache-Control: public, max-age=60, s-maxage=120
+
+# Built files have a hash in their name and never change, so browsers can keep them for a year
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Search results pages are not for Google
+/search
+  X-Robots-Tag: noindex
+
+# Cloudflare's own addresses for this site (production and preview deployments) must not be indexed.
+# Pages served by Functions also get this header from functions/_middleware.ts.
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex

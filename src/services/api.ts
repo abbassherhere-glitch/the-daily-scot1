@@ -78,6 +78,7 @@ export async function getPublicArticles(params?: {
   featured?: boolean;
   breaking?: boolean;
   search?: string;
+  limit?: number;
 }): Promise<Article[]> {
   const isLive = await checkApiAvailability();
 
@@ -89,6 +90,7 @@ export async function getPublicArticles(params?: {
       if (params?.featured) query.set('featured', 'true');
       if (params?.breaking) query.set('breaking', 'true');
       if (params?.search) query.set('search', params.search);
+      if (params?.limit) query.set('limit', String(params.limit));
 
       const res = await fetch(`/api/articles?${query.toString()}`);
       if (!res.ok) {
@@ -344,5 +346,7 @@ function transformD1RowToArticle(row: any): Article {
     views: Number(row.total_views) || 0,
     comments: [],
     tags,
+    seoTitle: row.seo_title || undefined,
+    metaDescription: row.meta_description || undefined,
   };
 }

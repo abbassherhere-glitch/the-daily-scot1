@@ -1,4 +1,5 @@
 import { Env, EventContext } from './types';
+import { siteOrigin, toIso } from './utils/seo';
 
 function escapeXml(unsafe: string): string {
   return unsafe
@@ -11,8 +12,7 @@ function escapeXml(unsafe: string): string {
 
 export async function onRequestGet(context: EventContext<Env, any, any>): Promise<Response> {
   try {
-    const url = new URL(context.request.url);
-    const domain = url.origin;
+    const domain = siteOrigin(context.env);
 
     const { results: articles } = await context.env.DB.prepare(
       `SELECT slug, title, category, published_at 
@@ -29,7 +29,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
 
     articles.forEach((art) => {
       const loc = `${domain}/news/${encodeURIComponent(art.slug)}`;
-      const pubDate = art.published_at ? new Date(art.published_at).toISOString() : new Date().toISOString();
+      const pubDate = toIso(art.published_at) || new Date().toISOString();
       xml += '  <url>\n';
       xml += `    <loc>${loc}</loc>\n`;
       xml += '    <news:news>\n';

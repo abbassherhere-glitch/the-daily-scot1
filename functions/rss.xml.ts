@@ -1,5 +1,6 @@
 import { Env, EventContext } from './types';
 import { BYLINE_JOIN, BYLINE_SELECT } from './utils/byline';
+import { SITE_DESCRIPTION, siteOrigin, toIso } from './utils/seo';
 
 function escapeXml(unsafe: string): string {
   return (unsafe || '')
@@ -12,8 +13,7 @@ function escapeXml(unsafe: string): string {
 
 export async function onRequestGet(context: EventContext<Env, any, any>): Promise<Response> {
   try {
-    const url = new URL(context.request.url);
-    const domain = url.origin;
+    const domain = siteOrigin(context.env);
 
     const { results: articles } = await context.env.DB.prepare(`
       SELECT a.slug, a.title, a.standfirst, a.category, a.published_at, ${BYLINE_SELECT}
@@ -32,18 +32,22 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     }>();
 
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
-    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n';
+    xml += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">\n';
     xml += '  <channel>\n';
     xml += '    <title>The Daily Scot | Glasgow &amp; Scotland News</title>\n';
     xml += `    <link>${domain}</link>\n`;
-    xml += '    <description>Glasgow and Scotland\'s premier regional newspaper covering Clydeside politics, investigations, property, culture, and sport.</description>\n';
+    xml += `    <description>${escapeXml(SITE_DESCRIPTION)}</description>\n`;
     xml += '    <language>en-gb</language>\n';
-    xml += `    <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>\n`;
+    // The newest story's date, so the feed only looks "changed" when it has
+    const newest = articles[0]?.published_at ? toIso(articles[0].published_at) : undefined;
+    xml += `    <lastBuildDate>${(newest ? new Date(newest) : new Date()).toUTCString()}</lastBuildDate>\n`;
+    xml += `    <image>\n      <url>${domain}/icon-512.png</url>\n      <title>The Daily Scot</title>\n      <link>${domain}</link>\n    </image>\n`;
     xml += `    <atom:link href="${domain}/rss.xml" rel="self" type="application/rss+xml" />\n`;
 
     articles.forEach((art) => {
       const link = `${domain}/news/${encodeURIComponent(art.slug)}`;
-      const pubDate = art.published_at ? new Date(art.published_at).toUTCString() : new Date().toUTCString();
+      const iso = toIso(art.published_at);
+      const pubDate = (iso ? new Date(iso) : new Date()).toUTCString();
 
       xml += '    <item>\n';
       xml += `      <title>${escapeXml(art.title)}</title>\n`;
@@ -53,7 +57,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       xml += `      <pubDate>${pubDate}</pubDate>\n`;
       xml += `      <category>${escapeXml(art.category)}</category>\n`;
       if (art.author_name) {
-        xml += `      <author>${escapeXml(art.author_name)}</author>\n`;
+        xml += `      <dc:creator>${escapeXml(art.author_name)}</dc:creator>\n`;
       }
       xml += '    </item>\n';
     });

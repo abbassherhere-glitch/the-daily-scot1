@@ -9,13 +9,16 @@ export const SITE_CONFIG = {
   name: 'The Daily Scot',
   tagline: "Glasgow & Scotland's Local News",
   siteUrl: 'thedailyscot.co.uk',
-  companyName: '[Company name]',
-  companyNumber: '[Company number]',
-  contactEmail: '[Contact email]',
-  newsdeskEmail: '[Newsdesk email]',
-  phone: '[Contact phone]',
-  complaintsEmail: '[Complaints email]',
-  advertisingEmail: '[Advertising email]',
+  companyName: 'The Daily Scot',
+  // Leave any of these empty ('') until it really exists: the lines and sentences that show it are left out, and any
+  // company page that depends on it (Contact, Advertise, Complaints, Privacy) stays out of Google until it is filled in.
+  // Anything wrapped in [square brackets] is treated as an unfinished placeholder (see companyDetailsIncomplete).
+  companyNumber: '',
+  contactEmail: '',
+  newsdeskEmail: '',
+  phone: '',
+  complaintsEmail: '',
+  advertisingEmail: '',
   regulatoryNotice: 'Independent local journalism produced in accordance with established UK journalistic standards.',
   weatherLocation: {
     name: 'Glasgow',

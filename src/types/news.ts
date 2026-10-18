@@ -64,6 +64,8 @@ export interface Article {
   comments: Comment[];
   tags: string[];
   isPartial?: boolean; // true when loaded from a list endpoint without the body
+  seoTitle?: string; // search-result title written by the newsroom (replaces the headline in <title>)
+  metaDescription?: string; // search-result description written by the newsroom
 }
 
 export interface WeatherData {

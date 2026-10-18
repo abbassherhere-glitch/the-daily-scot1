@@ -1,4 +1,5 @@
 import { Env, EventContext } from './types';
+import { isStagingHost } from './utils/seo';
 
 /**
  * Root middleware for every Pages Function route on the public site.
@@ -44,6 +45,13 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
   const secured = new Response(response.body, response);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     secured.headers.set(name, value);
+  }
+
+  // Keep out of Google: raw JSON from the API (crawlers may still fetch it so the app can draw its pages),
+  // and every copy of the site on Cloudflare's own *.pages.dev / *.workers.dev addresses.
+  const url = new URL(context.request.url);
+  if (url.pathname.startsWith('/api/') || isStagingHost(url.hostname)) {
+    secured.headers.set('X-Robots-Tag', 'noindex');
   }
   return secured;
 }

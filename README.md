@@ -115,6 +115,7 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
    - **Root directory**: `/` (leave blank)
 4. **Build variables** (Settings → Variables and Secrets, type *Plaintext*):
    - `VITE_TURNSTILE_SITE_KEY` – your Cloudflare Turnstile **site** key (enables spam protection on the newsletter form).
+   - `SITE_URL` – optional. The one address Google should list for the site (default `https://thedailyscot.co.uk`). Canonical links, sitemaps and the RSS feed all use it, so the `*.pages.dev` address never competes with your real domain.
 5. **Runtime secrets**:
    ```bash
    npx wrangler pages secret put TURNSTILE_SECRET --project-name daily-scot-public
@@ -249,6 +250,49 @@ Automated feeds and wire bots ingest drafts directly into the `needs_review` que
   - `hero_image` may be an `https://` URL or a base64 `data:image/...` URL (JPEG/PNG/WebP, max 5MB) – data URLs are stored in R2 automatically.
   - Duplicate headlines get a unique slug automatically.
   - Stories require editorial approval and legal check clearance before going live on the public site.
+
+---
+
+## Search Engines & Google (SEO)
+
+The public site is a React app, so most of it only exists once JavaScript runs. To make sure Google, Bing, Google News and social-media previews can read it, the Pages Functions in `functions/` hand each address its own search tags **and real content** before the app loads (React then replaces it, so readers see no difference):
+
+| Address | What search engines get |
+|---|---|
+| `/` | Title, description, canonical link, publisher + site structured data, latest 30 headlines as links |
+| `/news/<section>` | The section's own title/description (`src/config/seoText.ts`), canonical link, `CollectionPage` data, the section's latest 50 stories |
+| `/news/<story>` | The newsroom's **SEO title** and **meta description** (falling back to headline / standfirst), canonical link, `NewsArticle` + breadcrumb data, full story text, byline, hero image with alt text, "more from this section" links |
+| `/author/<slug>` | Name, bio, `ProfilePage` data, the author's stories with pagination links |
+| `/about`, `/privacy`, … | See "Company details" below |
+| anything else | A real **404** with `noindex` (previously the homepage was returned with a 200) |
+
+Other things that are handled for you:
+
+- **One address per page.** Canonical links use `SITE_URL`, not the address the visitor arrived on. `/news` redirects to `/`, `/news/<section>/<story>` and upper-case slugs 301 to the real address, and `/?utm_source=…` is the same page as `/`.
+- **Cloudflare's own addresses are kept out of Google.** Anything served on `*.pages.dev` / `*.workers.dev` is sent `noindex`. Raw API responses (`/api/*`) are `noindex` too, and `/search` is not indexed.
+- **Feeds.** `/sitemap.xml` (sections, authors, up to 5,000 stories with images and true last-modified dates), `/news-sitemap.xml` (stories from the last 48 hours, for Google News) and `/rss.xml` are all advertised in `robots.txt` / the page head.
+- **Pages never go stale.** Generated pages are not given the static file's ETag, so a crawler that re-checks a page always receives the current version.
+
+### Company details
+
+The footer's About, Contact, Advertise, Complaints, Privacy, Cookie and Terms text also has a page of its own (`/about`, `/contact`, `/advertise`, `/complaints`, `/privacy`, `/cookies`, `/terms`); a normal click on a footer link still opens the same pop-up. Google News and quality reviewers expect these pages.
+
+The details shown on them come from `src/config/site.ts`. Anything left empty (`''`) is simply not shown: the line or sentence that would use it is left out.
+
+- **Emails** (`contactEmail`, `newsdeskEmail`, `complaintsEmail`, `advertisingEmail`) are empty for now because no mailboxes exist yet. A page that depends on one stays out of Google, and out of the sitemap, until it is filled in: **Contact** (needs any of the two emails or the phone), **Advertise** (`advertisingEmail`), **Complaints** (`complaintsEmail`) and **Privacy** (`contactEmail`, so people can reach you about their data). They show "being set up" wording meanwhile. **About, Cookies and Terms** do not depend on an email and are indexable already.
+- To create the mailboxes for free: Cloudflare dashboard → your domain → **Email** → **Email Routing**, add each address and forward it to an inbox you already use, then put the address in `site.ts`.
+- `companyNumber` and `phone` are empty too. Fill them in when you have them; do not invent a registration number or phone number, as the site states them publicly.
+- Anything wrapped in `[square brackets]` is treated as an unfinished placeholder: while one remains, all seven pages are served `noindex`.
+
+### After deploying
+
+1. Open **Google Search Console** → add `https://thedailyscot.co.uk` as a property, then **Sitemaps** → submit `sitemap.xml` and `news-sitemap.xml`. Do the same in **Bing Webmaster Tools**.
+2. In Search Console, **URL Inspection** → test the live URL of the homepage and a story: "View crawled page" should show the headlines / story text.
+3. Add the site's official social profiles (Facebook, X, Instagram, LinkedIn…) to `SAME_AS` in `functions/utils/seo.ts` once the accounts exist; Google uses them to recognise the publisher.
+4. Test a story with Google's **Rich Results Test**.
+5. Optionally, in Cloudflare, redirect `daily-scot-public.pages.dev` to your domain and make sure `www.` redirects to the bare domain, so there is only ever one address.
+
+Section titles and descriptions live in `src/config/seoText.ts`; edit them there. Per-story titles and descriptions come from the SEO fields in the newsroom editor.
 
 ---
 
