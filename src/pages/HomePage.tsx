@@ -25,9 +25,9 @@ const SectionHeading: React.FC<{
   srLabel?: string;
   onNavigate?: () => void;
 }> = ({ title, accent, href, linkLabel = 'See all', srLabel, onNavigate }) => (
-  <div className="flex items-center justify-between gap-4 mb-5 sm:mb-6">
+  <div className="flex items-center justify-between gap-4 mb-5 sm:mb-6 border-t border-line pt-4">
     <div className="flex items-center gap-3 min-w-0">
-      <span className={`w-1.5 h-7 rounded-full shrink-0 ${accent}`} aria-hidden="true" />
+      <span className={`w-1.5 h-6 rounded-full shrink-0 ${accent}`} aria-hidden="true" />
       <h2 className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink truncate">{title}</h2>
     </div>
     {href && onNavigate && (
@@ -76,8 +76,8 @@ const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a
   };
 
   return (
-    <section aria-label="Story lists" className="rounded-2xl border border-line bg-surface shadow-card overflow-hidden">
-      <div role="tablist" aria-label="Story lists" className="flex gap-1 p-1.5 m-3 mb-0 rounded-xl bg-surface-2">
+    <section aria-label="Story lists">
+      <div role="tablist" aria-label="Story lists" className="flex border-b border-line">
         {TABS.map((tab, i) => {
           const selected = tab.id === active;
           const Icon = tab.icon;
@@ -95,8 +95,8 @@ const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a
               tabIndex={selected ? 0 : -1}
               onClick={() => setActive(tab.id)}
               onKeyDown={(e) => onKeyDown(e, i)}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-accent ${
-                selected ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 -mb-px border-b-2 px-2 py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-accent ${
+                selected ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink'
               }`}
             >
               <Icon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -113,7 +113,7 @@ const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a
           id={`${baseId}-panel-${tab.id}`}
           aria-labelledby={`${baseId}-tab-${tab.id}`}
           hidden={tab.id !== active}
-          className="px-4 sm:px-5 pb-2"
+          className="pt-1"
         >
           {lists[tab.id].length ? (
             <ol className="divide-y divide-line">
@@ -220,14 +220,20 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 1. HERO BENTO — lead story + two stacked secondary stories */}
       {lead && (
-        <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
+        <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
           <div className="lg:col-span-8">
-            <ArticleCard article={lead} variant="lead" className="lg:h-full lg:aspect-auto lg:min-h-[540px]" onSelect={onSelectArticle} />
+            <ArticleCard article={lead} variant="lead" onSelect={onSelectArticle} />
           </div>
           {secondary.length > 0 && (
-            <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 lg:grid-rows-2 gap-4 lg:gap-5">
-              {secondary.map((art) => (
-                <ArticleCard key={art.id} article={art} variant="overlay" className="lg:h-full lg:aspect-auto" onSelect={onSelectArticle} />
+            <div className="lg:col-span-4 lg:border-l lg:border-line lg:pl-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-8 lg:gap-6 content-start">
+              {secondary.map((art, i) => (
+                <ArticleCard
+                  key={art.id}
+                  article={art}
+                  variant="overlay"
+                  className={i > 0 ? 'lg:border-t lg:border-line lg:pt-6' : ''}
+                  onSelect={onSelectArticle}
+                />
               ))}
             </div>
           )}
@@ -237,20 +243,20 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 2. FEED + TABBED LISTS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
         <section className="lg:col-span-8" aria-labelledby="home-latest-heading">
-          <div className="flex items-center gap-3 mb-5 sm:mb-6">
-            <span className="w-1.5 h-7 rounded-full bg-[#D92525] shrink-0" aria-hidden="true" />
+          <div className="flex items-center gap-3 mb-5 sm:mb-6 border-t border-line pt-4">
+            <span className="w-1.5 h-6 rounded-full bg-[#D92525] shrink-0" aria-hidden="true" />
             <h2 id="home-latest-heading" className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink">
               Today&rsquo;s stories
             </h2>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
             {feed.map((art) => (
               <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
             ))}
           </div>
         </section>
 
-        <aside className="lg:col-span-4 space-y-6" aria-label="More stories">
+        <aside className="lg:col-span-4 space-y-8 lg:border-l lg:border-line lg:pl-8" aria-label="More stories">
           <StoryTabs
             lists={{ latest: layout.latest, trending: layout.trending, 'most-read': layout.mostRead }}
             onSelectArticle={onSelectArticle}
@@ -276,7 +282,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             srLabel="Glasgow news"
             onNavigate={() => onSelectCategory('glasgow')}
           />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
             {glasgow.map((art) => (
               <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
             ))}
@@ -294,12 +300,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             linkLabel="All sport"
             onNavigate={() => onSelectCategory('sport')}
           />
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
             <div className={sportRest.length ? 'lg:col-span-7' : 'lg:col-span-12'}>
-              <ArticleCard article={sportLead} variant="overlay" className="lg:h-full lg:aspect-auto lg:min-h-[420px]" onSelect={onSelectArticle} />
+              <ArticleCard article={sportLead} variant="lead" onSelect={onSelectArticle} />
             </div>
             {sportRest.length > 0 && (
-              <div className="lg:col-span-5 rounded-2xl border border-line bg-surface shadow-card px-4 sm:px-5 py-1">
+              <div className="lg:col-span-5 lg:border-l lg:border-line lg:pl-6">
                 <ul className="divide-y divide-line">
                   {sportRest.map((art) => (
                     <li key={art.id}>
@@ -324,7 +330,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               linkLabel="More property"
               onNavigate={() => onSelectCategory('property')}
             />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
               {property.map((art) => (
                 <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
               ))}

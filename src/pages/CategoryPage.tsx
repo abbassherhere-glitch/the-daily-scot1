@@ -70,8 +70,8 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
       </div>
 
       {/* Main Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <div className="lg:col-span-8 space-y-8">
           {leadStory && (
             <ArticleCard
               article={leadStory}
@@ -80,7 +80,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             />
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10 border-t border-line pt-8">
             {remainingStories.map((art) => (
               <ArticleCard
                 key={art.id}
@@ -92,7 +92,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           </div>
         </div>
 
-        <aside className="lg:col-span-4 space-y-6">
+        <aside className="lg:col-span-4 space-y-6 lg:border-l lg:border-line lg:pl-8">
           <AdBanner type="mpu" />
 
         </aside>
