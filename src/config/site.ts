@@ -9,7 +9,7 @@ export const SITE_CONFIG = {
   name: 'The Daily Scot',
   tagline: "Glasgow & Scotland's Local News",
   siteUrl: 'thedailyscot.co.uk',
-  companyName: '[Company name]',
+  companyName: 'The Daily Scot',
   companyNumber: '[Company number]',
   contactEmail: '[Contact email]',
   newsdeskEmail: '[Newsdesk email]',
