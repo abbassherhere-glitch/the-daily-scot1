@@ -17,8 +17,8 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
       <div className="space-y-1.5">
         <p><strong>Editorial Newsdesk:</strong> {SITE_CONFIG.newsdeskEmail}</p>
         <p><strong>General Enquiries:</strong> {SITE_CONFIG.contactEmail}</p>
-        <p><strong>Telephone:</strong> {SITE_CONFIG.phone}</p>
-        <p><strong>Company Registration:</strong> {SITE_CONFIG.companyNumber}</p>
+        {SITE_CONFIG.phone && <p><strong>Telephone:</strong> {SITE_CONFIG.phone}</p>}
+        {SITE_CONFIG.companyNumber && <p><strong>Company Registration:</strong> {SITE_CONFIG.companyNumber}</p>}
       </div>
     )}
     {id === 'advertise' && (
@@ -84,7 +84,7 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
     {id === 'terms' && (
       <div className="space-y-2">
         <p>
-          These terms apply to your use of {SITE_CONFIG.siteUrl}, published by {SITE_CONFIG.companyName}, registered in Scotland ({SITE_CONFIG.companyNumber}). By using the site you accept them.
+          These terms apply to your use of {SITE_CONFIG.siteUrl}, published by {SITE_CONFIG.companyName}{SITE_CONFIG.companyNumber ? `, registered in Scotland (${SITE_CONFIG.companyNumber})` : ''}. By using the site you accept them.
         </p>
         <h3 className="font-bold text-neutral-900">Our content</h3>
         <p>

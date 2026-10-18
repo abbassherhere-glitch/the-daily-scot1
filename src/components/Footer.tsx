@@ -75,7 +75,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
             {SITE_CONFIG.name} is an independent Scottish regional news publication. We abide by established professional journalistic standards and the Editor's Code of Practice.
           </p>
           <p>
-            © {new Date().getFullYear()} {SITE_CONFIG.companyName}. Registered in Scotland ({SITE_CONFIG.companyNumber}). All rights reserved.
+            © {new Date().getFullYear()} {SITE_CONFIG.companyName}.{SITE_CONFIG.companyNumber ? ` Registered in Scotland (${SITE_CONFIG.companyNumber}).` : ''} All rights reserved.
           </p>
         </div>
       </div>

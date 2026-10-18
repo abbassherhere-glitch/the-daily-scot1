@@ -273,11 +273,15 @@ Other things that are handled for you:
 - **Feeds.** `/sitemap.xml` (sections, authors, up to 5,000 stories with images and true last-modified dates), `/news-sitemap.xml` (stories from the last 48 hours, for Google News) and `/rss.xml` are all advertised in `robots.txt` / the page head.
 - **Pages never go stale.** Generated pages are not given the static file's ETag, so a crawler that re-checks a page always receives the current version.
 
-### Company details (action needed)
+### Company details
 
-The footer's About, Contact, Advertise, Complaints, Privacy, Cookie and Terms text now also has a page of its own (`/about`, `/contact`, `/advertise`, `/complaints`, `/privacy`, `/cookies`, `/terms`); a normal click on a footer link still opens the same pop-up. Google News and quality reviewers expect these pages.
+The footer's About, Contact, Advertise, Complaints, Privacy, Cookie and Terms text also has a page of its own (`/about`, `/contact`, `/advertise`, `/complaints`, `/privacy`, `/cookies`, `/terms`); a normal click on a footer link still opens the same pop-up. Google News and quality reviewers expect these pages.
 
-`src/config/site.ts` still contains placeholders such as `[Company name]`. **Until every one is replaced with the real detail, those seven pages are served `noindex` and left out of the sitemap** so Google never shows placeholder text. Once the details are real they switch on by themselves (no other change needed). The footer also shows the company name and number on every page, so fill them in before expecting a strong ranking.
+The details shown on them come from `src/config/site.ts`:
+
+- The four email addresses are role mailboxes on `thedailyscot.co.uk` (`contact@`, `newsdesk@`, `complaints@`, `advertising@`). **Make sure each one exists** (for example with Cloudflare Email Routing), or change them to real addresses.
+- `companyNumber` and `phone` are empty for now. While they are empty the lines that would show them ("Registered in Scotland (…)", "Telephone", "Company Registration") are simply left out. Fill them in when you have them; do not invent a registration number or phone number, as the site states them publicly.
+- Anything wrapped in `[square brackets]` is treated as an unfinished placeholder: while any detail is still like that, the seven pages are served `noindex` and left out of the sitemap, so Google never shows placeholder text.
 
 ### After deploying
 
