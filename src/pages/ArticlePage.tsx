@@ -243,6 +243,8 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
               <img
                 src={article.heroImage}
                 alt={article.heroCaption ? '' : article.title}
+                fetchPriority="high"
+                decoding="async"
                 className="w-full h-full object-cover"
               />
             </div>
