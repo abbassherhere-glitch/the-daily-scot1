@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-/** Light / dark colour theme. The first paint is handled by the inline script in index.html. */
+/** Light / dark colour theme. Day (light) is the default; the first paint is handled by the inline script in index.html. */
 export type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'ds-theme';
@@ -15,7 +15,8 @@ function applyTheme(theme: Theme): void {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme]);
 }
 
-function savedTheme(): Theme | null {
+/** The reader's saved choice, if any. */
+export function savedTheme(): Theme | null {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
     return value === 'dark' || value === 'light' ? value : null;
@@ -27,18 +28,9 @@ function savedTheme(): Theme | null {
 export function useTheme(): { theme: Theme; toggleTheme: () => void } {
   const [theme, setTheme] = useState<Theme>(() => (typeof document === 'undefined' ? 'light' : currentTheme()));
 
-  // Follow the device setting until the reader picks a theme themselves.
+  // Day mode is the default; dark mode only when the reader has chosen it (see index.html).
   useEffect(() => {
     applyTheme(theme);
-    const media = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (e: MediaQueryListEvent) => {
-      if (savedTheme()) return;
-      const next: Theme = e.matches ? 'dark' : 'light';
-      applyTheme(next);
-      setTheme(next);
-    };
-    media.addEventListener('change', onChange);
-    return () => media.removeEventListener('change', onChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
