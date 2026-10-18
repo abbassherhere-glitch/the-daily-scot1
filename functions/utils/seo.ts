@@ -249,13 +249,13 @@ const SSR_CSS = [
   '.ssr{max-width:80rem;margin:0 auto;padding:1rem;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#171717;line-height:1.5}',
   '.ssr a{color:inherit}',
   '.ssr header>p{margin:0}',
-  '.ssr header>p a{font-family:"Roboto Condensed",Impact,sans-serif;font-weight:900;font-size:1.9rem;text-transform:uppercase;color:#0B2545;text-decoration:none}',
+  '.ssr header>p a{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-.02em;text-transform:uppercase;color:#0B2545;text-decoration:none}',
   '.ssr header nav{background:#0B2545;margin:.75rem -1rem;padding:.65rem 1rem}',
   '.ssr nav ul,.ssr nav ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.3rem 1.1rem}',
   '.ssr header nav a{color:#fff;font-weight:700;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;text-decoration:none}',
   '.ssr main nav a{color:#005EB8}',
   '.ssr main nav{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:0 0 .75rem}',
-  '.ssr h1{font-family:"Roboto Condensed",Impact,sans-serif;font-weight:900;font-size:2rem;line-height:1.15;margin:.5rem 0}',
+  '.ssr h1{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.5rem 0}',
   '.ssr h2,.ssr h3{font-size:1.1rem;font-weight:800;line-height:1.25;margin:0}',
   '.ssr h2 a,.ssr h3 a{text-decoration:none}',
   '.ssr main ul{list-style:none;margin:0;padding:0}',
@@ -267,6 +267,11 @@ const SSR_CSS = [
   '.ssr figure img{display:block;width:100%;max-width:48rem;height:auto;aspect-ratio:16/10;object-fit:cover}',
   '.ssr figcaption{font-size:.75rem;color:#525252;margin-top:.25rem}',
   '.ssr aside{margin-top:2rem}',
+  '.dark .ssr{color:#f1f5f9}',
+  '.dark .ssr header>p a{color:#f1f5f9}',
+  '.dark .ssr main li{border-color:rgba(255,255,255,.08)}',
+  '.dark .ssr time,.dark .ssr figcaption{color:#94a3b8}',
+  '.dark .ssr main nav a{color:#4d9fff}',
 ].join('');
 
 /** Wrap a page's server-rendered content in the site header (name + section links). */
