@@ -95,9 +95,11 @@ Both the public reader site and newsroom CMS run within Cloudflare's generous fr
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0002_production_setup.sql
    npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0003_bylines.sql
+   npx wrangler d1 execute daily-scot-db --remote --file=./migrations/0004_clean_tags.sql
    ```
    `0002` adds the section categories, the wire-ingest Bot user, newsletter unsubscribe tokens and revision proposals.
    `0003` adds story bylines (the public credit line and `/author/<name>` pages). Run it once; a second run stops with a harmless "duplicate column" error.
+   `0004` repairs article tags that older versions of the newsroom editor had nested into garbled text (e.g. `["[\"Glasgow\"",…`). It is safe to run more than once.
 
    > `seed.demo.sql` contains **fictional demo stories for local testing only**. Never run it with `--remote`.
 
@@ -334,6 +336,6 @@ Before launching to live production, complete this essential security checklist 
    - Restrict API tokens to minimal required scopes (e.g. D1 edit, Pages edit).
 5. **Database Production Hygiene**:
    - **NEVER run `seed.demo.sql` on production!** That file is strictly for local sandbox fixtures.
-   - Apply only the files in `migrations/` (0001, 0002, then 0003) to your production D1 instance.
+   - Apply only the files in `migrations/` (0001, 0002, 0003, then 0004) to your production D1 instance.
    - Store all credentials (`BOT_CLIENT_ID`, `TURNSTILE_SECRET`, `RESEND_API_KEY`) via `wrangler pages secret put` — never commit secrets to source control or plaintext `[vars]`.
 

@@ -10,6 +10,7 @@ import {
   restrictStatusForRole,
 } from '../../../utils/articleRules';
 import { resolveByline } from '../../../utils/byline';
+import { serialiseTags } from '../../../../../shared/tags';
 
 export async function onRequestGet(
   context: EventContext<Env, any, { user: User }>
@@ -96,9 +97,7 @@ export async function onRequestPost(
     const photoCredit = sanitizePlainText(body.photo_credit || '', 100);
     const photoSource = sanitizePlainText(body.photo_source || '', 100);
     const customSlug = body.slug ? generateSlug(body.slug) : generateSlug(title);
-    const tags = Array.isArray(body.tags)
-      ? JSON.stringify(body.tags.map((t: unknown) => sanitizePlainText(String(t), 40)).filter(Boolean).slice(0, 20))
-      : sanitizePlainText(body.tags || '', 300);
+    const tags = serialiseTags(body.tags);
     const seoTitle = sanitizePlainText(body.seo_title || `${title} | The Daily Scot`, 150);
     const metaDescription = sanitizePlainText(body.meta_description || standfirst, 250);
 
