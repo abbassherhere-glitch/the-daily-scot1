@@ -26,13 +26,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=Plus+Jakarta+Sans:wght@500..800&display=swap" rel="stylesheet">
-    <!-- Apply the saved (or system) colour theme before the first paint, so dark mode never flashes white. -->
+    <!-- Day mode is the default. Readers who switch to dark mode get it again on their next visit, applied
+         before the first paint so the page never flashes white. -->
     <script>
       try {
-        var t = localStorage.getItem('ds-theme');
-        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-          document.documentElement.classList.add('dark');
-        }
+        if (localStorage.getItem('ds-theme') === 'dark') document.documentElement.classList.add('dark');
       } catch (e) {}
     </script>
   </head>
