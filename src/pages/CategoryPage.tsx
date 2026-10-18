@@ -36,9 +36,9 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const remainingStories = filteredArticles.slice(1);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-4 space-y-6 bg-white">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
       {/* Breadcrumb */}
-      <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
+      <nav aria-label="Breadcrumb">
         <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
           <li>
             <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
@@ -55,17 +55,19 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
       </nav>
 
       {/* Category Section Header (Flat brand bar) */}
-      <div className="border-b-4 border-[#0B2545] pb-3">
-        <h1 className="font-headline font-black text-3xl sm:text-4xl text-neutral-900 uppercase tracking-tight">
+      <div className="border-b border-line pb-5">
+        <h1 className="font-display font-extrabold text-3xl sm:text-[40px] text-ink tracking-tight">
           {categoryMeta.label}
         </h1>
-        <p className="text-xs sm:text-sm text-neutral-600 font-serif mt-1">
+        <p className="text-sm sm:text-base text-ink-muted mt-2">
           {categoryMeta.description}
         </p>
       </div>
 
       {/* Leaderboard slot */}
-      <AdBanner type="leaderboard" className="my-2" />
+      <div>
+        <AdBanner type="leaderboard" className="my-0!" />
+      </div>
 
       {/* Main Content Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -78,7 +80,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             />
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {remainingStories.map((art) => (
               <ArticleCard
                 key={art.id}
