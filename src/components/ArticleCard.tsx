@@ -21,20 +21,6 @@ const PLACEHOLDER = '/placeholder-hero.svg';
 const STRETCHED_LINK =
   "after:absolute after:inset-0 after:z-[1] after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8] focus-visible:after:outline-offset-2 focus-visible:after:rounded-[inherit]";
 
-/** Badge colours per section (full class strings so Tailwind keeps them). */
-const BADGE: Record<string, string> = {
-  news: 'bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300',
-  glasgow: 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
-  scotland: 'bg-indigo-50 text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300',
-  politics: 'bg-violet-50 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
-  business: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  property: 'bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300',
-  sport: 'bg-teal-50 text-teal-700 dark:bg-teal-500/15 dark:text-teal-300',
-  'whats-on': 'bg-pink-50 text-pink-700 dark:bg-pink-500/15 dark:text-pink-300',
-  opinion: 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300',
-};
-const BADGE_DEFAULT = 'bg-slate-100 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300';
-
 /** Section label for display, e.g. "whats-on" -> "What's On". */
 function sectionName(article: Article): string {
   if (article.subcategory) return article.subcategory;
@@ -85,7 +71,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 }) => {
   const timeStr = timeAgo(article.publishedAt);
   const label = sectionName(article);
-  const badgeClass = BADGE[article.category] || BADGE_DEFAULT;
 
   // Byline link to the author page. It sits above the card's stretched headline link (relative z-10)
   // so it can be clicked on its own. (Lightweight stubs may have no author: credit the newsdesk.)
@@ -109,55 +94,47 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
 
   const time = timeStr ? <time dateTime={article.publishedAt}>{timeStr}</time> : null;
 
-  // 1. LEAD — full-bleed image, dark gradient, big headline (homepage hero, section and author leads)
+  // 1. LEAD / FEATURE — open layout: picture, then headline and text straight on the page (no box)
   if (variant === 'lead' || variant === 'overlay') {
     const isLead = variant === 'lead';
     return (
-      <article
-        // No h-full here: a card that fills its parent's height stretched to thousands of pixels inside
-        // section-page columns. Pages that want it to fill a grid cell (the homepage hero) pass h-full.
-        className={`group relative isolate flex overflow-hidden rounded-2xl bg-neutral-900 shadow-card ${
-          // Shape comes from aspect-ratio alone. (A min-height here would be converted into a min-width by the
-          // browser and push the card wider than its column.) Long headlines still grow the card.
-          isLead ? 'aspect-[4/5] sm:aspect-[16/9]' : 'aspect-[4/3] sm:aspect-[16/10]'
-        } ${className}`}
-      >
-        <div className="absolute inset-0 -z-10">
-          <CardImage src={article.heroImage} eager={isLead} className="group-hover:scale-[1.04]" />
-        </div>
-        <div
-          className="absolute inset-0 -z-10 bg-gradient-to-t from-black/90 via-black/45 to-black/5"
-          aria-hidden="true"
-        />
-
-        <div className={`mt-auto w-full text-white ${isLead ? 'p-5 sm:p-8 lg:p-10' : 'p-5'}`}>
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {article.isBreaking && <BreakingBadge />}
-            <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur-md ring-1 ring-white/20 text-white text-[11px] font-semibold uppercase tracking-wider px-2.5 py-1">
-              {label}
+      <article className={`group relative ${className}`}>
+        <div className={`relative overflow-hidden bg-surface-2 ${isLead ? 'aspect-[16/9]' : 'aspect-[16/10]'}`}>
+          <CardImage src={article.heroImage} eager={isLead} className="group-hover:scale-[1.03]" />
+          {article.isBreaking && (
+            <span className="absolute top-3 left-3">
+              <BreakingBadge />
             </span>
-          </div>
+          )}
+        </div>
+
+        <div className={isLead ? 'pt-4 sm:pt-5' : 'pt-3'}>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-accent">{label}</p>
 
           {isLead ? (
-            <h2 className="font-display font-extrabold text-[26px] leading-[1.15] sm:text-4xl lg:text-[44px] lg:leading-[1.08] tracking-tight max-w-3xl text-balance group-hover:underline decoration-2 underline-offset-[6px]">
+            <h2 className="font-display font-extrabold text-[26px] leading-[1.15] sm:text-[34px] lg:text-[40px] lg:leading-[1.1] tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-[6px]">
               {headlineLink}
             </h2>
           ) : (
-            <h3 className="font-display font-bold text-lg sm:text-xl leading-snug tracking-tight line-clamp-3 text-balance group-hover:underline decoration-2 underline-offset-4">
+            <h3 className="font-display font-bold text-lg sm:text-xl leading-snug tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-4">
               {headlineLink}
             </h3>
           )}
 
-          {isLead && article.standfirst && (
-            <p className="mt-3 max-w-2xl text-sm sm:text-base leading-relaxed text-white/80 line-clamp-2 sm:line-clamp-3">
+          {article.standfirst && (
+            <p
+              className={`mt-2 leading-relaxed text-ink-soft ${
+                isLead ? 'text-base sm:text-lg line-clamp-3 max-w-3xl' : 'text-sm line-clamp-2'
+              }`}
+            >
               {article.standfirst}
             </p>
           )}
 
-          <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-white/75 ${isLead ? 'mt-5 text-[13px]' : 'mt-3 text-xs'}`}>
+          <div className={`flex flex-wrap items-center gap-x-2 gap-y-1 text-ink-muted ${isLead ? 'mt-3 text-[13px]' : 'mt-2 text-xs'}`}>
             {isLead && (
               <>
-                {bylineLink('font-semibold text-white')}
+                {bylineLink('font-semibold text-ink-soft hover:text-accent')}
                 <span aria-hidden="true">·</span>
               </>
             )}
@@ -219,13 +196,11 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     );
   }
 
-  // 4. GRID CARD — image on top, badge, headline, byline and read time
+  // 4. GRID CARD — open layout: picture, then section, headline, byline and read time on the page (no box)
   return (
-    <article
-      className={`group relative flex flex-col overflow-hidden rounded-xl bg-surface border border-line shadow-card hover:shadow-card-hover hover:-translate-y-0.5 motion-reduce:hover:translate-y-0 transition duration-300 ${className}`}
-    >
+    <article className={`group relative flex flex-col ${className}`}>
       <div className="relative aspect-[16/10] overflow-hidden bg-surface-2">
-        <CardImage src={article.heroImage} className="group-hover:scale-105" />
+        <CardImage src={article.heroImage} className="group-hover:scale-[1.04]" />
         {article.isBreaking && (
           <span className="absolute top-3 left-3">
             <BreakingBadge />
@@ -233,19 +208,17 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
         )}
       </div>
 
-      <div className="flex flex-col flex-1 p-4 sm:p-5">
-        <div className="flex items-center justify-between gap-2 mb-2.5">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${badgeClass}`}>
-            {label}
-          </span>
-          {time && <span className="text-xs text-ink-muted shrink-0">{time}</span>}
+      <div className="flex flex-col flex-1 pt-3">
+        <div className="flex items-center justify-between gap-2 mb-1.5 text-xs">
+          <span className="font-bold uppercase tracking-wider text-accent">{label}</span>
+          {time && <span className="text-ink-muted shrink-0">{time}</span>}
         </div>
 
-        <h3 className="font-display font-bold text-[17px] leading-snug tracking-tight text-ink group-hover:text-accent transition-colors line-clamp-3">
+        <h3 className="font-display font-bold text-[18px] leading-snug tracking-tight text-ink group-hover:underline decoration-2 underline-offset-4 line-clamp-3">
           {headlineLink}
         </h3>
 
-        <div className="mt-auto pt-4 flex items-center justify-between gap-3 text-xs text-ink-muted">
+        <div className="mt-auto pt-2.5 flex items-center justify-between gap-3 text-xs text-ink-muted">
           <span className="truncate min-w-0">{bylineLink('font-medium text-ink-soft hover:text-accent')}</span>
           {article.readTime && <span className="shrink-0">{article.readTime}</span>}
         </div>
