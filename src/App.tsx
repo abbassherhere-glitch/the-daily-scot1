@@ -317,7 +317,7 @@ export default function App() {
   const savedArticlesList = articles.filter((a) => savedIds.includes(a.id));
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 flex flex-col font-sans selection:bg-[#005EB8] selection:text-white">
+    <div className="min-h-screen bg-page text-ink flex flex-col font-sans selection:bg-[#005EB8] selection:text-white">
       {/* Newspaper Header */}
       {/* Skip link: first thing keyboard users reach on every page */}
       <a

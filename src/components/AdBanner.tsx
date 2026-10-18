@@ -13,10 +13,21 @@ const AD_GRADIENT = 'linear-gradient(90deg, #7EC8E3 0%, #5DD3A6 50%, #E2C15A 100
 
 const Label: React.FC<{ small?: boolean }> = ({ small }) => (
   <div
-    className={`${small ? 'text-[9px] mb-0.5' : 'text-[10px] mb-1'} uppercase font-semibold tracking-wider text-neutral-600`}
+    className={`${small ? 'text-[10px] mb-1.5' : 'text-[11px] mb-2.5'} flex items-center justify-between uppercase font-semibold tracking-wider text-ink-muted`}
   >
-    Advertisement
+    <span>Advertisement</span>
+    <span className="normal-case tracking-normal font-medium opacity-80">Sponsored</span>
   </div>
+);
+
+/** Ad slots sit in the same rounded card as the rest of the page, so they never look bolted on. */
+const AdCard: React.FC<{ className: string; children: React.ReactNode }> = ({ className, children }) => (
+  <aside
+    aria-label="Advertisement"
+    className={`w-full rounded-2xl border border-line bg-surface shadow-card p-3 sm:p-4 no-print ${className}`}
+  >
+    {children}
+  </aside>
 );
 
 const Mark: React.FC<{ size: number }> = ({ size }) => (
@@ -50,11 +61,11 @@ const linkProps = {
 export const AdBanner: React.FC<AdBannerProps> = ({ type, className = '' }) => {
   if (type === 'mpu') {
     return (
-      <div className={`w-full max-w-[300px] mx-auto my-4 text-center no-print ${className}`}>
+      <AdCard className={`max-w-[340px] mx-auto my-4 ${className}`}>
         <Label />
         <a
           {...linkProps}
-          className="group block w-full max-w-[300px] h-[250px] mx-auto text-left p-5 flex flex-col justify-between border border-neutral-800 hover:border-neutral-600 transition"
+          className="group block w-full max-w-[300px] h-[250px] mx-auto text-left p-5 flex flex-col justify-between rounded-xl overflow-hidden ring-1 ring-black/5 hover:brightness-110 transition"
           style={{ background: AD_BG }}
         >
           <Wordmark />
@@ -69,41 +80,42 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, className = '' }) => {
               ))}
             </ul>
             <span
-              className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-sm group-hover:brightness-110"
+              className="shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full group-hover:brightness-110"
               style={{ background: AD_ACCENT, color: AD_BG }}
             >
               {HOUSE_AD.cta} →
             </span>
           </div>
         </a>
-      </div>
+      </AdCard>
     );
   }
 
   if (type === 'mobile') {
     return (
-      <div className={`w-full max-w-[320px] mx-auto my-3 text-center no-print ${className}`}>
+      <AdCard className={`max-w-[352px] mx-auto my-3 p-2.5! ${className}`}>
         <Label small />
         <a
           {...linkProps}
-          className="flex w-full max-w-[320px] h-[50px] mx-auto items-center justify-between gap-2 px-3 border border-neutral-800"
+          className="flex w-full max-w-[320px] h-[50px] mx-auto items-center justify-between gap-2 px-3 rounded-lg overflow-hidden"
           style={{ background: AD_BG }}
         >
           <Wordmark size="sm" />
           <span className="text-[11px] text-neutral-200 truncate">{HOUSE_AD.shortLine}</span>
           <span className="text-[13px] font-bold" style={{ color: AD_ACCENT }} aria-hidden="true">→</span>
         </a>
-      </div>
+      </AdCard>
     );
   }
 
   // Standard 728x90 Leaderboard (responsive on smaller screens)
   return (
-    <div className={`w-full max-w-[728px] mx-auto my-4 text-center no-print ${className}`}>
+    <AdCard className={`my-4 ${className}`}>
+      <div className="max-w-[728px] mx-auto">
       <Label />
       <a
         {...linkProps}
-        className="group relative flex w-full min-h-[90px] items-center justify-between gap-4 px-4 sm:px-6 py-3 text-left border border-neutral-800 hover:border-neutral-600 transition overflow-hidden"
+        className="group relative flex w-full min-h-[90px] items-center justify-between gap-4 px-4 sm:px-6 py-3 text-left rounded-xl overflow-hidden hover:brightness-110 transition"
         style={{ background: AD_BG }}
       >
         <span className="absolute left-0 top-0 h-[3px] w-full" style={{ background: AD_GRADIENT }} aria-hidden="true" />
@@ -112,12 +124,13 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, className = '' }) => {
           <span className="text-white font-semibold text-[13px] sm:text-[15px] leading-snug">{HOUSE_AD.headline}</span>
         </span>
         <span
-          className="shrink-0 text-[11px] sm:text-xs font-bold px-3 py-2 rounded-sm group-hover:brightness-110"
+          className="shrink-0 text-[11px] sm:text-xs font-bold px-3.5 py-2 rounded-full group-hover:brightness-110"
           style={{ background: AD_ACCENT, color: AD_BG }}
         >
           {HOUSE_AD.cta} →
         </span>
       </a>
-    </div>
+      </div>
+    </AdCard>
   );
 };

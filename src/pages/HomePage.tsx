@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
-import { ChevronRight } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { ArrowRight, Clock, Flame, TrendingUp } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
-import { SpaLink, articleHref, categoryHref } from '../components/SpaLink';
+import { NewsletterBox } from '../components/NewsletterBox';
+import { SpaLink, categoryHref } from '../components/SpaLink';
 
 interface HomePageProps {
   articles: Article[];
@@ -11,6 +12,142 @@ interface HomePageProps {
   onSelectArticle: (article: Article) => void;
   onSelectCategory: (cat: CategoryType) => void;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Small building blocks
+// ---------------------------------------------------------------------------------------------
+
+const SectionHeading: React.FC<{
+  title: string;
+  accent: string;
+  href?: string;
+  linkLabel?: string;
+  srLabel?: string;
+  onNavigate?: () => void;
+}> = ({ title, accent, href, linkLabel = 'See all', srLabel, onNavigate }) => (
+  <div className="flex items-center justify-between gap-4 mb-5 sm:mb-6 border-t border-line pt-4">
+    <div className="flex items-center gap-3 min-w-0">
+      <span className={`w-1.5 h-6 rounded-full shrink-0 ${accent}`} aria-hidden="true" />
+      <h2 className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink truncate">{title}</h2>
+    </div>
+    {href && onNavigate && (
+      <SpaLink
+        href={href}
+        onNavigate={onNavigate}
+        className="group/link shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10 transition"
+      >
+        <span>
+          {linkLabel}
+          {srLabel && <span className="sr-only"> {srLabel}</span>}
+        </span>
+        <ArrowRight className="w-4 h-4 transition-transform group-hover/link:translate-x-0.5" aria-hidden="true" />
+      </SpaLink>
+    )}
+  </div>
+);
+
+type TabId = 'latest' | 'trending' | 'most-read';
+
+const TABS: { id: TabId; label: string; icon: React.FC<{ className?: string }> }[] = [
+  { id: 'latest', label: 'Latest', icon: Clock },
+  { id: 'trending', label: 'Trending', icon: TrendingUp },
+  { id: 'most-read', label: 'Most Read', icon: Flame },
+];
+
+/** Latest / Trending / Most Read in one compact card (WAI-ARIA tabs: arrow keys move between tabs). */
+const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a: Article) => void }> = ({
+  lists,
+  onSelectArticle,
+}) => {
+  const [active, setActive] = useState<TabId>('latest');
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const baseId = 'home-stories';
+
+  const onKeyDown = (e: React.KeyboardEvent, index: number) => {
+    let next = index;
+    if (e.key === 'ArrowRight') next = (index + 1) % TABS.length;
+    else if (e.key === 'ArrowLeft') next = (index - 1 + TABS.length) % TABS.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = TABS.length - 1;
+    else return;
+    e.preventDefault();
+    setActive(TABS[next].id);
+    tabRefs.current[next]?.focus();
+  };
+
+  return (
+    <section aria-label="Story lists">
+      <div role="tablist" aria-label="Story lists" className="flex border-b border-line">
+        {TABS.map((tab, i) => {
+          const selected = tab.id === active;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              ref={(el) => {
+                tabRefs.current[i] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`${baseId}-tab-${tab.id}`}
+              aria-selected={selected}
+              aria-controls={`${baseId}-panel-${tab.id}`}
+              tabIndex={selected ? 0 : -1}
+              onClick={() => setActive(tab.id)}
+              onKeyDown={(e) => onKeyDown(e, i)}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 -mb-px border-b-2 px-2 py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-accent ${
+                selected ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink'
+              }`}
+            >
+              <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {TABS.map((tab) => (
+        <div
+          key={tab.id}
+          role="tabpanel"
+          id={`${baseId}-panel-${tab.id}`}
+          aria-labelledby={`${baseId}-tab-${tab.id}`}
+          hidden={tab.id !== active}
+          className="pt-1"
+        >
+          {lists[tab.id].length ? (
+            <ol className="divide-y divide-line">
+              {lists[tab.id].map((art, idx) => (
+                <li key={art.id}>
+                  <ArticleCard
+                    article={art}
+                    variant="thumb-left"
+                    rank={tab.id === 'latest' ? undefined : idx + 1}
+                    onSelect={onSelectArticle}
+                  />
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="py-6 text-sm text-ink-muted">No stories yet.</p>
+          )}
+        </div>
+      ))}
+    </section>
+  );
+};
+
+const byNewest = (a: Article, b: Article) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+
+/** Views per hour since publication, damped so a big old story doesn't sit at the top for days. */
+function trendingScore(a: Article): number {
+  const hours = Math.max(0, (Date.now() - new Date(a.publishedAt).getTime()) / 3_600_000);
+  return (a.views || 0) / Math.pow(hours + 2, 1.5);
+}
+
+// ---------------------------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------------------------
 
 export const HomePage: React.FC<HomePageProps> = ({
   articles,
@@ -30,231 +167,180 @@ export const HomePage: React.FC<HomePageProps> = ({
 
   const pool = filteredList.length >= 4 ? filteredList : articles;
 
-  // 1. Lead Story
-  const leadStory = pool.find((a) => a.isFeaturedLead) || pool[0];
+  const layout = useMemo(() => {
+    const used = new Set<string>();
+    const take = (list: Article[], n: number) => {
+      const out = list.filter((a) => !used.has(a.id)).slice(0, n);
+      out.forEach((a) => used.add(a.id));
+      return out;
+    };
 
-  // 2. Text-only column stories (4-5 stories)
-  const textColumnStories = pool.filter((a) => a.id !== leadStory?.id).slice(0, 5);
+    // 1. Hero: the lead plus two secondary top stories (flagged top stories first)
+    const lead = take(pool.filter((a) => a.isFeaturedLead).concat(pool), 1)[0];
+    const secondary = take(pool.filter((a) => a.isTopStory).concat(pool), 2);
 
-  // 3. Next 6 grid stories
-  const midGridStories = pool
-    .filter((a) => a.id !== leadStory?.id && !textColumnStories.some((t) => t.id === a.id))
-    .slice(0, 6);
+    // 2. Main feed
+    const feed = take(pool, 6);
 
-  // 4. Section specific slices
-  const glasgowSection = pool.filter((a) => a.category === 'glasgow' || a.category === 'news').slice(0, 4);
-  const sportSection = pool.filter((a) => a.category === 'sport').slice(0, 4);
-  const propertySection = pool.filter((a) => a.category === 'property' || a.category === 'business').slice(0, 4);
+    // 3. Section blocks: stories not shown above first, topped up with the section's other stories
+    //    so a block is never left half empty on a quiet news day.
+    const section = (cats: string[], n: number) => {
+      const inSection = pool.filter((a) => cats.includes(a.category));
+      const fresh = take(inSection, n);
+      const topUp = inSection.filter((a) => !fresh.includes(a)).slice(0, n - fresh.length);
+      return [...fresh, ...topUp];
+    };
+    const glasgow = section(['glasgow', 'news'], 4);
+    const sport = section(['sport'], 4);
+    const property = section(['property', 'business'], 4);
 
-  // 5. Most Read list (sorted by views or position)
-  const mostRead = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+    // 4. Tabbed lists draw from everything
+    const latest = [...pool].sort(byNewest).slice(0, 5);
+    const mostRead = [...articles].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5);
+    const trendingRaw = [...pool].filter((a) => (a.views || 0) > 0).sort((a, b) => trendingScore(b) - trendingScore(a));
+    const trending = (trendingRaw.length >= 3 ? trendingRaw : [...pool].sort(byNewest)).slice(0, 5);
+
+    return { lead, secondary, feed, glasgow, sport, property, latest, mostRead, trending };
+  }, [pool, articles]);
+
+  const { lead, secondary, feed, glasgow, sport, property } = layout;
+  const [sportLead, ...sportRest] = sport;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-3 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-8 pb-4 space-y-10 sm:space-y-14">
       <h1 className="sr-only">The Daily Scot – latest news from Glasgow and Scotland</h1>
-
-      {/* Top Leaderboard Slot */}
-      <AdBanner type="leaderboard" className="my-2" />
 
       {/* Area filter notice if active */}
       {selectedArea && selectedArea !== 'All' && (
-        <div className="bg-neutral-100 border-l-4 border-[#005EB8] px-3 py-1.5 text-xs font-bold text-neutral-800 flex items-center justify-between">
+        <div className="rounded-xl bg-accent/10 text-ink px-4 py-2.5 text-sm font-medium flex items-center justify-between">
           <span>Showing news for: {selectedArea}</span>
-          <span className="text-neutral-600 font-normal">{filteredList.length} stories</span>
+          <span className="text-ink-muted">{filteredList.length} stories</span>
         </div>
       )}
 
-      {/* SECTION 1: ABOVE THE FOLD DENSE HERO & TEXT COLUMN */}
-      <section className="border-b border-neutral-300 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Main Lead Story (8 cols) */}
+      {/* 1. HERO BENTO — lead story + two stacked secondary stories */}
+      {lead && (
+        <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
           <div className="lg:col-span-8">
-            {leadStory && (
-              <ArticleCard
-                article={leadStory}
-                variant="lead"
-                onSelect={onSelectArticle}
-              />
-            )}
+            <ArticleCard article={lead} variant="lead" onSelect={onSelectArticle} />
           </div>
-
-          {/* Column of 4-5 Text-Only Headlines (4 cols) */}
-          <div className="lg:col-span-4 bg-white border border-neutral-200 p-3.5 flex flex-col justify-between">
-            <div>
-              <div className="border-b-2 border-[#0B2545] pb-1.5 mb-2 flex items-center justify-between">
-                <h2 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900">
-                  Latest Headlines
-                </h2>
-                <span className="text-[10px] text-neutral-600 font-semibold uppercase">Updated live</span>
-              </div>
-
-              <div className="divide-y divide-neutral-200">
-                {textColumnStories.map((art) => (
-                  <ArticleCard
-                    key={art.id}
-                    article={art}
-                    variant="text-only"
-                    onSelect={onSelectArticle}
-                  />
-                ))}
-              </div>
+          {secondary.length > 0 && (
+            <div className="lg:col-span-4 lg:border-l lg:border-line lg:pl-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-8 lg:gap-6 content-start">
+              {secondary.map((art, i) => (
+                <ArticleCard
+                  key={art.id}
+                  article={art}
+                  variant="overlay"
+                  className={i > 0 ? 'lg:border-t lg:border-line lg:pt-6' : ''}
+                  onSelect={onSelectArticle}
+                />
+              ))}
             </div>
-          </div>
-        </div>
-      </section>
+          )}
+        </section>
+      )}
 
-      {/* SECTION 2: 3-COLUMN DESKTOP GRID (Rows of story blocks) */}
-      <section className="border-b border-neutral-300 pb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {midGridStories.map((art) => (
-            <ArticleCard
-              key={art.id}
-              article={art}
-              variant="grid-card"
-              onSelect={onSelectArticle}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* SECTION 3: GLASGOW NEWS SECTION BLOCK (Coloured top border) */}
-      <section className="border-t-4 border-[#0B2545] pt-3">
-        <div className="flex items-center justify-between mb-3 border-b border-neutral-200 pb-1.5">
-          <div className="flex items-center gap-2">
-            <h2 className="font-headline font-black text-xl sm:text-2xl text-neutral-900 uppercase tracking-tight">
-              Glasgow News
+      {/* 2. FEED + TABBED LISTS */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
+        <section className="lg:col-span-8" aria-labelledby="home-latest-heading">
+          <div className="flex items-center gap-3 mb-5 sm:mb-6 border-t border-line pt-4">
+            <span className="w-1.5 h-6 rounded-full bg-[#D92525] shrink-0" aria-hidden="true" />
+            <h2 id="home-latest-heading" className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink">
+              Today&rsquo;s stories
             </h2>
           </div>
-          <SpaLink
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
+            {feed.map((art) => (
+              <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
+            ))}
+          </div>
+        </section>
+
+        <aside className="lg:col-span-4 space-y-8 lg:border-l lg:border-line lg:pl-8" aria-label="More stories">
+          <StoryTabs
+            lists={{ latest: layout.latest, trending: layout.trending, 'most-read': layout.mostRead }}
+            onSelectArticle={onSelectArticle}
+          />
+          <div>
+            <AdBanner type="mpu" className="my-0!" />
+          </div>
+        </aside>
+      </div>
+
+      {/* 3. LEADERBOARD */}
+      <div>
+        <AdBanner type="leaderboard" className="my-0!" />
+      </div>
+
+      {/* 4. GLASGOW */}
+      {glasgow.length > 0 && (
+        <section>
+          <SectionHeading
+            title="Glasgow"
+            accent="bg-blue-600"
             href={categoryHref('glasgow')}
+            srLabel="Glasgow news"
             onNavigate={() => onSelectCategory('glasgow')}
-            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5 py-1"
-          >
-            <span>See more<span className="sr-only"> Glasgow news</span></span>
-            <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-          </SpaLink>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Main 3 columns of Glasgow stories */}
-          <div className="lg:col-span-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {glasgowSection.map((art) => (
-                <ArticleCard
-                  key={art.id}
-                  article={art}
-                  variant="thumb-left"
-                  onSelect={onSelectArticle}
-                />
-              ))}
-            </div>
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
+            {glasgow.map((art) => (
+              <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
+            ))}
           </div>
+        </section>
+      )}
 
-          {/* MPU Ad in Right Column */}
-          <div className="lg:col-span-4 flex items-center justify-center">
-            <AdBanner type="mpu" />
-          </div>
-        </div>
-      </section>
-
-      {/* Mid-Page Leaderboard */}
-      <AdBanner type="leaderboard" />
-
-      {/* SECTION 4: SCOTTISH SPORT SECTION BLOCK */}
-      <section className="border-t-4 border-[#005EB8] pt-3">
-        <div className="flex items-center justify-between mb-3 border-b border-neutral-200 pb-1.5">
-          <h2 className="font-headline font-black text-xl sm:text-2xl text-neutral-900 uppercase tracking-tight">
-            Scottish Sport
-          </h2>
-          <SpaLink
+      {/* 5. SPORT — feature + list bento */}
+      {sportLead && (
+        <section>
+          <SectionHeading
+            title="Scottish Sport"
+            accent="bg-teal-500"
             href={categoryHref('sport')}
+            linkLabel="All sport"
             onNavigate={() => onSelectCategory('sport')}
-            className="text-xs font-bold text-[#005EB8] hover:underline flex items-center gap-0.5 py-1"
-          >
-            <span>All Sport<span className="sr-only"> news</span></span>
-            <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-          </SpaLink>
-        </div>
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
+            <div className={sportRest.length ? 'lg:col-span-7' : 'lg:col-span-12'}>
+              <ArticleCard article={sportLead} variant="lead" onSelect={onSelectArticle} />
+            </div>
+            {sportRest.length > 0 && (
+              <div className="lg:col-span-5 lg:border-l lg:border-line lg:pl-6">
+                <ul className="divide-y divide-line">
+                  {sportRest.map((art) => (
+                    <li key={art.id}>
+                      <ArticleCard article={art} variant="thumb-left" onSelect={onSelectArticle} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {sportSection.map((art) => (
-            <ArticleCard
-              key={art.id}
-              article={art}
-              variant="grid-card"
-              onSelect={onSelectArticle}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* SECTION 5: PROPERTY & MOST READ DUAL BLOCK */}
-      <section className="border-t-4 border-neutral-800 pt-3 border-b border-neutral-300 pb-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Property Block (8 cols) */}
+      {/* 6. PROPERTY & BUSINESS + NEWSLETTER */}
+      {property.length > 0 && (
+        <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
           <div className="lg:col-span-8">
-            <div className="flex items-center justify-between mb-3 border-b border-neutral-200 pb-1.5">
-              <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight">
-                Property & Homes
-              </h2>
-              <SpaLink
-                href={categoryHref('property')}
-                onNavigate={() => onSelectCategory('property')}
-                className="text-xs font-bold text-[#005EB8] hover:underline py-1"
-              >
-                More Property →
-              </SpaLink>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {propertySection.map((art) => (
-                <ArticleCard
-                  key={art.id}
-                  article={art}
-                  variant="thumb-left"
-                  onSelect={onSelectArticle}
-                />
+            <SectionHeading
+              title="Property & Business"
+              accent="bg-amber-500"
+              href={categoryHref('property')}
+              linkLabel="More property"
+              onNavigate={() => onSelectCategory('property')}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
+              {property.map((art) => (
+                <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
               ))}
             </div>
           </div>
-
-          {/* MOST READ SIMPLE NUMBERED LIST (No box - exactly like Glasgow Times / MEN) */}
-          <div className="lg:col-span-4">
-            <div className="border-b-2 border-neutral-900 pb-1.5 mb-3">
-              <h2 className="font-headline font-black text-lg text-neutral-900 uppercase tracking-tight">
-                Most Read
-              </h2>
-            </div>
-
-            <ol className="divide-y divide-neutral-200">
-              {mostRead.map((item, idx) => (
-                <li key={item.id} className="relative py-2.5 flex items-start gap-3 cursor-pointer group">
-                  <span
-                    className="font-headline font-black text-2xl text-neutral-500 group-hover:text-[#005EB8] leading-none shrink-0 w-6"
-                    aria-hidden="true"
-                  >
-                    {idx + 1}
-                  </span>
-                  <div className="min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-[#005EB8] block mb-0.5">
-                      {item.subcategory || item.category}
-                    </span>
-                    <h3 className="font-headline font-bold text-xs sm:text-sm text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
-                      <SpaLink
-                        href={articleHref(item)}
-                        onNavigate={() => onSelectArticle(item)}
-                        className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8]"
-                      >
-                        {item.title}
-                      </SpaLink>
-                    </h3>
-                  </div>
-                </li>
-              ))}
-            </ol>
+          <div className="lg:col-span-4 lg:pt-[60px]">
+            <NewsletterBox className="rounded-2xl! p-6! shadow-card lg:sticky lg:top-24" />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 };
