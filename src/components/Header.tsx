@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Menu, X, Bookmark, Pause, Play, Sun, Moon, Mail, CloudSun } from 'lucide-react';
+import { Search, Menu, X, Pause, Play, Sun, Moon, Mail, CloudSun } from 'lucide-react';
 import { SpaLink, categoryHref } from './SpaLink';
 import { CategoryType, Article } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
@@ -190,15 +190,6 @@ export const Header: React.FC<HeaderProps> = ({
               {weatherText}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={onOpenSaved}
-            className="flex items-center gap-1.5 font-medium hover:text-accent transition min-h-6 shrink-0"
-            aria-haspopup="dialog"
-          >
-            <Bookmark className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Saved ({savedCount})</span>
-          </button>
         </div>
       </div>
 
