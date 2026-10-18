@@ -21,7 +21,7 @@ import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { SpaLink } from './components/SpaLink';
 import { SITE_CONFIG } from './config/site';
 import { HOME_TITLE, SITE_DESCRIPTION, sectionSeo, withBrand } from './config/seoText';
-import { InfoPageId, companyDetailsIncomplete, infoPageByPath } from './config/infoPages';
+import { InfoPageId, infoPageByPath, infoPageIndexable } from './config/infoPages';
 import { HeadSeo, applyHeadSeo, serverWroteHead } from './utils/seoHead';
 
 async function safeGetArticle(slug: string): Promise<Article | null> {
@@ -244,12 +244,12 @@ export default function App() {
     } else if (currentView === 'info') {
       const info = infoPageByPath(window.location.pathname);
       if (!info) return;
-      // Kept out of Google until the company details in site.ts are real (see companyDetailsIncomplete)
+      // Kept out of Google until the details in site.ts that this page depends on are real (see infoPageIndexable)
       seo = {
         title: withBrand(info.title),
         description: info.description,
         canonical: `${origin}${info.path}`,
-        noindex: companyDetailsIncomplete(),
+        noindex: !infoPageIndexable(info),
       };
     } else if (currentView === 'notfound') {
       seo = {

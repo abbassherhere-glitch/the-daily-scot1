@@ -10,15 +10,15 @@ export const SITE_CONFIG = {
   tagline: "Glasgow & Scotland's Local News",
   siteUrl: 'thedailyscot.co.uk',
   companyName: 'The Daily Scot',
-  // Leave companyNumber and phone empty ('') until they exist: the lines that show them are then left out.
+  // Leave any of these empty ('') until it really exists: the lines and sentences that show it are left out, and any
+  // company page that depends on it (Contact, Advertise, Complaints, Privacy) stays out of Google until it is filled in.
   // Anything wrapped in [square brackets] is treated as an unfinished placeholder (see companyDetailsIncomplete).
   companyNumber: '',
-  // Role mailboxes on our own domain: check each one exists (e.g. with Cloudflare Email Routing) so messages are not lost
-  contactEmail: 'contact@thedailyscot.co.uk',
-  newsdeskEmail: 'newsdesk@thedailyscot.co.uk',
+  contactEmail: '',
+  newsdeskEmail: '',
   phone: '',
-  complaintsEmail: 'complaints@thedailyscot.co.uk',
-  advertisingEmail: 'advertising@thedailyscot.co.uk',
+  complaintsEmail: '',
+  advertisingEmail: '',
   regulatoryNotice: 'Independent local journalism produced in accordance with established UK journalistic standards.',
   weatherLocation: {
     name: 'Glasgow',

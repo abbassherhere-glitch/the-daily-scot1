@@ -15,26 +15,34 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
     )}
     {id === 'contact' && (
       <div className="space-y-1.5">
-        <p><strong>Editorial Newsdesk:</strong> {SITE_CONFIG.newsdeskEmail}</p>
-        <p><strong>General Enquiries:</strong> {SITE_CONFIG.contactEmail}</p>
+        {SITE_CONFIG.newsdeskEmail && <p><strong>Editorial Newsdesk:</strong> {SITE_CONFIG.newsdeskEmail}</p>}
+        {SITE_CONFIG.contactEmail && <p><strong>General Enquiries:</strong> {SITE_CONFIG.contactEmail}</p>}
         {SITE_CONFIG.phone && <p><strong>Telephone:</strong> {SITE_CONFIG.phone}</p>}
         {SITE_CONFIG.companyNumber && <p><strong>Company Registration:</strong> {SITE_CONFIG.companyNumber}</p>}
+        {!SITE_CONFIG.newsdeskEmail && !SITE_CONFIG.contactEmail && !SITE_CONFIG.phone && (
+          <p>Our contact details are being set up. Please check back soon.</p>
+        )}
       </div>
     )}
     {id === 'advertise' && (
       <p>
-        For commercial partnerships and advertising opportunities, please email {SITE_CONFIG.advertisingEmail}.
+        {SITE_CONFIG.advertisingEmail
+          ? `For commercial partnerships and advertising opportunities, please email ${SITE_CONFIG.advertisingEmail}.`
+          : 'Our advertising contact details are being set up. Please check back soon.'}
       </p>
     )}
     {id === 'complaints' && (
       <p>
-        We aim for fairness and accuracy in our reporting. Formal editorial concerns may be directed to {SITE_CONFIG.complaintsEmail}.
+        We aim for fairness and accuracy in our reporting.{' '}
+        {SITE_CONFIG.complaintsEmail
+          ? `Formal editorial concerns may be directed to ${SITE_CONFIG.complaintsEmail}.`
+          : 'Our complaints contact details are being set up. Please check back soon.'}
       </p>
     )}
     {id === 'privacy' && (
       <div className="space-y-2">
         <p>
-          This notice explains how {SITE_CONFIG.companyName} ("we", "us"), publisher of {SITE_CONFIG.name} at {SITE_CONFIG.siteUrl}, handles personal data under the UK GDPR and the Data Protection Act 2018. We are the data controller. Contact us about your data at {SITE_CONFIG.contactEmail}.
+          This notice explains how {SITE_CONFIG.companyName} ("we", "us"), publisher of {SITE_CONFIG.name} at {SITE_CONFIG.siteUrl}, handles personal data under the UK GDPR and the Data Protection Act 2018. We are the data controller.{SITE_CONFIG.contactEmail ? ` Contact us about your data at ${SITE_CONFIG.contactEmail}.` : ''}
         </p>
         <h3 className="font-bold text-neutral-900">What we collect and why</h3>
         <ul className="list-disc pl-4 space-y-1">
@@ -61,7 +69,7 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
         </p>
         <h3 className="font-bold text-neutral-900">Your rights</h3>
         <p>
-          You can ask to access, correct or delete your data, object to or restrict how we use it, or withdraw consent, by emailing {SITE_CONFIG.contactEmail}. If you are unhappy with our response you can complain to the Information Commissioner's Office at ico.org.uk.
+          You can ask to access, correct or delete your data, object to or restrict how we use it, or withdraw consent, {SITE_CONFIG.contactEmail ? `by emailing ${SITE_CONFIG.contactEmail}` : 'by contacting us'}. If you are unhappy with our response you can complain to the Information Commissioner's Office at ico.org.uk.
         </p>
         <p className="text-neutral-500">Last updated: October 2026.</p>
       </div>
@@ -88,7 +96,7 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
         </p>
         <h3 className="font-bold text-neutral-900">Our content</h3>
         <p>
-          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it to train AI systems, without our written permission. For licensing, email {SITE_CONFIG.contactEmail}.
+          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it to train AI systems, without our written permission.{SITE_CONFIG.contactEmail ? ` For licensing, email ${SITE_CONFIG.contactEmail}.` : ''}
         </p>
         <h3 className="font-bold text-neutral-900">Accuracy</h3>
         <p>

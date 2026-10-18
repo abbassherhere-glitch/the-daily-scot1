@@ -1,6 +1,6 @@
 import { Env, EventContext } from './types';
 import { STAFF_BYLINE_SLUG } from './utils/byline';
-import { INFO_PAGES, companyDetailsIncomplete } from '../src/config/infoPages';
+import { INFO_PAGES, infoPageIndexable } from '../src/config/infoPages';
 import { safeImageUrl, siteOrigin, toIso } from './utils/seo';
 
 /**
@@ -67,8 +67,8 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     categories.forEach((cat) => {
       xml += entry(`${domain}/news/${encodeURIComponent(cat.slug)}`, sectionUpdated.get(cat.slug));
     });
-    // Company / legal pages: listed once their details are real (until then they are noindex)
-    if (!companyDetailsIncomplete()) INFO_PAGES.forEach((page) => (xml += entry(`${domain}${page.path}`)));
+    // Company / legal pages: listed once the details they depend on are real (until then they are noindex)
+    INFO_PAGES.filter(infoPageIndexable).forEach((page) => (xml += entry(`${domain}${page.path}`)));
     authors.forEach((author) => {
       xml += entry(`${domain}/author/${encodeURIComponent(author.slug)}`, toIso(author.updated_at));
     });

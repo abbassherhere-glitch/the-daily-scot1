@@ -11,7 +11,11 @@ export interface InfoPageConfig {
   linkLabel: string;
   /** Meta description */
   description: string;
+  /** False while a detail this page depends on is missing (e.g. its email address); such a page is kept out of Google. */
+  ready?: () => boolean;
 }
+
+const has = (value: string | undefined) => String(value ?? '').trim() !== '';
 
 /**
  * The company / legal pages. Each opens as a pop-up from the footer and also exists at its own
@@ -31,6 +35,7 @@ export const INFO_PAGES: InfoPageConfig[] = [
     title: `Contact ${SITE_CONFIG.name}`,
     linkLabel: 'Contact Us',
     description: `How to contact the ${SITE_CONFIG.name} newsdesk, and who to write to about general enquiries.`,
+    ready: () => has(SITE_CONFIG.newsdeskEmail) || has(SITE_CONFIG.contactEmail) || has(SITE_CONFIG.phone),
   },
   {
     id: 'advertise',
@@ -38,6 +43,7 @@ export const INFO_PAGES: InfoPageConfig[] = [
     title: 'Commercial & Advertising',
     linkLabel: 'Advertise with Us',
     description: `Commercial partnerships and advertising with ${SITE_CONFIG.name}, Glasgow and Scotland's local news site.`,
+    ready: () => has(SITE_CONFIG.advertisingEmail),
   },
   {
     id: 'complaints',
@@ -45,6 +51,7 @@ export const INFO_PAGES: InfoPageConfig[] = [
     title: 'Editorial Complaints Policy',
     linkLabel: 'Editorial Complaints',
     description: `How to raise a concern about the accuracy or fairness of a ${SITE_CONFIG.name} story.`,
+    ready: () => has(SITE_CONFIG.complaintsEmail),
   },
   {
     id: 'privacy',
@@ -52,6 +59,7 @@ export const INFO_PAGES: InfoPageConfig[] = [
     title: 'Privacy Policy',
     linkLabel: 'Privacy Notice',
     description: `How ${SITE_CONFIG.name} collects and uses personal data, and your rights under UK data protection law.`,
+    ready: () => has(SITE_CONFIG.contactEmail),
   },
   {
     id: 'cookies',
@@ -89,4 +97,9 @@ export function companyDetailsIncomplete(): boolean {
     SITE_CONFIG.advertisingEmail,
     SITE_CONFIG.phone,
   ].some((value) => /^\[.*\]$/.test(String(value ?? '').trim()));
+}
+
+/** Whether search engines should be shown this page: the company details are real and the page has what it depends on. */
+export function infoPageIndexable(page: InfoPageConfig): boolean {
+  return !companyDetailsIncomplete() && (page.ready ? page.ready() : true);
 }

@@ -1,5 +1,5 @@
 import { Env, EventContext } from './types';
-import { companyDetailsIncomplete, infoPageByPath } from '../src/config/infoPages';
+import { infoPageByPath, infoPageIndexable } from '../src/config/infoPages';
 import { renderHomepage } from './utils/homepage';
 import {
   escapeText,
@@ -48,8 +48,8 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
           title: withBrand(info.title),
           description: info.description,
           canonical: `${origin}${info.path}`,
-          // Not for Google until the company details in src/config/site.ts are real (they are placeholders today)
-          noindex: companyDetailsIncomplete() || isStagingHost(url.hostname),
+          // Not for Google until the details in src/config/site.ts that this page depends on are filled in
+          noindex: !infoPageIndexable(info) || isStagingHost(url.hostname),
           rootHtml: shellHtml(sections, `<h1>${escapeText(info.title)}</h1><p>${escapeText(info.description)}</p>`),
         },
         origin,

@@ -277,11 +277,12 @@ Other things that are handled for you:
 
 The footer's About, Contact, Advertise, Complaints, Privacy, Cookie and Terms text also has a page of its own (`/about`, `/contact`, `/advertise`, `/complaints`, `/privacy`, `/cookies`, `/terms`); a normal click on a footer link still opens the same pop-up. Google News and quality reviewers expect these pages.
 
-The details shown on them come from `src/config/site.ts`:
+The details shown on them come from `src/config/site.ts`. Anything left empty (`''`) is simply not shown: the line or sentence that would use it is left out.
 
-- The four email addresses are role mailboxes on `thedailyscot.co.uk` (`contact@`, `newsdesk@`, `complaints@`, `advertising@`). **Make sure each one exists** (for example with Cloudflare Email Routing), or change them to real addresses.
-- `companyNumber` and `phone` are empty for now. While they are empty the lines that would show them ("Registered in Scotland (…)", "Telephone", "Company Registration") are simply left out. Fill them in when you have them; do not invent a registration number or phone number, as the site states them publicly.
-- Anything wrapped in `[square brackets]` is treated as an unfinished placeholder: while any detail is still like that, the seven pages are served `noindex` and left out of the sitemap, so Google never shows placeholder text.
+- **Emails** (`contactEmail`, `newsdeskEmail`, `complaintsEmail`, `advertisingEmail`) are empty for now because no mailboxes exist yet. A page that depends on one stays out of Google, and out of the sitemap, until it is filled in: **Contact** (needs any of the two emails or the phone), **Advertise** (`advertisingEmail`), **Complaints** (`complaintsEmail`) and **Privacy** (`contactEmail`, so people can reach you about their data). They show "being set up" wording meanwhile. **About, Cookies and Terms** do not depend on an email and are indexable already.
+- To create the mailboxes for free: Cloudflare dashboard → your domain → **Email** → **Email Routing**, add each address and forward it to an inbox you already use, then put the address in `site.ts`.
+- `companyNumber` and `phone` are empty too. Fill them in when you have them; do not invent a registration number or phone number, as the site states them publicly.
+- Anything wrapped in `[square brackets]` is treated as an unfinished placeholder: while one remains, all seven pages are served `noindex`.
 
 ### After deploying
 
