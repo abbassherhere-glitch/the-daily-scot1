@@ -114,8 +114,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     const isLead = variant === 'lead';
     return (
       <article
-        className={`group relative isolate flex h-full overflow-hidden rounded-2xl bg-neutral-900 shadow-card ${
-          isLead ? 'min-h-[400px] sm:min-h-[460px] lg:min-h-[540px]' : 'min-h-[240px] sm:min-h-[260px]'
+        // No h-full here: a card that fills its parent's height stretched to thousands of pixels inside
+        // section-page columns. Pages that want it to fill a grid cell (the homepage hero) pass h-full.
+        className={`group relative isolate flex overflow-hidden rounded-2xl bg-neutral-900 shadow-card ${
+          // Shape comes from aspect-ratio alone. (A min-height here would be converted into a min-width by the
+          // browser and push the card wider than its column.) Long headlines still grow the card.
+          isLead ? 'aspect-[4/5] sm:aspect-[16/9]' : 'aspect-[4/3] sm:aspect-[16/10]'
         } ${className}`}
       >
         <div className="absolute inset-0 -z-10">
