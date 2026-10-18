@@ -1,3 +1,4 @@
+import { Logo } from './Logo';
 import React, { useState } from 'react';
 import { CategoryType } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
@@ -19,10 +20,9 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
       <div className="max-w-7xl mx-auto px-4 space-y-6">
         {/* Top Logo & Slogan */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-800 pb-4 gap-3">
-          <div className="flex items-baseline gap-2">
-            <span className="font-headline font-black text-2xl text-white uppercase tracking-tight">
-              {SITE_CONFIG.name}
-            </span>
+          <div className="flex items-center gap-3">
+            <Logo tone="on-dark" className="h-10 w-auto self-center" />
+            <span className="sr-only">{SITE_CONFIG.name}</span>
             <span className="text-neutral-400 font-semibold" aria-hidden="true">|</span>
             <span className="text-neutral-400 font-medium">{SITE_CONFIG.tagline}</span>
           </div>

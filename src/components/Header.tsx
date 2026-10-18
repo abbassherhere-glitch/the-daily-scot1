@@ -6,6 +6,7 @@ import { SITE_CONFIG } from '../config/site';
 import { useTheme } from '../utils/theme';
 import { Dialog } from './Dialog';
 import { NewsletterBox } from './NewsletterBox';
+import { Logo } from './Logo';
 
 interface HeaderProps {
   currentCategory: CategoryType;
@@ -64,14 +65,6 @@ function toStub(art: BreakingArticle): Article {
     isPartial: true,
   };
 }
-
-/** Saltire mark used beside the wordmark. */
-const SaltireMark: React.FC<{ className?: string }> = ({ className = '' }) => (
-  <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
-    <rect width="32" height="32" rx="8" fill="#005EB8" />
-    <path d="M7 7 L25 25 M25 7 L7 25" stroke="#fff" strokeWidth="4.2" strokeLinecap="round" />
-  </svg>
-);
 
 const ICON_BUTTON =
   'inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-soft hover:text-ink hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2';
@@ -168,11 +161,6 @@ export const Header: React.FC<HeaderProps> = ({
     setMobileMenuOpen(false);
   };
 
-  const [namePrefix, nameLast] = (() => {
-    const words = SITE_CONFIG.name.toUpperCase().split(' ');
-    return [words.slice(0, -1).join(' '), words[words.length - 1]];
-  })();
-
   const animateTicker = !prefersReducedMotion && breakingNews.length > 0;
   const tickerDuration = `${Math.max(30, breakingNews.length * 14)}s`;
 
@@ -220,14 +208,10 @@ export const Header: React.FC<HeaderProps> = ({
           <SpaLink
             href="/"
             onNavigate={() => onSelectCategory('all')}
-            className="group flex items-center gap-2 sm:gap-2.5 select-none shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
+            className="group flex items-center select-none shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
           >
-            <SaltireMark className="w-7 h-7 sm:w-8 sm:h-8 shrink-0 transition-transform group-hover:rotate-6" />
-            <span className="font-display text-[16px] sm:text-[20px] leading-none tracking-[-0.03em] text-ink whitespace-nowrap">
-              <span className="font-semibold text-ink-soft">{namePrefix} </span>
-              <span className="font-extrabold">{nameLast}</span>
-            </span>
-            <span className="sr-only">– homepage</span>
+            <Logo className="h-9 sm:h-11 w-auto transition-opacity group-hover:opacity-85" />
+            <span className="sr-only">{SITE_CONFIG.name} – homepage</span>
           </SpaLink>
 
           {/* Desktop sections */}
