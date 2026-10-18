@@ -83,11 +83,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
                 <span className="text-[11px] font-black uppercase tracking-wider text-[#005EB8]">
                   {sectionLabel}
                 </span>
-                {article.locationTag && (
-                  <span className="text-[11px] text-neutral-500 font-medium">
-                    • {article.locationTag}
-                  </span>
-                )}
               </div>
 
               <h2 className="font-headline font-bold text-xl sm:text-2xl text-neutral-900 leading-tight group-hover:text-[#005EB8] group-hover:underline transition">
@@ -193,12 +188,6 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
             </span>
             <span>•</span>
             <span>{timeStr}</span>
-            {article.locationTag && (
-              <>
-                <span>•</span>
-                <span className="font-medium">{article.locationTag}</span>
-              </>
-            )}
           </div>
 
           <h3 className="font-headline font-bold text-sm sm:text-base text-neutral-900 group-hover:text-[#005EB8] group-hover:underline transition leading-snug line-clamp-2">
