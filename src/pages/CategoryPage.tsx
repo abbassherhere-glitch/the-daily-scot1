@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
 import { CATEGORIES } from '../data/mockArticles';
@@ -19,8 +19,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   onSelectArticle,
   onSelectCategory,
 }) => {
-  const [selectedTag, setSelectedTag] = useState<string>('all');
-
   const categoryMeta = CATEGORIES.find((c) => c.id === category) || {
     id: category,
     label: category.toUpperCase(),
@@ -31,25 +29,8 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
     return articles.filter((a) => a.category === category);
   }, [articles, category]);
 
-  const availableTags = useMemo(() => {
-    const set = new Set<string>();
-    categoryArticles.forEach((a) => {
-      if (a.subcategory) set.add(a.subcategory);
-      if (a.locationTag) set.add(a.locationTag);
-      a.tags.forEach((t) => set.add(t));
-    });
-    return Array.from(set).slice(0, 6);
-  }, [categoryArticles]);
-
-  const filteredArticles = useMemo(() => {
-    if (selectedTag === 'all') return categoryArticles;
-    return categoryArticles.filter(
-      (a) =>
-        a.subcategory?.toLowerCase() === selectedTag.toLowerCase() ||
-        a.locationTag?.toLowerCase() === selectedTag.toLowerCase() ||
-        a.tags.some((t) => t.toLowerCase() === selectedTag.toLowerCase())
-    );
-  }, [categoryArticles, selectedTag]);
+  // One Glasgow section: no area / tag filter tabs, every story in the section is shown.
+  const filteredArticles = categoryArticles;
 
   const leadStory = filteredArticles[0];
   const remainingStories = filteredArticles.slice(1);
@@ -81,39 +62,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         <p className="text-xs sm:text-sm text-neutral-600 font-serif mt-1">
           {categoryMeta.description}
         </p>
-
-        {/* Tag Filters */}
-        {availableTags.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap mt-3 pt-2 border-t border-neutral-100 text-xs">
-            <button
-              type="button"
-              aria-pressed={selectedTag === 'all'}
-              onClick={() => setSelectedTag('all')}
-              className={`px-2.5 py-1 font-bold uppercase transition ${
-                selectedTag === 'all'
-                  ? 'bg-[#0B2545] text-white'
-                  : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
-              }`}
-            >
-              All {categoryMeta.label}
-            </button>
-            {availableTags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                aria-pressed={selectedTag === tag}
-                onClick={() => setSelectedTag(tag)}
-                className={`px-2.5 py-1 font-semibold transition ${
-                  selectedTag === tag
-                    ? 'bg-[#0B2545] text-white'
-                    : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200 border border-neutral-300'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Leaderboard slot */}
@@ -145,25 +93,6 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
         <aside className="lg:col-span-4 space-y-6">
           <AdBanner type="mpu" />
 
-          {/* Quick links block */}
-          <div className="border border-neutral-200 p-4">
-            <h2 className="font-headline font-black text-xs uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
-              Section Topics
-            </h2>
-            <div className="space-y-1.5 text-xs">
-              {availableTags.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  aria-pressed={selectedTag === t}
-                  onClick={() => setSelectedTag(t)}
-                  className="block py-1 text-neutral-700 hover:text-[#005EB8] hover:underline"
-                >
-                  › {t}
-                </button>
-              ))}
-            </div>
-          </div>
         </aside>
       </div>
     </div>
