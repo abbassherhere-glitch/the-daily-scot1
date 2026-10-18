@@ -222,12 +222,12 @@ export const HomePage: React.FC<HomePageProps> = ({
       {lead && (
         <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-5">
           <div className="lg:col-span-8">
-            <ArticleCard article={lead} variant="lead" onSelect={onSelectArticle} />
+            <ArticleCard article={lead} variant="lead" className="lg:h-full lg:aspect-auto lg:min-h-[540px]" onSelect={onSelectArticle} />
           </div>
           {secondary.length > 0 && (
             <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 lg:grid-rows-2 gap-4 lg:gap-5">
               {secondary.map((art) => (
-                <ArticleCard key={art.id} article={art} variant="overlay" onSelect={onSelectArticle} />
+                <ArticleCard key={art.id} article={art} variant="overlay" className="lg:h-full lg:aspect-auto" onSelect={onSelectArticle} />
               ))}
             </div>
           )}
@@ -296,7 +296,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
             <div className={sportRest.length ? 'lg:col-span-7' : 'lg:col-span-12'}>
-              <ArticleCard article={sportLead} variant="overlay" className="lg:min-h-[420px]" onSelect={onSelectArticle} />
+              <ArticleCard article={sportLead} variant="overlay" className="lg:h-full lg:aspect-auto lg:min-h-[420px]" onSelect={onSelectArticle} />
             </div>
             {sportRest.length > 0 && (
               <div className="lg:col-span-5 rounded-2xl border border-line bg-surface shadow-card px-4 sm:px-5 py-1">
