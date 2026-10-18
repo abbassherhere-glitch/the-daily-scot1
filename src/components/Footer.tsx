@@ -21,7 +21,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
         {/* Top Logo & Slogan */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-800 pb-4 gap-3">
           <div className="flex items-center gap-3">
-            <Logo tone="on-dark" className="h-10 w-auto self-center" />
+            <Logo className="h-14 w-auto self-center rounded-[3px]" />
             <span className="sr-only">{SITE_CONFIG.name}</span>
             <span className="text-neutral-400 font-semibold" aria-hidden="true">|</span>
             <span className="text-neutral-400 font-medium">{SITE_CONFIG.tagline}</span>

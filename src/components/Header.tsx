@@ -210,7 +210,7 @@ export const Header: React.FC<HeaderProps> = ({
             onNavigate={() => onSelectCategory('all')}
             className="group flex items-center select-none shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
           >
-            <Logo className="h-9 sm:h-11 w-auto transition-opacity group-hover:opacity-85" />
+            <Logo className="h-10 sm:h-12 w-auto rounded-[3px] shadow-sm transition-transform group-hover:-rotate-2" />
             <span className="sr-only">{SITE_CONFIG.name} – homepage</span>
           </SpaLink>
 
