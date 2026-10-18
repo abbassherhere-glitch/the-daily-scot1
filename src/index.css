@@ -8,7 +8,7 @@
    border-line and never need a separate dark: class.
    ------------------------------------------------------------------------------------------------ */
 :root {
-  --ds-page: #f6f7f9;
+  --ds-page: #ffffff;
   --ds-surface: #ffffff;
   --ds-surface-2: #f1f3f6;
   --ds-ink: #0f172a;
