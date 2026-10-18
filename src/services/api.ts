@@ -1,6 +1,7 @@
 import { Article, CategoryType } from '../types/news';
 import { INITIAL_ARTICLES, CATEGORIES } from '../data/mockArticles';
 import { STAFF_BYLINE, bylineSlug } from '../components/SpaLink';
+import { normaliseTags } from '../../shared/tags';
 
 // Check if running in local development or AI Studio preview
 const isDevOrPreview =
@@ -301,16 +302,7 @@ function toIsoDate(value: string | null | undefined): string {
 }
 
 function transformD1RowToArticle(row: any): Article {
-  let tags: string[] = [];
-  try {
-    tags = Array.isArray(row.tags)
-      ? row.tags
-      : row.tags?.startsWith('[')
-      ? JSON.parse(row.tags)
-      : (row.tags || '').split(',').map((t: string) => t.trim());
-  } catch {
-    tags = ['Glasgow'];
-  }
+  const tags = normaliseTags(row.tags);
 
   const contentParagraphs = parseBodyToBlocks(row.body || '');
 

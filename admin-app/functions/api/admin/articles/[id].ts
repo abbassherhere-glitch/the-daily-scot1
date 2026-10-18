@@ -10,6 +10,7 @@ import {
   restrictStatusForRole,
 } from '../../../utils/articleRules';
 import { displayByline, resolveByline } from '../../../utils/byline';
+import { serialiseTags } from '../../../../../shared/tags';
 
 
 export async function onRequestGet(
@@ -134,12 +135,7 @@ export async function onRequestPut(
     const photoCredit = sanitizePlainText(body.photo_credit !== undefined ? body.photo_credit : existing.photo_credit || '', 100);
     const photoSource = sanitizePlainText(body.photo_source !== undefined ? body.photo_source : existing.photo_source || '', 100);
     const slug = body.slug ? generateSlug(body.slug) || existing.slug : existing.slug;
-    const tags =
-      body.tags !== undefined
-        ? Array.isArray(body.tags)
-          ? JSON.stringify(body.tags.map((t: unknown) => sanitizePlainText(String(t), 40)).filter(Boolean).slice(0, 20))
-          : sanitizePlainText(body.tags, 300)
-        : existing.tags;
+    const tags = serialiseTags(body.tags !== undefined ? body.tags : existing.tags);
     const seoTitle = sanitizePlainText(body.seo_title || existing.seo_title || `${title} | The Daily Scot`, 150);
     const metaDescription = sanitizePlainText(body.meta_description || existing.meta_description || standfirst, 250);
 

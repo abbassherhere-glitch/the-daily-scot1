@@ -2,6 +2,7 @@ import { Env, EventContext, User } from '../../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, detectImageType } from '../../utils/sanitize';
 import { normaliseSourceType } from '../../utils/articleRules';
 import { logAuditEvent, getClientIp, requireRole } from '../../utils/auth';
+import { serialiseTags } from '../../../../shared/tags';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit for bot ingested media
 
@@ -29,7 +30,7 @@ export async function onRequestPost(
     const photoCredit = sanitizePlainText(body.photo_credit || 'Wire / Press Pool', 100);
     const photoSource = sanitizePlainText(body.photo_source || 'Syndicated Feed', 100);
     const customSlug = body.slug ? generateSlug(body.slug) : generateSlug(title);
-    const tags = Array.isArray(body.tags) ? JSON.stringify(body.tags) : sanitizePlainText(body.tags || '', 300);
+    const tags = serialiseTags(body.tags);
 
     const sourceType = normaliseSourceType(body.source_type, 'Press release');
     const sourceUrl = sanitizeUrl(body.source_url, 300) || '';

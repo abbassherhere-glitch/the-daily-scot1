@@ -59,6 +59,7 @@ import {
 } from '../services/adminApi';
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
 import { ModalFrame } from '../components/ModalFrame';
+import { normaliseTags } from '../../../shared/tags';
 
 /** D1 UTC timestamp ('YYYY-MM-DD HH:MM:SS' or ISO) -> value for a datetime-local input (local time). */
 function utcToLocalInput(value?: string | null): string {
@@ -270,7 +271,7 @@ export const AdminPage: React.FC = () => {
     setFormPhotoCredit(article.photo_credit || article.photoCredit || '');
     setFormPhotoSource(article.photo_source || article.photoSource || '');
     setFormBody(article.body || (article.content ? article.content.join('\n\n') : ''));
-    setFormTags(Array.isArray(article.tags) ? article.tags.join(', ') : article.tags || '');
+    setFormTags(normaliseTags(article.tags).join(', '));
     setFormStatus(article.status || 'draft');
     setFormIsBreaking(Boolean(article.is_breaking || article.isBreaking));
     setFormBreakingUntil(utcToLocalInput(article.breaking_until));
@@ -401,7 +402,7 @@ export const AdminPage: React.FC = () => {
       image_caption: formImageCaption.trim() || null,
       photo_credit: formPhotoCredit.trim() || null,
       photo_source: formPhotoSource.trim() || null,
-      tags: formTags.split(',').map((t) => t.trim()).filter(Boolean),
+      tags: normaliseTags(formTags),
       status: finalStatus,
       is_breaking: formIsBreaking ? 1 : 0,
       is_featured: formIsFeatured ? 1 : 0,

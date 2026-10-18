@@ -10,6 +10,7 @@
  */
 
 import { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, withBrand } from '../../src/config/seoText';
+import { normaliseTags } from '../../shared/tags';
 
 export { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, withBrand };
 
@@ -194,15 +195,9 @@ export function bodyToHtml(body: string): string {
     .join('\n');
 }
 
-/** Stored tags are a JSON array or a comma-separated string (see transformD1RowToArticle in the app). */
+/** Stored tags are a JSON array or a comma-separated string, possibly nested/garbled by older editor versions. */
 export function parseTags(raw?: string | null): string[] {
-  if (!raw) return [];
-  try {
-    const list = raw.trim().startsWith('[') ? JSON.parse(raw) : raw.split(',');
-    return (Array.isArray(list) ? list : []).map((t) => String(t).trim()).filter(Boolean);
-  } catch {
-    return [];
-  }
+  return normaliseTags(raw);
 }
 
 /** First ~155 characters of a story as plain text, for when no description was written. */
