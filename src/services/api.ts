@@ -2,7 +2,7 @@ import { Article, CategoryType } from '../types/news';
 import { INITIAL_ARTICLES, CATEGORIES } from '../data/mockArticles';
 import { STAFF_BYLINE, bylineSlug } from '../components/SpaLink';
 
-// Check if running in local development or AI Studio preview
+// Check if running in local development or a preview deployment
 const isDevOrPreview =
   import.meta.env.DEV ||
   (typeof window !== 'undefined' &&
@@ -110,7 +110,7 @@ export async function getPublicArticles(params?: {
     throw new Error('Unable to connect to The Daily Scot news service. Please check your network connection.');
   }
 
-  // Fallback Preview Adapter (ONLY in local development or AI Studio preview)
+  // Fallback Preview Adapter (ONLY in local development or a preview deployment)
   let list = getPreviewArticles();
   if (params?.category && params.category !== 'all') {
     list = list.filter((a) => a.category === params.category);
