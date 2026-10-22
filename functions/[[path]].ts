@@ -1,6 +1,7 @@
 import { Env, EventContext } from './types';
 import { infoPageByPath, infoPageIndexable } from '../src/config/infoPages';
 import { renderHomepage } from './utils/homepage';
+import { ABOUT_SECTIONS } from '../src/config/aboutText';
 import {
   escapeText,
   fetchShell,
@@ -24,6 +25,16 @@ import {
  *   - anything else that comes back as the app shell is answered with a real 404.
  * Files (images, scripts, robots.txt...) are returned untouched.
  */
+/** The full About page text, so search engines see the whole page, not a one-line summary. */
+function aboutHtml(): string {
+  return ABOUT_SECTIONS.map((section) => {
+    const id = section.id ? ` id="${section.id}"` : '';
+    const heading = section.heading ? `<h2>${escapeText(section.heading)}</h2>` : '';
+    const body = section.paragraphs.map((p) => `<p>${escapeText(p)}</p>`).join('');
+    return `<section${id}>${heading}${body}</section>`;
+  }).join('');
+}
+
 export async function onRequest(context: EventContext<Env, any, any>): Promise<Response> {
   const method = context.request.method;
   if (method !== 'GET' && method !== 'HEAD') return context.next();
@@ -50,7 +61,11 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
           canonical: `${origin}${info.path}`,
           // Not for Google until the details in src/config/site.ts that this page depends on are filled in
           noindex: !infoPageIndexable(info) || isStagingHost(url.hostname),
-          rootHtml: shellHtml(sections, `<h1>${escapeText(info.title)}</h1><p>${escapeText(info.description)}</p>`),
+          rootHtml: shellHtml(
+            sections,
+            `<h1>${escapeText(info.title)}</h1>` +
+              (info.id === 'about' ? aboutHtml() : `<p>${escapeText(info.description)}</p>`),
+          ),
         },
         origin,
       );
