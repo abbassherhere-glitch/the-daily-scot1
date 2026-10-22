@@ -36,13 +36,6 @@ export const ABOUT_SECTIONS: AboutSection[] = [
     ],
   },
   {
-    id: 'ai',
-    heading: 'How we use AI',
-    paragraphs: [
-      'We use AI tools to help research and draft some of our stories. Our editors are responsible for everything we publish, and we correct mistakes whatever their source.',
-    ],
-  },
-  {
     id: 'photographs',
     heading: 'Photographs',
     paragraphs: [
