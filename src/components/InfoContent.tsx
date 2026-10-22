@@ -1,6 +1,7 @@
 import React from 'react';
 import { SITE_CONFIG } from '../config/site';
 import type { InfoPageId } from '../config/infoPages';
+import { ABOUT_SECTIONS } from '../config/aboutText';
 
 /**
  * The text of the About / Contact / Advertise / Complaints / Privacy / Cookie / Terms pages.
@@ -9,9 +10,16 @@ import type { InfoPageId } from '../config/infoPages';
 export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ id, className }) => (
   <div className={className}>
     {id === 'about' && (
-      <p>
-        {SITE_CONFIG.name} provides local news coverage across Glasgow, Clydeside, Lanarkshire, and Scotland, operated by {SITE_CONFIG.companyName}.
-      </p>
+      <div className="space-y-2">
+        {ABOUT_SECTIONS.map((section, i) => (
+          <section key={section.id || i} id={section.id} className="space-y-2">
+            {section.heading && <h3 className="font-bold text-neutral-900">{section.heading}</h3>}
+            {section.paragraphs.map((text, j) => (
+              <p key={j}>{text}</p>
+            ))}
+          </section>
+        ))}
+      </div>
     )}
     {id === 'contact' && (
       <div className="space-y-1.5">
@@ -96,7 +104,7 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
         </p>
         <h3 className="font-bold text-neutral-900">Our content</h3>
         <p>
-          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it to train AI systems, without our written permission.{SITE_CONFIG.contactEmail ? ` For licensing, email ${SITE_CONFIG.contactEmail}.` : ''}
+          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it for automated text or data mining, without our written permission.{SITE_CONFIG.contactEmail ? ` For licensing, email ${SITE_CONFIG.contactEmail}.` : ''}
         </p>
         <h3 className="font-bold text-neutral-900">Accuracy</h3>
         <p>

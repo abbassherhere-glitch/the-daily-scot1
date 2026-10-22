@@ -71,6 +71,9 @@ export function publisherLd(origin: string) {
       { '@type': 'City', name: 'Glasgow' },
       { '@type': 'Country', name: 'Scotland' },
     ],
+    // Google News looks for these: where the editorial standards and corrections policy live
+    publishingPrinciples: `${origin}/about#how-we-report`,
+    correctionsPolicy: `${origin}/about#corrections`,
     ...(SAME_AS.length ? { sameAs: SAME_AS } : {}),
   };
 }

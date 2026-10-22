@@ -8,7 +8,7 @@ export const SITE_NAME = 'The Daily Scot';
 export const SITE_DESCRIPTION =
   "The Daily Scot is an independent Glasgow and Scotland news website: breaking news, council, courts, transport, property, Celtic and Rangers, and what's on.";
 
-export const HOME_TITLE = "The Daily Scot | Glasgow & Scotland's News";
+export const HOME_TITLE = 'The Daily Scot Glasgow | Local News for Glasgow & Scotland';
 
 /** "Headline" -> "Headline | The Daily Scot" (unless the editor already put the name in). */
 export function withBrand(title: string): string {
