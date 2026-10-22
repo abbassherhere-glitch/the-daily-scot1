@@ -1,6 +1,6 @@
 import { AdminUser, AuditEntry, BylineOption, STAFF_BYLINE, SubscriberEntry, UserRole } from '../types/news';
 
-// Determine if we are in local development or AI Studio preview
+// Determine if we are in local development or a preview deployment
 const isDevOrPreview =
   import.meta.env.DEV ||
   (typeof window !== 'undefined' &&
