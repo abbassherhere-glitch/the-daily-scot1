@@ -1,6 +1,7 @@
 import React from 'react';
 import { SITE_CONFIG } from '../config/site';
 import type { InfoPageId } from '../config/infoPages';
+import { ABOUT_SECTIONS } from '../config/aboutText';
 
 /**
  * The text of the About / Contact / Advertise / Complaints / Privacy / Cookie / Terms pages.
@@ -9,9 +10,16 @@ import type { InfoPageId } from '../config/infoPages';
 export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ id, className }) => (
   <div className={className}>
     {id === 'about' && (
-      <p>
-        {SITE_CONFIG.name} provides local news coverage across Glasgow, Clydeside, Lanarkshire, and Scotland, operated by {SITE_CONFIG.companyName}.
-      </p>
+      <div className="space-y-2">
+        {ABOUT_SECTIONS.map((section, i) => (
+          <section key={section.id || i} id={section.id} className="space-y-2">
+            {section.heading && <h3 className="font-bold text-neutral-900">{section.heading}</h3>}
+            {section.paragraphs.map((text, j) => (
+              <p key={j}>{text}</p>
+            ))}
+          </section>
+        ))}
+      </div>
     )}
     {id === 'contact' && (
       <div className="space-y-1.5">
