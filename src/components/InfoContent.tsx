@@ -104,7 +104,7 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
         </p>
         <h3 className="font-bold text-neutral-900">Our content</h3>
         <p>
-          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it to train AI systems, without our written permission.{SITE_CONFIG.contactEmail ? ` For licensing, email ${SITE_CONFIG.contactEmail}.` : ''}
+          All articles, photographs and graphics are owned by us or our licensors and are protected by copyright. You may read, print and share links to our articles for personal, non-commercial use. You may not copy, republish, sell or systematically scrape our content, or use it for automated text or data mining, without our written permission.{SITE_CONFIG.contactEmail ? ` For licensing, email ${SITE_CONFIG.contactEmail}.` : ''}
         </p>
         <h3 className="font-bold text-neutral-900">Accuracy</h3>
         <p>
