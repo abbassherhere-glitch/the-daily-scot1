@@ -16,7 +16,7 @@ export async function onRequestPost(
     const roleErr = requireRole(user, ['Bot', 'Owner', 'Editor']);
     if (roleErr) return roleErr;
 
-    // Signed AI Newsdesk request (verified by the middleware): may publish and unpublish its own stories.
+    // Signed Newsdesk request (verified by the middleware): may publish and unpublish its own stories.
     // Everything below this block is the original behaviour: stories always land in 'needs_review'.
     if (context.data.newsdeskBody !== undefined) {
       return await handleNewsdeskIngest(context.request, context.env, user, context.data.newsdeskBody);
