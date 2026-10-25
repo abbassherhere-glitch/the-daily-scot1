@@ -4,7 +4,7 @@ import { checkPublishRules, jsonResponse, normaliseLegalCheck, normaliseSourceTy
 import { getClientIp, logAuditEvent } from './auth';
 
 /**
- * What the AI Newsdesk may ask of POST /api/admin/ingest once its request has passed the shared-secret
+ * What Newsdesk may ask of POST /api/admin/ingest once its request has passed the shared-secret
  * check (utils/newsdeskAuth.ts). Everything else about the endpoint is unchanged: requests that do not
  * carry a Newsdesk signature still go through Cloudflare Access and still land in `needs_review`.
  *
@@ -154,7 +154,7 @@ export async function handleNewsdeskIngest(
 
   const sourceType = normaliseSourceType(body.source_type, 'Press release');
   const sourceUrl = sanitizeUrl(body.source_url, 300) || '';
-  const sourceName = sanitizePlainText(body.source_name || 'AI Newsdesk', 150);
+  const sourceName = sanitizePlainText(body.source_name || 'The Daily Scot', 150);
   const verified = body.verified ? 1 : 0;
   // An unknown flag is refused, not read as "none": quietly treating a new kind of legal flag as no flag at all
   // would let a flagged story through.
@@ -214,7 +214,7 @@ export async function handleNewsdeskIngest(
           user.email,
           existing.title,
           existing.body,
-          'Updated by the AI Newsdesk'
+          'Updated by Newsdesk'
         )
       );
     }
