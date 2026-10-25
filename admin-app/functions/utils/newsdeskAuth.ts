@@ -1,7 +1,7 @@
 import { Env, User } from '../types';
 
 /**
- * Shared-secret authentication for the AI Newsdesk's calls to POST /api/admin/ingest.
+ * Shared-secret authentication for Newsdesk's calls to POST /api/admin/ingest.
  *
  * The secret is the Pages secret NEWSDESK_INGEST_SECRET (the same value is stored as a secret of the
  * same name in the Newsdesk Worker). Nothing secret travels on the wire: each request carries
