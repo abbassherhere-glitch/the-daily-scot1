@@ -36,6 +36,8 @@ export interface Env {
   CF_ACCESS_SERVICE_CLIENT_SECRET?: string;
   BOT_CLIENT_ID?: string;
   MEDIA_PUBLIC_URL?: string;
+  /** Shared secret for Newsdesk's signed calls to /api/admin/ingest (a Pages secret). */
+  NEWSDESK_INGEST_SECRET?: string;
   NODE_ENV?: string;
   ENVIRONMENT?: string;
 }

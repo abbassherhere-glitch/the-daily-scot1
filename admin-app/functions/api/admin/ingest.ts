@@ -2,11 +2,12 @@ import { Env, EventContext, User } from '../../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, detectImageType } from '../../utils/sanitize';
 import { normaliseSourceType } from '../../utils/articleRules';
 import { logAuditEvent, getClientIp, requireRole } from '../../utils/auth';
+import { handleNewsdeskIngest } from '../../utils/newsdeskIngest';
 
 const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB limit for bot ingested media
 
 export async function onRequestPost(
-  context: EventContext<Env, any, { user: User }>
+  context: EventContext<Env, any, { user: User; newsdeskBody?: string }>
 ): Promise<Response> {
   try {
     const user = context.data.user;
@@ -14,6 +15,12 @@ export async function onRequestPost(
     // Allow Bot, Editor, Owner to ingest
     const roleErr = requireRole(user, ['Bot', 'Owner', 'Editor']);
     if (roleErr) return roleErr;
+
+    // Signed Newsdesk request (verified by the middleware): may publish and unpublish its own stories.
+    // Everything below this block is the original behaviour: stories always land in 'needs_review'.
+    if (context.data.newsdeskBody !== undefined) {
+      return await handleNewsdeskIngest(context.request, context.env, user, context.data.newsdeskBody);
+    }
 
     const body = await context.request.json() as any;
 
