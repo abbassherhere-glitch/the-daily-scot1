@@ -1,6 +1,6 @@
 import { ArticleRecord, Env, User } from '../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from './sanitize';
-import { checkPublishRules, jsonResponse, normaliseLegalCheck, normaliseSourceType } from './articleRules';
+import { checkPublishRules, jsonResponse, normaliseLegalCheck, normaliseSourceType, VALID_LEGAL_CHECKS } from './articleRules';
 import { getClientIp, logAuditEvent } from './auth';
 
 /**
@@ -156,6 +156,11 @@ export async function handleNewsdeskIngest(
   const sourceUrl = sanitizeUrl(body.source_url, 300) || '';
   const sourceName = sanitizePlainText(body.source_name || 'AI Newsdesk', 150);
   const verified = body.verified ? 1 : 0;
+  // An unknown flag is refused, not read as "none": quietly treating a new kind of legal flag as no flag at all
+  // would let a flagged story through.
+  if (body.legal_check !== undefined && body.legal_check !== null && !VALID_LEGAL_CHECKS.includes(body.legal_check)) {
+    return jsonResponse({ error: `Unknown legal_check "${String(body.legal_check).slice(0, 60)}"` }, 422);
+  }
   const legalCheck = normaliseLegalCheck(body.legal_check);
   const legalChecked = body.legal_checked ? 1 : 0;
   const embargoUntil = toSqlDateTime(body.embargo_until);
