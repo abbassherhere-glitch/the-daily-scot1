@@ -1,8 +1,9 @@
 import { Env, EventContext, User } from '../../types';
 import { authenticateAdminRequest } from '../../utils/auth';
+import { authenticateNewsdeskRequest } from '../../utils/newsdeskAuth';
 
 export async function onRequest(
-  context: EventContext<Env, any, { user?: User }>
+  context: EventContext<Env, any, { user?: User; newsdeskBody?: string }>
 ): Promise<Response> {
   // Reject preflight CORS OPTIONS requests immediately
   if (context.request.method === 'OPTIONS') {
@@ -32,12 +33,22 @@ export async function onRequest(
     }
   }
 
-  const auth = await authenticateAdminRequest(context.request, context.env);
-  if (auth.errorResponse || !auth.user) {
-    return auth.errorResponse || new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
-  }
+  // The AI Newsdesk signs its calls to /api/admin/ingest with a shared secret (NEWSDESK_INGEST_SECRET)
+  // instead of signing in through Cloudflare Access. A request without a Newsdesk signature header is
+  // not affected and goes through the Access checks below exactly as before.
+  const newsdesk = await authenticateNewsdeskRequest(context.request, context.env);
+  if (newsdesk.applies) {
+    if ('errorResponse' in newsdesk) return newsdesk.errorResponse;
+    context.data.user = newsdesk.user;
+    context.data.newsdeskBody = newsdesk.rawBody;
+  } else {
+    const auth = await authenticateAdminRequest(context.request, context.env);
+    if (auth.errorResponse || !auth.user) {
+      return auth.errorResponse || new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
 
-  context.data.user = auth.user;
+    context.data.user = auth.user;
+  }
 
   const response = await context.next();
 
