@@ -33,7 +33,7 @@ export async function onRequest(
     }
   }
 
-  // The AI Newsdesk signs its calls to /api/admin/ingest with a shared secret (NEWSDESK_INGEST_SECRET)
+  // Newsdesk signs its calls to /api/admin/ingest with a shared secret (NEWSDESK_INGEST_SECRET)
   // instead of signing in through Cloudflare Access. A request without a Newsdesk signature header is
   // not affected and goes through the Access checks below exactly as before.
   const newsdesk = await authenticateNewsdeskRequest(context.request, context.env);
