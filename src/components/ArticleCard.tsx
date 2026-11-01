@@ -99,7 +99,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
     const isLead = variant === 'lead';
     return (
       <article className={`group relative ${className}`}>
-        <div className={`relative overflow-hidden bg-surface-2 ${isLead ? 'aspect-[16/9]' : 'aspect-[16/10]'}`}>
+        <div className={`relative overflow-hidden bg-surface-2 ${isLead ? 'aspect-[2/1]' : 'aspect-[16/9]'}`}>
           <CardImage src={article.heroImage} eager={isLead} className="group-hover:scale-[1.03]" />
           {article.isBreaking && (
             <span className="absolute top-3 left-3">
@@ -108,15 +108,15 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           )}
         </div>
 
-        <div className={isLead ? 'pt-4 sm:pt-5' : 'pt-3'}>
+        <div className={isLead ? 'pt-3 sm:pt-4' : 'pt-2.5'}>
           <p className="mb-1.5 text-xs font-bold uppercase tracking-wider text-accent">{label}</p>
 
           {isLead ? (
-            <h2 className="font-display font-extrabold text-[26px] leading-[1.15] sm:text-[34px] lg:text-[40px] lg:leading-[1.1] tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-[6px]">
+            <h2 className="font-display font-extrabold text-[24px] leading-[1.15] sm:text-[28px] lg:text-[32px] lg:leading-[1.12] tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-[6px]">
               {headlineLink}
             </h2>
           ) : (
-            <h3 className="font-display font-bold text-lg sm:text-xl leading-snug tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-4">
+            <h3 className="font-display font-bold text-base sm:text-lg leading-snug tracking-tight text-ink text-balance group-hover:underline decoration-2 underline-offset-4">
               {headlineLink}
             </h3>
           )}
@@ -124,7 +124,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
           {article.standfirst && (
             <p
               className={`mt-2 leading-relaxed text-ink-soft ${
-                isLead ? 'text-base sm:text-lg line-clamp-3 max-w-3xl' : 'text-sm line-clamp-2'
+                isLead ? 'text-[15px] sm:text-base line-clamp-2 max-w-3xl' : 'text-sm line-clamp-2 lg:hidden'
               }`}
             >
               {article.standfirst}
