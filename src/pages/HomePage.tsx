@@ -207,7 +207,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   const [sportLead, ...sportRest] = sport;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-4 space-y-8 sm:space-y-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-4 space-y-6 sm:space-y-8">
       <h1 className="sr-only">The Daily Scot – latest news from Glasgow and Scotland</h1>
 
       {/* Area filter notice if active */}
@@ -220,9 +220,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* 1. HERO BENTO — lead story + two stacked secondary stories */}
       {lead && (
-        <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-6 items-start">
+        <section aria-label="Top stories" className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-6">
           <div className="lg:col-span-8">
-            <ArticleCard article={lead} variant="lead" onSelect={onSelectArticle} />
+            <ArticleCard article={lead} variant="lead" fillHeight={secondary.length > 0} onSelect={onSelectArticle} />
           </div>
           {secondary.length > 0 && (
             <div className="lg:col-span-4 lg:border-l lg:border-line lg:pl-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6 lg:gap-5 content-start">

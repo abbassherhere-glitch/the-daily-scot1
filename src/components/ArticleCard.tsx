@@ -12,6 +12,8 @@ interface ArticleCardProps {
   className?: string;
   /** thumb-left only: show a ranking number on the thumbnail (Most Read lists) */
   rank?: number;
+  /** lead only: on large screens, stretch the picture so the card fills its column's height */
+  fillHeight?: boolean;
 }
 
 const PLACEHOLDER = '/placeholder-hero.svg';
@@ -68,6 +70,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   onSelect,
   className = '',
   rank,
+  fillHeight = false,
 }) => {
   const timeStr = timeAgo(article.publishedAt);
   const label = sectionName(article);
@@ -98,8 +101,12 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   if (variant === 'lead' || variant === 'overlay') {
     const isLead = variant === 'lead';
     return (
-      <article className={`group relative ${className}`}>
-        <div className={`relative overflow-hidden bg-surface-2 ${isLead ? 'aspect-[2/1]' : 'aspect-[16/9]'}`}>
+      <article className={`group relative ${fillHeight ? 'lg:flex lg:flex-col lg:h-full' : ''} ${className}`}>
+        <div
+          className={`relative overflow-hidden bg-surface-2 aspect-[2/1] ${
+            fillHeight ? 'lg:aspect-auto lg:flex-1 lg:min-h-[240px] lg:[&>img]:absolute lg:[&>img]:inset-0' : ''
+          }`}
+        >
           <CardImage src={article.heroImage} eager={isLead} className="group-hover:scale-[1.03]" />
           {article.isBreaking && (
             <span className="absolute top-3 left-3">
