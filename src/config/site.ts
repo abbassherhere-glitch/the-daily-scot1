@@ -14,7 +14,7 @@ export const SITE_CONFIG = {
   // company page that depends on it (Contact, Advertise, Complaints, Privacy) stays out of Google until it is filled in.
   // Anything wrapped in [square brackets] is treated as an unfinished placeholder (see companyDetailsIncomplete).
   companyNumber: '',
-  contactEmail: '',
+  contactEmail: 'abbassherhere@gmail.com',
   newsdeskEmail: '',
   phone: '',
   complaintsEmail: '',

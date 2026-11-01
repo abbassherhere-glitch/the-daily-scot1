@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Menu, X, Pause, Play, Sun, Moon, Mail, CloudSun } from 'lucide-react';
-import { SpaLink, categoryHref } from './SpaLink';
+import { SpaLink, categoryHref, navigateTo } from './SpaLink';
 import { CategoryType, Article } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
 import { useTheme } from '../utils/theme';
@@ -30,6 +30,8 @@ interface BreakingArticle {
 
 /** Sections shown in the desktop bar (the logo is the way home; Opinion joins on very wide screens). */
 const DESKTOP_SECTIONS = SITE_CONFIG.sections.filter((s) => s.slug !== 'home');
+
+const CONTACT_PATH = '/contact';
 
 function weatherCodeToText(code: number): string {
   if (code === 0) return 'Clear';
@@ -154,7 +156,20 @@ export const Header: React.FC<HeaderProps> = ({
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  const isActive = (slug: string) => (slug === 'home' ? currentCategory === 'all' : currentCategory === slug);
+
+  const [onContactPage, setOnContactPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === CONTACT_PATH);
+  useEffect(() => {
+    const sync = () => setOnContactPage(window.location.pathname.replace(/\/+$/, '') === CONTACT_PATH);
+    window.addEventListener('popstate', sync);
+    return () => window.removeEventListener('popstate', sync);
+  }, []);
+
+  const isActive = (slug: string) => !onContactPage && (slug === 'home' ? currentCategory === 'all' : currentCategory === slug);
+
+  const handleContactClick = () => {
+    setMobileMenuOpen(false);
+    navigateTo(CONTACT_PATH);
+  };
 
   const handleSectionClick = (slug: string) => {
     onSelectCategory(slug === 'home' ? 'all' : (slug as CategoryType));
@@ -225,6 +240,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </li>
                 );
               })}
+              <li>
+                <SpaLink
+                  href={CONTACT_PATH}
+                  onNavigate={handleContactClick}
+                  aria-current={onContactPage ? 'page' : undefined}
+                  className={`relative block px-3 py-2 rounded-full text-[13.5px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent ${
+                    onContactPage ? 'text-accent bg-accent/10' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
+                  }`}
+                >
+                  Contact Us
+                </SpaLink>
+              </li>
             </ul>
           </nav>
 
@@ -288,6 +315,18 @@ export const Header: React.FC<HeaderProps> = ({
                 </li>
               );
             })}
+            <li className="shrink-0">
+              <SpaLink
+                href={CONTACT_PATH}
+                onNavigate={handleContactClick}
+                aria-current={onContactPage ? 'page' : undefined}
+                className={`block px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 ${
+                  onContactPage ? 'bg-ink text-page' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
+                }`}
+              >
+                Contact Us
+              </SpaLink>
+            </li>
           </ul>
         </nav>
 
@@ -312,6 +351,18 @@ export const Header: React.FC<HeaderProps> = ({
                   </li>
                 );
               })}
+              <li>
+                <SpaLink
+                  href={CONTACT_PATH}
+                  onNavigate={handleContactClick}
+                  aria-current={onContactPage ? 'page' : undefined}
+                  className={`block px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
+                    onContactPage ? 'bg-accent/10 text-accent' : 'text-ink hover:bg-surface-2'
+                  }`}
+                >
+                  Contact Us
+                </SpaLink>
+              </li>
             </ul>
             <div className="max-w-7xl mx-auto px-3 sm:px-6 pb-4">
               <button

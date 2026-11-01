@@ -15,8 +15,22 @@ export const InfoContent: React.FC<{ id: InfoPageId; className?: string }> = ({ 
     )}
     {id === 'contact' && (
       <div className="space-y-1.5">
+        {SITE_CONFIG.contactEmail && (
+          <p>
+            To ask about any of our journalists, editors or staff, email us at{' '}
+            <a href={`mailto:${SITE_CONFIG.contactEmail}`} className="font-semibold text-accent underline underline-offset-2">
+              {SITE_CONFIG.contactEmail}
+            </a>
+            .
+          </p>
+        )}
         {SITE_CONFIG.newsdeskEmail && <p><strong>Editorial Newsdesk:</strong> {SITE_CONFIG.newsdeskEmail}</p>}
-        {SITE_CONFIG.contactEmail && <p><strong>General Enquiries:</strong> {SITE_CONFIG.contactEmail}</p>}
+        {SITE_CONFIG.contactEmail && (
+          <p>
+            <strong>General Enquiries:</strong>{' '}
+            <a href={`mailto:${SITE_CONFIG.contactEmail}`} className="underline underline-offset-2">{SITE_CONFIG.contactEmail}</a>
+          </p>
+        )}
         {SITE_CONFIG.phone && <p><strong>Telephone:</strong> {SITE_CONFIG.phone}</p>}
         {SITE_CONFIG.companyNumber && <p><strong>Company Registration:</strong> {SITE_CONFIG.companyNumber}</p>}
         {!SITE_CONFIG.newsdeskEmail && !SITE_CONFIG.contactEmail && !SITE_CONFIG.phone && (
