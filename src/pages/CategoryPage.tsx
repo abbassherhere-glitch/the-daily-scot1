@@ -5,6 +5,7 @@ import { CATEGORIES } from '../data/mockArticles';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
 import { SpaLink } from '../components/SpaLink';
+import { sectionHeading } from '../config/seoText';
 
 interface CategoryPageProps {
   category: CategoryType;
@@ -57,7 +58,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
       {/* Category Section Header (Flat brand bar) */}
       <div className="border-b border-line pb-5">
         <h1 className="font-display font-extrabold text-3xl sm:text-[40px] text-ink tracking-tight">
-          {categoryMeta.label}
+          {sectionHeading(category, categoryMeta.label)}
         </h1>
         <p className="text-sm sm:text-base text-ink-muted mt-2">
           {categoryMeta.description}
