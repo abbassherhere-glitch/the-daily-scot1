@@ -21,6 +21,7 @@ import {
   renderSeoPage,
   safeImageUrl,
   sectionSeo,
+  sectionHeading,
   shellHtml,
   siteOrigin,
   toIso,
@@ -135,7 +136,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       const canonical = `${origin}/news/${encodeURIComponent(section.slug)}`;
       const main =
         `<nav aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li>${escapeText(section.name)}</li></ol></nav>` +
-        `<h1>${escapeText(section.name)}</h1>` +
+        `<h1>${escapeText(sectionHeading(section.slug, section.name))}</h1>` +
         `<p>${escapeText(section.description || seo.description)}</p>` +
         (stories.length ? `<ul>${headlineListHtml(stories)}</ul>` : '<p>There are no stories in this section yet.</p>');
 
