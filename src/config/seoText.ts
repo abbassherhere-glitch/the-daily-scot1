@@ -18,7 +18,7 @@ export function withBrand(title: string): string {
 /** Titles and descriptions written for search results. Anything not listed falls back to the database name/description. */
 const SECTION_SEO: Record<string, { title: string; description: string }> = {
   news: {
-    title: 'Latest Glasgow & Scotland News',
+    title: 'Latest News Today: Breaking Stories, Crime & Courts',
     description: 'Breaking news, crime, courts and council reports from Glasgow and across Scotland, reported by The Daily Scot.',
   },
   glasgow: {
@@ -54,6 +54,21 @@ const SECTION_SEO: Record<string, { title: string; description: string }> = {
     description: 'Opinion, letters and analysis from The Daily Scot columnists on Glasgow and Scottish life.',
   },
 };
+
+/** Main page heading (h1) per section. Anything not listed uses the section name. */
+const SECTION_HEADINGS: Record<string, string> = {
+  news: 'Latest News',
+  glasgow: 'Glasgow News',
+  scotland: 'Scotland News',
+  politics: 'Politics News',
+  business: 'Business News',
+  property: 'Property News',
+  sport: 'Sport News',
+};
+
+export function sectionHeading(slug: string, name: string): string {
+  return SECTION_HEADINGS[slug] || name;
+}
 
 export function sectionSeo(slug: string, name: string, dbDescription?: string | null) {
   const known = SECTION_SEO[slug];
