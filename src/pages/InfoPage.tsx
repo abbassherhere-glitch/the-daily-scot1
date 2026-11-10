@@ -18,7 +18,7 @@ export const InfoPage: React.FC<InfoPageProps> = ({ id, onSelectCategory }) => {
   return (
     <div className="max-w-3xl mx-auto px-4 py-4 space-y-5 bg-white">
       <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
-        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#004a94]">
           <li>
             <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
               Home

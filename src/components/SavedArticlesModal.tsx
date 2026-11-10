@@ -32,7 +32,7 @@ export const SavedArticlesModal: React.FC<SavedArticlesModalProps> = ({
       overlayClassName="fixed inset-0 z-50 flex items-center justify-end bg-black/60"
       className="w-full max-w-md h-full bg-white border-l border-neutral-300 flex flex-col font-sans"
       renderHeader={(titleId) => (
-        <div className="p-3.5 bg-[#0B2545] text-white flex items-center justify-between">
+        <div className="p-3.5 bg-[#111111] text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bookmark className="w-4 h-4 text-white" aria-hidden="true" />
             <div>
@@ -77,7 +77,7 @@ export const SavedArticlesModal: React.FC<SavedArticlesModalProps> = ({
                     <img src={article.heroImage} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[10px] uppercase font-bold text-[#005EB8] block">
+                    <span className="text-[10px] uppercase font-bold text-[#004a94] block">
                       {article.subcategory || article.category}
                     </span>
                     <h3 className="font-headline font-bold text-xs text-neutral-900 leading-snug line-clamp-2 mt-0.5">
@@ -106,7 +106,7 @@ export const SavedArticlesModal: React.FC<SavedArticlesModalProps> = ({
                     <SpaLink
                       href={articleHref(article)}
                       onNavigate={() => open(article)}
-                      className="text-[#005EB8] font-bold text-xs flex items-center gap-1 hover:underline min-h-6"
+                      className="text-[#004a94] font-bold text-xs flex items-center gap-1 hover:underline min-h-6"
                       aria-label={`Read "${article.title}"`}
                     >
                       <span>Read</span>

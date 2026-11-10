@@ -7,8 +7,8 @@ export const TravelWidget: React.FC<{ className?: string }> = ({ className = '' 
     <div className={`bg-white border border-[#E2DDD5] rounded p-4 shadow-xs ${className}`}>
       <div className="flex items-center justify-between pb-2 mb-3 border-b border-neutral-200">
         <div className="flex items-center gap-2">
-          <Train className="w-4 h-4 text-[#005EB8]" />
-          <h4 className="font-headline font-bold text-sm text-[#0B2545]">
+          <Train className="w-4 h-4 text-[#004a94]" />
+          <h4 className="font-headline font-bold text-sm text-[#111111]">
             Clyde & Subway Travel Live
           </h4>
         </div>
@@ -35,7 +35,7 @@ export const TravelWidget: React.FC<{ className?: string }> = ({ className = '' 
 
       <div className="mt-3 pt-2 border-t border-neutral-100 flex items-center justify-between text-[11px] text-neutral-500">
         <span>Subway: 06:30 - 23:45</span>
-        <span className="text-[#005EB8] font-medium hover:underline cursor-pointer">
+        <span className="text-[#004a94] font-medium hover:underline cursor-pointer">
           SPT Timetables
         </span>
       </div>

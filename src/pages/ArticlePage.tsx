@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Share2, 
-  Bookmark, 
-  Check, 
-  MessageSquare, 
-  ThumbsUp, 
-  Send,
-  ChevronRight
-} from 'lucide-react';
+import { Share2, Bookmark, Check } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
-import { ArticleCard } from '../components/ArticleCard';
+import { ArticleCard, sectionName } from '../components/ArticleCard';
+import { BLOCK_LABEL, BlockLabel } from '../components/BlockLabel';
+import { markQuestionHeadings } from '../config/storyBlocks';
 import { AdBanner } from '../components/AdBanner';
 import { SpaLink, articleHref, authorHref, categoryHref, navigateTo } from '../components/SpaLink';
 import DOMPurify from 'dompurify';
@@ -25,7 +19,15 @@ interface ArticlePageProps {
 }
 
 const STRETCHED_LINK =
-  "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-[#005EB8]";
+  "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-ink";
+
+const SHARE_BUTTON =
+  'inline-flex items-center justify-center gap-1.5 h-11 px-3.5 bg-surface border-2 border-ink text-ink text-sm font-bold hover:bg-brand';
+
+const READ_MORE_BOX = 'my-6 border-y-2 border-ink py-3 font-sans text-base';
+
+/** Stories shown under "More on <section>" (the server-rendered page lists the same number) */
+const MORE_ON_SECTION = 3;
 
 export const ArticlePage: React.FC<ArticlePageProps> = ({
   article,
@@ -91,130 +93,142 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
   const pubDate = new Date(article.publishedAt);
   const dateFormatted = `${pubDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${pubDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}`;
 
-  // Inline "Read More" stories
+  const sectionLabel = sectionName(article);
+
+  // Inline "Read more" links: the two newest other stories
   const otherStories = allArticles.filter((a) => a.id !== article.id);
   const inlineReadMore1 = otherStories[0];
   const inlineReadMore2 = otherStories[1];
 
-  // Related stories & Most Read (from real page view tracking)
-  const relatedStories = otherStories.slice(0, 3);
-  const mostRead = liveMostRead.length > 0 ? liveMostRead : [...allArticles].slice(0, 5);
+  // "More on <section>": the newest other stories from this story's own section
+  const moreOnSection = otherStories.filter((a) => a.category === article.category).slice(0, MORE_ON_SECTION);
+  // Most read comes from real page-view tracking
+  const mostRead = (liveMostRead.length > 0 ? liveMostRead : [...allArticles]).slice(0, 5);
+
+  const readMore = (story: Article) => (
+    <div className={READ_MORE_BOX}>
+      <BlockLabel className="mr-2 align-middle">Read more</BlockLabel>
+      <SpaLink
+        href={articleHref(story)}
+        onNavigate={() => onSelectArticle(story)}
+        className="font-bold text-ink underline decoration-2 underline-offset-4 hover:decoration-4"
+      >
+        {story.title}
+      </SpaLink>
+    </div>
+  );
 
   return (
-    <article className="max-w-7xl mx-auto px-4 py-4 space-y-6 bg-white">
-      {/* 1. SECTION LABEL BREADCRUMB */}
-      <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
-        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
-          <li>
-            <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
-              Home
-            </SpaLink>
-          </li>
-          <li aria-hidden="true">
-            <ChevronRight className="w-3 h-3 text-neutral-500" />
-          </li>
-          <li>
-            <SpaLink
-              href={categoryHref(article.category)}
-              onNavigate={() => onSelectCategory(article.category)}
-              className="hover:underline inline-block py-1"
-            >
-              {article.category}
-            </SpaLink>
-          </li>
-          {article.subcategory && article.subcategory.toLowerCase() !== article.category.toLowerCase() && (
-            <>
-              <li aria-hidden="true">
-                <ChevronRight className="w-3 h-3 text-neutral-500" />
-              </li>
-              <li className="text-neutral-700">{article.subcategory}</li>
-            </>
-          )}
-        </ol>
-      </nav>
+    <article className="max-w-7xl mx-auto pb-6">
+      {/* 1. LEAD PHOTO, full width, with the headline on a black panel overlapping the bottom of it */}
+      <div className="bg-surface-2 aspect-[16/10] sm:aspect-[2/1] lg:aspect-[21/9] overflow-hidden">
+        <img
+          src={article.heroImage}
+          alt={article.heroCaption ? '' : article.title}
+          fetchPriority="high"
+          decoding="async"
+          className="w-full h-full object-cover"
+        />
+      </div>
 
-      {/* 2. HEADLINE & STANDFIRST */}
-      <div className="max-w-4xl space-y-3">
-        <h1 className="font-headline font-black text-2xl sm:text-3xl lg:text-4xl text-neutral-900 leading-tight">
+      <div className="on-dark relative -mt-10 sm:-mt-20 lg:-mt-28 mr-4 sm:mx-6 lg:max-w-4xl bg-brand-ink text-white px-4 py-5 sm:p-8">
+        <nav aria-label="Breadcrumb" className="mb-3">
+          <ol className="flex flex-wrap items-center gap-1.5">
+            <li>
+              <SpaLink
+                href="/"
+                onNavigate={() => onSelectCategory('all')}
+                className={`${BLOCK_LABEL} bg-white text-brand-ink hover:bg-brand`}
+              >
+                Home
+              </SpaLink>
+            </li>
+            <li>
+              <SpaLink
+                href={categoryHref(article.category)}
+                onNavigate={() => onSelectCategory(article.category)}
+                className={`${BLOCK_LABEL} bg-brand text-brand-ink hover:bg-white`}
+              >
+                {sectionLabel}
+              </SpaLink>
+            </li>
+            {article.locationTag && article.locationTag.toLowerCase() !== sectionLabel.toLowerCase() && (
+              <li>
+                <BlockLabel tone="area-inv">{article.locationTag}</BlockLabel>
+              </li>
+            )}
+            {article.isBreaking && (
+              <li>
+                <BlockLabel tone="alert">Breaking</BlockLabel>
+              </li>
+            )}
+          </ol>
+        </nav>
+
+        <h1 className="font-headline font-extrabold text-[28px] leading-[1.1] sm:text-4xl lg:text-5xl lg:leading-[1.05] text-white text-balance">
           {article.title}
         </h1>
 
-        <p className="text-base sm:text-lg text-neutral-700 font-serif italic leading-snug">
-          {article.standfirst}
-        </p>
+        {article.standfirst && (
+          <p className="mt-3 text-base sm:text-lg text-neutral-200 leading-snug max-w-3xl">{article.standfirst}</p>
+        )}
+      </div>
 
-        {/* 3. BYLINE & TIMESTAMP ROW */}
-        <div className="py-2.5 border-y border-neutral-200 flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-600">
+      <div className="px-4 sm:px-6 space-y-6">
+        {(article.heroCaption || article.heroCredit) && (
+          <p className="mt-2 text-xs text-ink-muted">
+            {article.heroCaption}
+            {article.heroCaption && article.heroCredit ? ' · ' : ''}
+            {article.heroCredit && <span className="font-semibold">{article.heroCredit}</span>}
+          </p>
+        )}
+
+        {/* 2. BYLINE ROW, with a 2px black rule under it */}
+        <div className="pt-2 pb-3 border-b-2 border-ink flex flex-wrap items-center justify-between gap-3 text-sm text-ink-soft">
           <div className="flex items-center gap-3">
             {article.author.avatar ? (
-              <img
-                src={article.author.avatar}
-                alt=""
-                className="w-9 h-9 rounded-full object-cover border border-neutral-300"
-              />
+              <img src={article.author.avatar} alt="" className="w-11 h-11 object-cover bg-surface-2" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-[#0B2545] text-white flex items-center justify-center font-bold text-sm">
+              <div className="w-11 h-11 bg-brand text-brand-ink flex items-center justify-center font-extrabold text-lg" aria-hidden="true">
                 {article.author.name.charAt(0)}
               </div>
             )}
             <div>
-              <div className="font-bold text-neutral-900">
+              <div className="font-bold text-ink">
                 By{' '}
                 <SpaLink
                   href={authorHref(article.author)}
                   onNavigate={() => navigateTo(authorHref(article.author))}
-                  className="hover:text-[#005EB8] underline decoration-neutral-300 underline-offset-2 hover:decoration-[#005EB8]"
+                  className="underline decoration-2 underline-offset-2 hover:decoration-4"
                 >
                   {article.author.name}
                 </SpaLink>
               </div>
-              <div className="text-[11px] text-neutral-500">
-                {article.author.role}
-              </div>
+              <div className="text-xs text-ink-muted">{article.author.role}</div>
             </div>
           </div>
 
-          <div className="text-[11px] text-neutral-600">
+          <div className="text-xs text-ink-muted">
             <span>Published: <time dateTime={article.publishedAt}>{dateFormatted}</time></span>
           </div>
         </div>
 
-        {/* 4. SHARE BUTTONS ROW (wraps on narrow screens) */}
-        <div className="flex flex-wrap items-center gap-2 pt-1 pb-2 border-b border-neutral-200 text-xs">
-          <span id="share-label" className="text-[10px] uppercase font-bold text-neutral-600 mr-1">Share:</span>
+        {/* 3. SHARE BUTTONS ROW (wraps on narrow screens) */}
+        <div className="flex flex-wrap items-center gap-2 no-print">
+          <span id="share-label" className="text-xs uppercase font-extrabold tracking-wider text-ink mr-1">Share</span>
           <div role="group" aria-labelledby="share-label" className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleShare('facebook')}
-              aria-label="Share on Facebook (opens in a new window)"
-              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-            >
+            <button type="button" onClick={() => handleShare('facebook')} aria-label="Share on Facebook (opens in a new window)" className={SHARE_BUTTON}>
               Facebook
             </button>
-            <button
-              type="button"
-              onClick={() => handleShare('twitter')}
-              aria-label="Share on X, formerly Twitter (opens in a new window)"
-              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-            >
-              X (Twitter)
+            <button type="button" onClick={() => handleShare('twitter')} aria-label="Share on X, formerly Twitter (opens in a new window)" className={SHARE_BUTTON}>
+              X
             </button>
-            <button
-              type="button"
-              onClick={() => handleShare('whatsapp')}
-              aria-label="Share on WhatsApp (opens in a new window)"
-              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition"
-            >
+            <button type="button" onClick={() => handleShare('whatsapp')} aria-label="Share on WhatsApp (opens in a new window)" className={SHARE_BUTTON}>
               WhatsApp
             </button>
-            <button
-              type="button"
-              onClick={() => handleShare('copy')}
-              aria-label="Copy link to this story"
-              className="px-2.5 py-1.5 bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-semibold border border-neutral-300 transition flex items-center gap-1"
-            >
-              {copiedLink ? <Check className="w-3 h-3 text-emerald-700" aria-hidden="true" /> : <Share2 className="w-3 h-3" aria-hidden="true" />}
-              <span>{copiedLink ? 'Copied' : 'Copy'}</span>
+            <button type="button" onClick={() => handleShare('copy')} aria-label="Copy link to this story" className={SHARE_BUTTON}>
+              {copiedLink ? <Check className="w-4 h-4" aria-hidden="true" /> : <Share2 className="w-4 h-4" aria-hidden="true" />}
+              <span>{copiedLink ? 'Copied' : 'Copy link'}</span>
             </button>
           </div>
           <span className="sr-only" role="status" aria-live="polite">
@@ -225,212 +239,135 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             type="button"
             onClick={(e) => onToggleSave(article.id, e)}
             aria-pressed={isSaved}
-            className="sm:ml-auto px-2.5 py-1.5 border border-neutral-300 text-neutral-700 hover:bg-neutral-100 flex items-center gap-1 font-semibold"
+            className={`sm:ml-auto ${SHARE_BUTTON} ${isSaved ? 'bg-brand!' : ''}`}
           >
-            <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-neutral-800' : ''}`} aria-hidden="true" />
+            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-ink' : ''}`} aria-hidden="true" />
             <span>{isSaved ? 'Saved' : 'Save story'}</span>
           </button>
         </div>
-      </div>
 
-      {/* 5. MAIN CONTENT + SIDEBAR MPU */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Article Body Column (8 cols, max-w-[680px]) */}
-        <div className="lg:col-span-8 space-y-5">
-          {/* Main Hero Image */}
-          <figure className="space-y-1.5">
-            <div className="aspect-16/10 bg-neutral-100 overflow-hidden border border-neutral-200">
-              <img
-                src={article.heroImage}
-                alt={article.heroCaption ? '' : article.title}
-                fetchPriority="high"
-                decoding="async"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <figcaption className="text-xs text-neutral-600 font-sans flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-              <span>{article.heroCaption}</span>
-              {(article.heroCredit || (article as any).photoCredit) && (
-                <span className="font-semibold shrink-0 text-neutral-600">
-                  {article.heroCredit || `Photograph: ${(article as any).photoCredit}`}
-                </span>
-              )}
-            </figcaption>
-          </figure>
+        {/* 4. STORY + SIDEBAR */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="lg:col-span-8 space-y-6">
+            {/* Key facts: solid yellow block, black text */}
+            {article.keyFacts && article.keyFacts.length > 0 && (
+              <aside aria-label={article.keyFactsHeading || 'Key facts'} className="max-w-[680px] bg-brand text-brand-ink p-5 sm:p-6">
+                <h2 className="text-[13px] font-extrabold uppercase tracking-[0.14em] border-b-2 border-brand-ink pb-2 mb-3">
+                  {article.keyFactsHeading || 'Key facts'}
+                </h2>
+                <ul className="list-[square] pl-5 space-y-2 text-base sm:text-[17px] font-medium leading-snug">
+                  {article.keyFacts.map((fact, i) => (
+                    <li key={i}>{fact}</li>
+                  ))}
+                </ul>
+              </aside>
+            )}
 
-          {/* Key facts summary box */}
-          {article.keyFacts && article.keyFacts.length > 0 && (
-            <aside
-              aria-label={article.keyFactsHeading || 'Key facts'}
-              className="max-w-[680px] border-l-4 border-[#005EB8] bg-neutral-50 px-4 py-3 font-sans"
-            >
-              <h2 className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">
-                {article.keyFactsHeading || 'Key facts'}
-              </h2>
-              <ul className="list-disc pl-5 space-y-1.5 text-[15px] leading-snug text-neutral-900">
-                {article.keyFacts.map((fact, i) => (
-                  <li key={i}>{fact}</li>
-                ))}
-              </ul>
-            </aside>
-          )}
+            {/* Story text with inline "Read more" links */}
+            <div className="max-w-[680px] text-[18px] leading-[1.65] text-ink">
+              {article.content.map((para, i) => (
+                <React.Fragment key={i}>
+                  <div
+                    className="story-body"
+                    dangerouslySetInnerHTML={{
+                      __html: markQuestionHeadings(
+                        DOMPurify.sanitize(para, {
+                          ALLOWED_TAGS: [
+                            'p', 'h2', 'h3', 'strong', 'em', 'b', 'i', 'a',
+                            'ul', 'ol', 'li', 'blockquote', 'figure', 'figcaption', 'img', 'br'
+                          ],
+                          ALLOWED_ATTR: ['href', 'rel', 'target', 'src', 'alt', 'title']
+                        }),
+                      ),
+                    }}
+                  />
 
-          {/* Body Paragraphs with Inline "Read More" Links */}
-          <div className="max-w-[680px] space-y-4 text-[18px] leading-[1.65] font-serif text-neutral-900">
-            {article.content.map((para, i) => (
-              <React.Fragment key={i}>
-                <div
-                  className="article-body-segment [&>p]:mb-4 [&>h2]:font-sans [&>h2]:font-bold [&>h2]:text-2xl [&>h2]:text-neutral-900 [&>h2]:mt-6 [&>h2]:mb-2 [&>h3]:font-sans [&>h3]:font-bold [&>h3]:text-xl [&>h3]:text-neutral-900 [&>h3]:mt-5 [&>h3]:mb-2 [&>a]:text-[#005EB8] [&>a]:underline [&>ul]:list-disc [&>ul]:pl-5 [&>ul]:my-3 [&>ol]:list-decimal [&>ol]:pl-5 [&>ol]:my-3 [&>blockquote]:border-l-4 [&>blockquote]:border-neutral-800 [&>blockquote]:pl-4 [&>blockquote]:italic [&>blockquote]:my-4"
-                  dangerouslySetInnerHTML={{
-                    __html: DOMPurify.sanitize(para, {
-                      ALLOWED_TAGS: [
-                        'p', 'h2', 'h3', 'strong', 'em', 'b', 'i', 'a',
-                        'ul', 'ol', 'li', 'blockquote', 'figure', 'figcaption', 'img', 'br'
-                      ],
-                      ALLOWED_ATTR: ['href', 'rel', 'target', 'src', 'alt', 'title']
-                    })
-                  }}
-                />
+                  {i === 1 && inlineReadMore1 && readMore(inlineReadMore1)}
 
-                {/* Inline 'READ MORE' link after paragraph 1 */}
-                {i === 1 && inlineReadMore1 && (
-                  <div className="my-5 p-3 bg-neutral-50 border-l-4 border-[#005EB8] not-italic font-sans text-xs">
-                    <span className="font-black uppercase tracking-wider text-[#005EB8] mr-2">
-                      READ MORE:
-                    </span>
-                    <SpaLink
-                      href={articleHref(inlineReadMore1)}
-                      onNavigate={() => onSelectArticle(inlineReadMore1)}
-                      className="font-bold text-neutral-900 hover:text-[#005EB8] underline text-left"
-                    >
-                      {inlineReadMore1.title}
-                    </SpaLink>
-                  </div>
-                )}
+                  {/* Pull quote if available */}
+                  {i === 2 && article.pullQuote && (
+                    <blockquote className="my-6 bg-brand-ink text-white p-5">
+                      <p className="font-headline font-extrabold text-xl leading-snug">
+                        &ldquo;{article.pullQuote.text}&rdquo;
+                      </p>
+                      <cite className="block mt-2 text-xs font-bold uppercase tracking-wider text-brand not-italic">
+                        {article.pullQuote.attribution}
+                      </cite>
+                    </blockquote>
+                  )}
 
-                {/* Pull quote if available */}
-                {i === 2 && article.pullQuote && (
-                  <blockquote className="my-6 p-4 border-l-4 border-neutral-800 bg-neutral-50 not-italic">
-                    <p className="font-serif italic font-bold text-lg text-neutral-900">
-                      "{article.pullQuote.text}"
-                    </p>
-                    <cite className="block mt-1 font-sans text-xs font-bold uppercase tracking-wider text-neutral-600 not-italic">
-                      — {article.pullQuote.attribution}
-                    </cite>
-                  </blockquote>
-                )}
-
-                {/* Inline 'READ MORE' link after paragraph 3 */}
-                {i === 3 && inlineReadMore2 && (
-                  <div className="my-5 p-3 bg-neutral-50 border-l-4 border-[#005EB8] not-italic font-sans text-xs">
-                    <span className="font-black uppercase tracking-wider text-[#005EB8] mr-2">
-                      READ MORE:
-                    </span>
-                    <SpaLink
-                      href={articleHref(inlineReadMore2)}
-                      onNavigate={() => onSelectArticle(inlineReadMore2)}
-                      className="font-bold text-neutral-900 hover:text-[#005EB8] underline text-left"
-                    >
-                      {inlineReadMore2.title}
-                    </SpaLink>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-          </div>
-
-          {/* Tags */}
-          <div className="pt-4 border-t border-neutral-200 max-w-[680px]">
-            <span className="text-xs font-bold uppercase text-neutral-600 mr-2">Tags:</span>
-            <div className="inline-flex flex-wrap gap-1.5 mt-1">
-              {article.tags.map((t) => (
-                <span
-                  key={t}
-                  className="bg-neutral-100 text-neutral-800 text-xs px-2.5 py-0.5 border border-neutral-300 font-medium"
-                >
-                  {t}
-                </span>
+                  {i === 3 && inlineReadMore2 && readMore(inlineReadMore2)}
+                </React.Fragment>
               ))}
             </div>
-          </div>
 
-        </div>
-
-        {/* Right Column (4 cols) with MPU Ad Slot and Trending News */}
-        <aside className="lg:col-span-4 space-y-6">
-          <AdBanner type="mpu" />
-
-          {/* Trending in Glasgow list */}
-          <div className="border border-neutral-200 p-4">
-            <h2 className="font-headline font-black text-sm uppercase tracking-wider text-neutral-900 border-b-2 border-neutral-900 pb-1.5 mb-3">
-              Trending Stories
-            </h2>
-            <ul className="divide-y divide-neutral-200">
-              {otherStories.slice(0, 4).map((art) => (
-                <li key={art.id} className="relative py-2.5 cursor-pointer group">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#005EB8] block mb-0.5">
-                    {art.subcategory || art.category}
+            {/* Tags */}
+            {article.tags.length > 0 && (
+              <div className="pt-4 border-t-2 border-ink max-w-[680px] flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-extrabold uppercase tracking-wider text-ink mr-1">Tags</span>
+                {article.tags.map((t) => (
+                  <span key={t} className="bg-surface border border-line-strong text-ink text-xs px-2.5 py-1 font-semibold">
+                    {t}
                   </span>
-                  <h3 className="font-headline font-bold text-xs text-neutral-900 group-hover:text-[#005EB8] group-hover:underline line-clamp-2">
-                    <SpaLink href={articleHref(art)} onNavigate={() => onSelectArticle(art)} className={STRETCHED_LINK}>
-                      {art.title}
-                    </SpaLink>
-                  </h3>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      {/* 6. MORE ON THIS STORY (Bottom 3-column grid) */}
-      <section className="pt-6 border-t-4 border-[#0B2545]">
-        <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-4">
-          More on this story
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {relatedStories.map((rel) => (
-            <ArticleCard
-              key={rel.id}
-              article={rel}
-              variant="grid-card"
-              onSelect={onSelectArticle}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* 7. MOST READ SIMPLE LIST AT BOTTOM */}
-      <section className="pt-6 border-t border-neutral-300">
-        <h2 className="font-headline font-black text-xl text-neutral-900 uppercase tracking-tight mb-3">
-          Most Read Across Glasgow
-        </h2>
-        <ol className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {mostRead.map((item, idx) => (
-            <li
-              key={item.id}
-              className="relative p-3 border border-neutral-200 cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <span className="font-headline font-black text-2xl text-neutral-500 group-hover:text-[#005EB8]" aria-hidden="true">
-                  #{idx + 1}
-                </span>
-                <span className="text-[10px] font-bold uppercase text-[#005EB8] block mt-1">
-                  {item.subcategory || item.category}
-                </span>
-                <h3 className="font-headline font-bold text-xs text-neutral-900 group-hover:underline line-clamp-3 mt-1">
-                  <SpaLink href={articleHref(item)} onNavigate={() => onSelectArticle(item)} className={STRETCHED_LINK}>
-                    {item.title}
-                  </SpaLink>
-                </h3>
+                ))}
               </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+            )}
+          </div>
 
-      {/* Bottom Leaderboard */}
-      <AdBanner type="leaderboard" className="mt-8" />
+          {/* Sidebar: advert and Most read */}
+          <aside className="lg:col-span-4 space-y-8">
+            <AdBanner type="mpu" />
+
+            {mostRead.length > 0 && (
+              <section aria-labelledby="most-read-heading">
+                <div className="border-b-[3px] border-ink mb-1">
+                  <h2 id="most-read-heading" className="inline-block bg-brand text-brand-ink px-3 py-1.5 font-headline font-extrabold text-base uppercase">
+                    Most read
+                  </h2>
+                </div>
+                <ol>
+                  {mostRead.map((item, idx) => (
+                    <li key={item.id} className="group relative flex items-start gap-3 py-3 border-b border-line">
+                      <span
+                        className={`shrink-0 inline-flex items-center justify-center w-11 h-11 font-headline font-extrabold text-xl ${
+                          idx === 0 ? 'bg-brand text-brand-ink' : 'bg-brand-ink text-white'
+                        }`}
+                        aria-hidden="true"
+                      >
+                        {idx + 1}
+                      </span>
+                      <h3 className="font-headline font-extrabold text-base leading-snug text-ink group-hover:underline decoration-2 underline-offset-4">
+                        <SpaLink href={articleHref(item)} onNavigate={() => onSelectArticle(item)} className={STRETCHED_LINK}>
+                          {item.title}
+                        </SpaLink>
+                      </h3>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
+          </aside>
+        </div>
+
+        {/* 5. MORE ON <SECTION>: three cards with photos */}
+        {moreOnSection.length > 0 && (
+          <section aria-labelledby="more-on-heading" className="pt-2">
+            <div className="border-b-[3px] border-ink mb-5">
+              <h2 id="more-on-heading" className="inline-block bg-brand text-brand-ink px-3 py-1.5 font-headline font-extrabold text-xl uppercase">
+                More on {sectionLabel}
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-8">
+              {moreOnSection.map((rel) => (
+                <ArticleCard key={rel.id} article={rel} variant="grid-card" onSelect={onSelectArticle} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Bottom advert */}
+        <AdBanner type="leaderboard" className="mt-8" />
+      </div>
     </article>
   );
 };

@@ -102,7 +102,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       `<p>${escapeText(author.role)}</p>` +
       (author.bio ? `<p>${escapeText(author.bio)}</p>` : '') +
       `<p>${total} ${total === 1 ? 'story' : 'stories'}</p>` +
-      `<ul>${headlineListHtml(stories)}</ul>` +
+      `<ul class="list">${headlineListHtml(stories)}</ul>` +
       pagination;
 
     const isDesk = author.slug === STAFF_BYLINE_SLUG;

@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
-/** Light / dark colour theme. Day (light) is the default; the first paint is handled by the inline script in index.html. */
+/**
+ * Light / dark colour theme. Not in use at the moment: the site is light only while the yellow and black
+ * design beds in, and nothing calls useTheme(). Kept for when dark mode returns.
+ */
 export type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'ds-theme';
-const THEME_COLOR = { light: '#ffffff', dark: '#0b0f17' } as const;
+const THEME_COLOR = { light: '#111111', dark: '#111111' } as const;
 
 function currentTheme(): Theme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light';

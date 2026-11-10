@@ -1,44 +1,32 @@
 @import "tailwindcss";
 
-/* Dark mode is a class on <html> (set before first paint by the inline script in index.html, toggled in the header). */
+/* Dark mode is switched off while the yellow and black design beds in; the variant stays so older classes compile. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------------------------------------
-   Design tokens. Semantic colours switch with the theme, so components use bg-surface / text-ink /
-   border-line and never need a separate dark: class.
+   Design tokens. Components use bg-surface / text-ink / border-line for neutrals and
+   bg-brand / text-brand-ink for the yellow and black brand blocks.
+
+   Contrast notes (WCAG AA needs 4.5:1 for text):
+     - black on yellow is about 14:1, so yellow blocks always carry black text;
+     - yellow is never used for text or thin lines on light backgrounds (about 1.3:1), only on black;
+     - muted grey is #595959, which is 6:1 on the page background.
    ------------------------------------------------------------------------------------------------ */
 :root {
-  --ds-page: #ffffff;
+  --ds-page: #f4f4f1;
   --ds-surface: #ffffff;
-  --ds-surface-2: #f1f3f6;
-  --ds-ink: #0f172a;
-  --ds-ink-soft: #334155;
-  --ds-ink-muted: #64748b;
-  --ds-line: rgba(15, 23, 42, 0.08);
-  --ds-line-strong: rgba(15, 23, 42, 0.14);
-  --ds-accent: #005eb8;
+  --ds-surface-2: #e8e8e3;
+  --ds-ink: #111111;
+  --ds-ink-soft: #333333;
+  --ds-ink-muted: #595959;
+  --ds-line: rgba(17, 17, 17, 0.16);
+  --ds-line-strong: rgba(17, 17, 17, 0.4);
+  --ds-accent: #004a94;
   --ds-accent-ink: #ffffff;
-  --ds-header: rgba(255, 255, 255, 0.78);
-  --ds-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px rgba(15, 23, 42, 0.06);
-  --ds-shadow-hover: 0 2px 4px rgba(15, 23, 42, 0.06), 0 12px 32px rgba(15, 23, 42, 0.1);
+  --ds-brand: #f7e14b;
+  --ds-brand-ink: #111111;
+  --ds-alert: #c81e1e;
   color-scheme: light;
-}
-
-.dark {
-  --ds-page: #0b0f17;
-  --ds-surface: #121826;
-  --ds-surface-2: #1a2233;
-  --ds-ink: #f1f5f9;
-  --ds-ink-soft: #cbd5e1;
-  --ds-ink-muted: #94a3b8;
-  --ds-line: rgba(255, 255, 255, 0.08);
-  --ds-line-strong: rgba(255, 255, 255, 0.14);
-  --ds-accent: #4d9fff;
-  --ds-accent-ink: #0b0f17;
-  --ds-header: rgba(11, 15, 23, 0.78);
-  --ds-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.25);
-  --ds-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 12px 32px rgba(0, 0, 0, 0.4);
-  color-scheme: dark;
 }
 
 @theme inline {
@@ -51,8 +39,9 @@
   --color-line: var(--ds-line);
   --color-line-strong: var(--ds-line-strong);
   --color-accent: var(--ds-accent);
-  --shadow-card: var(--ds-shadow);
-  --shadow-card-hover: var(--ds-shadow-hover);
+  --color-brand: var(--ds-brand);
+  --color-brand-ink: var(--ds-brand-ink);
+  --color-alert: var(--ds-alert);
 }
 
 @theme {
@@ -64,12 +53,24 @@
   /* Older components use Tailwind's font-serif for standfirsts; keep everything on the sans system. */
   --font-serif: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --color-scot-navy: #0B2545;
-  --color-scot-saltire: #005EB8;
-  --color-scot-red: #D92525;
-  --color-scot-border: #E5E7EB;
-  --color-scot-dark: #111827;
-  --color-scot-muted: #6B7280;
+  /* Flat brand: square corners and no drop shadows anywhere, including on older components. */
+  --radius-xs: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+  --shadow-2xs: 0 0 #0000;
+  --shadow-xs: 0 0 #0000;
+  --shadow-sm: 0 0 #0000;
+  --shadow-md: 0 0 #0000;
+  --shadow-lg: 0 0 #0000;
+  --shadow-xl: 0 0 #0000;
+  --shadow-2xl: 0 0 #0000;
+  --shadow-card: 0 0 #0000;
+  --shadow-card-hover: 0 0 #0000;
 }
 
 @layer base {
@@ -89,7 +90,49 @@
 .font-headline,
 .font-display {
   font-family: var(--font-headline);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
+}
+
+/* Keyboard focus: a solid 3px ring, black on light backgrounds and yellow on black ones (.on-dark). */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--ds-ink);
+  outline-offset: 2px;
+}
+.on-dark :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline-color: var(--ds-brand);
+}
+
+/* Story text. Question subheadings (ending in "?") get a thick yellow bar behind the words. */
+.story-body > p { margin-bottom: 1rem; }
+.story-body > h2,
+.story-body > h3 {
+  font-family: var(--font-headline);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  color: var(--ds-ink);
+}
+.story-body > h2 { font-size: 1.5rem; margin: 1.75rem 0 0.5rem; }
+.story-body > h3 { font-size: 1.25rem; margin: 1.5rem 0 0.5rem; }
+.story-body a { color: var(--ds-accent); text-decoration: underline; text-underline-offset: 2px; }
+.story-body > ul { list-style: square; padding-left: 1.25rem; margin: 0.75rem 0; }
+.story-body > ol { list-style: decimal; padding-left: 1.25rem; margin: 0.75rem 0; }
+.story-body > blockquote {
+  margin: 1.5rem 0;
+  padding: 1rem 1.25rem;
+  background: var(--ds-ink);
+  color: #ffffff;
+  font-weight: 600;
+}
+.story-body > blockquote a { color: var(--ds-brand); }
+.story-body figure { margin: 1.5rem 0; }
+.story-body figcaption { font-size: 0.75rem; color: var(--ds-ink-muted); margin-top: 0.25rem; }
+.ds-question {
+  text-decoration-line: underline;
+  text-decoration-color: var(--ds-brand);
+  text-decoration-thickness: 0.42em;
+  text-underline-offset: -0.2em;
+  text-decoration-skip-ink: none;
 }
 
 .font-serif-headline {
@@ -127,42 +170,9 @@
   .ds-marquee { animation: none; }
 }
 
-/* ------------------------------------------------------------------------------------------------
-   Dark mode for the older pages (article, section, author, info, search, footer, dialogs) that still
-   use fixed light-theme utility classes. Unlayered, so these win over Tailwind's utilities layer.
-   ------------------------------------------------------------------------------------------------ */
-.dark .bg-white { background-color: var(--ds-surface); }
-.dark .bg-neutral-50,
-.dark .bg-neutral-100 { background-color: var(--ds-surface-2); }
-.dark .hover\:bg-neutral-50:hover,
-.dark .hover\:bg-neutral-100:hover,
-.dark .hover\:bg-neutral-200:hover { background-color: rgba(255, 255, 255, 0.06); }
-.dark .bg-neutral-200 { background-color: #243049; }
-.dark .text-neutral-900,
-.dark .text-neutral-800,
-.dark .text-\[\#0B2545\] { color: var(--ds-ink); }
-.dark .hover\:text-neutral-900:hover { color: #ffffff; }
-.dark .text-neutral-700,
-.dark .text-neutral-600 { color: var(--ds-ink-soft); }
-.dark .text-neutral-500 { color: var(--ds-ink-muted); }
-.dark .text-\[\#005EB8\],
-.dark .hover\:text-\[\#005EB8\]:hover,
-.dark .group:hover .group-hover\:text-\[\#005EB8\] { color: var(--ds-accent); }
-.dark .border-neutral-100,
-.dark .border-neutral-200,
-.dark .border-neutral-200\/80,
-.dark .border-neutral-300 { border-color: var(--ds-line); }
-.dark .hover\:border-neutral-400:hover { border-color: var(--ds-line-strong); }
-.dark .divide-neutral-100 > :not(:last-child),
-.dark .divide-neutral-200 > :not(:last-child) { border-color: var(--ds-line); }
-.dark .border-\[\#0B2545\] { border-color: #2b4a75; }
-.dark input,
-.dark textarea,
-.dark select { color-scheme: dark; }
-
 /* Print styling */
 @media print {
-  header, footer, .no-print {
+  header, footer, nav, .no-print {
     display: none !important;
   }
   body {

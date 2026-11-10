@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mail, CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, ArrowRight, AlertTriangle } from 'lucide-react';
+import { BlockLabel } from './BlockLabel';
 import { submitNewsletter } from '../services/api';
 
 // Cloudflare Turnstile site key (public). Set VITE_TURNSTILE_SITE_KEY in the Pages build environment.
@@ -89,58 +90,50 @@ export const NewsletterBox: React.FC<{ className?: string }> = ({ className = ''
   };
 
   return (
-    <div className={`bg-[#0B2545] text-white p-5 rounded border border-[#07172B] shadow-sm relative overflow-hidden ${className}`}>
-      <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-[#005EB8]/20 rounded-full blur-2xl pointer-events-none" />
+    <div className={`on-dark bg-brand-ink text-white p-5 ${className}`}>
+      <p className="mb-3">
+        <BlockLabel>Free every weekday</BlockLabel>
+      </p>
 
-      <div className="flex items-center gap-2 text-amber-300 text-xs font-bold uppercase tracking-wider mb-1.5">
-        <Mail className="w-4 h-4" />
-        <span>Direct to Your Inbox</span>
-      </div>
+      <h3 className="font-headline text-2xl font-extrabold text-white mb-2">The Glasgow Morning Briefing</h3>
 
-      <h3 className="font-headline text-xl font-bold tracking-tight text-white mb-1.5">
-        The Glasgow Morning Briefing
-      </h3>
-
-      <p className="text-xs text-neutral-300 leading-relaxed mb-4">
+      <p className="text-sm text-neutral-200 leading-relaxed mb-4">
         Wake up with the West of Scotland’s essential news: city politics, Clydeside transport updates, culture picks, and morning weather delivered every weekday at 7:00 AM.
       </p>
 
       {done ? (
-        <div className="bg-emerald-900/60 border border-emerald-500/40 p-3 rounded text-center text-xs text-emerald-200 flex items-center justify-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="border-2 border-brand p-3 text-sm text-white flex items-start gap-2" role="status">
+          <CheckCircle2 className="w-5 h-5 text-brand shrink-0" aria-hidden="true" />
           <span>Almost done! Check your inbox and click the link to confirm your subscription.</span>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-2">
-          <div className="relative">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address..."
-              required
-              aria-label="Email address"
-              className="w-full bg-white text-neutral-900 placeholder-neutral-400 text-xs px-3 py-2.5 rounded focus:outline-hidden focus:ring-2 focus:ring-[#005EB8] border border-neutral-300"
-            />
-          </div>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Enter your email address"
+            required
+            autoComplete="email"
+            aria-label="Email address"
+            className="w-full h-11 bg-white text-brand-ink placeholder-neutral-500 text-base px-3 border-2 border-white"
+          />
           {TURNSTILE_SITE_KEY && <div ref={widgetRef} className="min-h-[65px]" />}
           {error && (
-            <div role="alert" className="flex items-start gap-1.5 text-[11px] text-red-200 bg-red-900/40 border border-red-500/40 rounded p-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+            <div role="alert" className="flex items-start gap-2 text-sm text-white bg-alert p-2.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{error}</span>
             </div>
           )}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-[#005EB8] hover:bg-blue-600 disabled:opacity-60 text-white font-bold text-xs py-2.5 px-4 rounded transition flex items-center justify-center gap-2 shadow-xs"
+            className="w-full h-11 bg-brand hover:bg-white disabled:opacity-60 text-brand-ink font-extrabold text-sm px-4 flex items-center justify-center gap-2"
           >
-            <span>{submitting ? 'Subscribing…' : 'Subscribe Free'}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <span>{submitting ? 'Subscribing…' : 'Subscribe free'}</span>
+            <ArrowRight className="w-4 h-4" aria-hidden="true" />
           </button>
-          <div className="text-[10px] text-neutral-400 text-center">
-            Zero spam. Every email includes a one-click unsubscribe link.
-          </div>
+          <p className="text-xs text-neutral-300">Zero spam. Every email includes a one-click unsubscribe link.</p>
         </form>
       )}
     </div>

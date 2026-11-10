@@ -12,7 +12,7 @@
 import { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, sectionHeading, withBrand } from '../../src/config/seoText';
 
 export { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, sectionHeading, withBrand };
-export { splitKeyFacts, storyQuestions } from '../../src/config/storyBlocks';
+export { splitKeyFacts, storyQuestions, markQuestionHeadings } from '../../src/config/storyBlocks';
 
 /** Other names people type when looking for the site; helps Google show the right site name. */
 export const SITE_ALTERNATE_NAMES = ['Daily Scot', 'TheDailyScot', 'The Daily Scot Glasgow', 'thedailyscot.co.uk'];
@@ -247,39 +247,66 @@ export function wordCount(html: string): number {
  * unformatted text dump on a slow connection. Scoped to .ssr so it can never touch the app itself.
  */
 const SSR_CSS = [
-  '.ssr{max-width:80rem;margin:0 auto;padding:1rem;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#171717;line-height:1.5}',
+  '.ssr{font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#111;line-height:1.5}',
   '.ssr a{color:inherit}',
-  '.ssr header>p{margin:0}',
-  '.ssr header>p a{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;font-size:1.6rem;letter-spacing:-.02em;text-transform:uppercase;color:#0B2545;text-decoration:none}',
-  '.ssr header nav{background:#0B2545;margin:.75rem -1rem;padding:.65rem 1rem}',
-  '.ssr nav ul,.ssr nav ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.3rem 1.1rem}',
-  '.ssr header nav a{color:#fff;font-weight:700;font-size:.8rem;letter-spacing:.04em;text-transform:uppercase;text-decoration:none}',
-  '.ssr main nav a{color:#005EB8}',
-  '.ssr main nav{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin:0 0 .75rem}',
-  '.ssr h1{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;font-size:2rem;line-height:1.15;letter-spacing:-.02em;margin:.5rem 0}',
-  '.ssr h2,.ssr h3{font-size:1.1rem;font-weight:800;line-height:1.25;margin:0}',
+  // Black bar with the logo, then the section links in white
+  '.ssr header{background:#111}',
+  '.ssr header>p{margin:0 auto;max-width:80rem;padding:.625rem 1rem}',
+  '.ssr header>p a{display:inline-block}',
+  '.ssr header img{display:block;height:2rem;width:auto}',
+  '.ssr header nav{border-top:1px solid rgba(255,255,255,.25)}',
+  '.ssr nav ul,.ssr nav ol{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap}',
+  '.ssr header nav ul{max-width:80rem;margin:0 auto;padding:0 .25rem}',
+  '.ssr header nav a{display:inline-flex;align-items:center;min-height:2.75rem;padding:0 .625rem;color:#fff;font-weight:700;font-size:.8125rem;letter-spacing:.025em;text-transform:uppercase;text-decoration:none}',
+  '.ssr main{max-width:80rem;margin:0 auto;padding:1rem}',
+  '.ssr main nav ol{gap:.375rem;align-items:center;margin:0 0 .75rem}',
+  // Small block labels: yellow for sections, white for areas
+  '.ssr .lab{display:inline-block;background:#f7e14b;color:#111;font-size:.6875rem;line-height:1;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:.25rem .5rem}',
+  '.ssr .lab-w{background:#fff}',
+  '.ssr .lab-k{background:#111;color:#fff}',
+  '.ssr h1,.ssr h2,.ssr h3{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;letter-spacing:-.02em}',
+  '.ssr h1{font-size:2rem;line-height:1.1;margin:.5rem 0;text-wrap:balance}',
+  '.ssr h2,.ssr h3{font-size:1.25rem;line-height:1.2;margin:0}',
   '.ssr h2 a,.ssr h3 a{text-decoration:none}',
-  '.ssr main ul{list-style:none;margin:0;padding:0}',
-  '.ssr main li{border-top:1px solid #e5e5e5;padding:.8rem 0}',
-  '.ssr nav li{border:0;padding:0}',
+  // Headings on a yellow block sitting on a thick black rule
+  '.ssr .hd{border-bottom:3px solid #111;margin:0 0 .5rem;text-transform:uppercase}',
+  '.ssr .hd span{display:inline-block;background:#f7e14b;padding:.375rem .75rem}',
+  '.ssr .list{list-style:none;margin:0;padding:0}',
+  '.ssr .list>li{border-bottom:1px solid rgba(17,17,17,.16);padding:.8rem 0}',
   '.ssr p{margin:.35rem 0}',
-  '.ssr time{font-size:.75rem;color:#525252}',
-  '.ssr figure{margin:1rem 0}',
-  '.ssr figure img{display:block;width:100%;max-width:48rem;height:auto;aspect-ratio:16/10;object-fit:cover}',
-  '.ssr figcaption{font-size:.75rem;color:#525252;margin-top:.25rem}',
-  '.ssr aside{margin-top:2rem}',
-  '.dark .ssr{color:#f1f5f9}',
-  '.dark .ssr header>p a{color:#f1f5f9}',
-  '.dark .ssr main li{border-color:rgba(255,255,255,.08)}',
-  '.dark .ssr time,.dark .ssr figcaption{color:#94a3b8}',
-  '.dark .ssr main nav a{color:#4d9fff}',
+  '.ssr time{font-size:.75rem;color:#595959}',
+  // Story page: full-width photo, black headline panel overlapping it, byline rule, yellow key facts
+  '.ssr .hero{margin:-1rem -1rem 0}',
+  '.ssr .hero img{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:cover;background:#e8e8e3}',
+  '.ssr .panel{position:relative;background:#111;color:#fff;margin:-2.5rem 0 0 -1rem;padding:1.25rem 1rem;max-width:56rem}',
+  '.ssr .panel h1{margin:0}',
+  '.ssr .panel p{color:#e5e5e5;font-size:1rem;line-height:1.375;margin:.75rem 0 0}',
+  '.ssr .cap{font-size:.75rem;color:#595959}',
+  '.ssr .byline{border-bottom:2px solid #111;padding:.75rem 0;margin:0 0 1.5rem;font-weight:700}',
+  '.ssr .byline time{font-weight:400}',
+  '.ssr .kf{background:#f7e14b;padding:1.25rem;max-width:42.5rem;margin:0 0 1.5rem}',
+  '.ssr .kf h2{font-family:inherit;font-size:.8125rem;letter-spacing:.14em;text-transform:uppercase;border-bottom:2px solid #111;padding-bottom:.5rem;margin-bottom:.75rem}',
+  '.ssr .kf ul{list-style:square;margin:0;padding-left:1.25rem;font-weight:500}',
+  '.ssr .kf li{margin:.5rem 0}',
+  '.ssr .body{max-width:42.5rem;font-size:1.125rem;line-height:1.65}',
+  '.ssr .body p{margin:0 0 1rem}',
+  '.ssr .body h2{font-size:1.5rem;margin:1.75rem 0 .5rem}',
+  '.ssr .body h3{margin:1.5rem 0 .5rem}',
+  '.ssr .body a{color:#004a94;text-decoration:underline}','.ssr .byline a{text-decoration:underline}',
+  '.ssr .body ul{list-style:square;padding-left:1.25rem}',
+  '.ssr .body ol{padding-left:1.25rem}',
+  '.ssr .body blockquote{margin:1.5rem 0;padding:1rem 1.25rem;background:#111;color:#fff;font-weight:600}',
+  '.ssr .body img{max-width:100%;height:auto}',
+  '.ssr .ds-question{text-decoration:underline;text-decoration-color:#f7e14b;text-decoration-thickness:.42em;text-underline-offset:-.2em;text-decoration-skip-ink:none}',
+  '.ssr aside.more{margin-top:2rem}',
+  '@media(min-width:640px){.ssr header>p{padding:.75rem 1.5rem}.ssr header img{height:2.5rem}.ssr header nav ul{padding:0 .75rem}.ssr main{padding:1rem 1.5rem}.ssr h1{font-size:2.5rem}.ssr .hero{margin:-1rem -1.5rem 0}.ssr .hero img{aspect-ratio:2/1}.ssr .panel{margin:-5rem 0 0;padding:2rem}.ssr .panel p{font-size:1.125rem}}',
 ].join('');
 
 /** Wrap a page's server-rendered content in the site header (name + section links). */
 export function shellHtml(sections: SectionLink[], mainHtml: string): string {
   return (
     '<div class="ssr">' +
-    `<header><p><a href="/">${escapeText(SITE_NAME)}</a></p>${sectionNavHtml(sections)}</header>` +
+    `<header><p><a href="/"><img src="/the-daily-scot-logo-horizontal.svg" alt="${escapeAttr(SITE_NAME)}" width="371" height="84" /></a></p>${sectionNavHtml(sections)}</header>` +
     `<main id="main-content">${mainHtml}</main>` +
     '</div>'
   );

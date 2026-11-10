@@ -317,12 +317,12 @@ export default function App() {
   const savedArticlesList = articles.filter((a) => savedIds.includes(a.id));
 
   return (
-    <div className="min-h-screen bg-page text-ink flex flex-col font-sans selection:bg-[#005EB8] selection:text-white">
+    <div className="min-h-screen bg-page text-ink flex flex-col font-sans selection:bg-[#004a94] selection:text-white">
       {/* Newspaper Header */}
       {/* Skip link: first thing keyboard users reach on every page */}
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:text-[#0B2545] focus:px-4 focus:py-2 focus:font-bold focus:outline-3 focus:outline-[#005EB8]"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-white focus:text-[#111111] focus:px-4 focus:py-2 focus:font-bold focus:outline-3 focus:outline-[#004a94]"
       >
         Skip to main content
       </a>
@@ -406,7 +406,7 @@ export default function App() {
 
         {currentView === 'notfound' && (
           <section className="max-w-xl mx-auto text-center py-20 px-4">
-            <p className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">Error 404</p>
+            <p className="text-xs font-black uppercase tracking-wider text-[#004a94] mb-2">Error 404</p>
             <h1 className="font-headline font-black text-3xl text-neutral-900 mb-3">Page not found</h1>
             <p className="text-neutral-600 mb-6">
               This page may have been moved, unpublished, or the link may be incorrect.
@@ -415,7 +415,7 @@ export default function App() {
               <SpaLink
                 href="/"
                 onNavigate={() => handleSelectCategory('all')}
-                className="px-4 py-2 bg-[#0B2545] text-white text-sm font-bold"
+                className="px-4 py-2 bg-[#111111] text-white text-sm font-bold"
               >
                 Go to the homepage
               </SpaLink>

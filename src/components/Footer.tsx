@@ -16,35 +16,30 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
   const modalTitle = INFO_PAGES.find((p) => p.id === activeInfoModal)?.title || '';
 
   return (
-    <footer className="bg-neutral-900 text-neutral-400 text-xs border-t-4 border-[#0B2545] pt-8 pb-10 mt-12 no-print">
-      <div className="max-w-7xl mx-auto px-4 space-y-6">
-        {/* Top Logo & Slogan */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-neutral-800 pb-4 gap-3">
-          <div className="flex items-center gap-3">
-            <Logo className="h-14 w-auto self-center rounded-[3px]" />
+    <footer className="on-dark bg-brand-ink text-neutral-300 text-sm border-t-8 border-brand pt-8 pb-10 mt-12 no-print">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-6">
+        {/* Logo and slogan */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-white/25 pb-6 gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Logo variant="horizontal" className="h-11 w-auto" />
             <span className="sr-only">{SITE_CONFIG.name}</span>
-            <span className="text-neutral-400 font-semibold" aria-hidden="true">|</span>
-            <span className="text-neutral-400 font-medium">{SITE_CONFIG.tagline}</span>
+            <span className="text-white font-bold">{SITE_CONFIG.tagline}</span>
           </div>
 
-          <div className="text-[11px] text-neutral-400">
-            {SITE_CONFIG.regulatoryNotice}
-          </div>
+          <p className="text-xs text-neutral-300 sm:max-w-xs sm:text-right">{SITE_CONFIG.regulatoryNotice}</p>
         </div>
 
-        {/* Section Links Row (from SITE_CONFIG) */}
+        {/* Section links (from SITE_CONFIG) */}
         <div>
-          <h2 className="text-[11px] font-bold uppercase tracking-wider text-neutral-300 mb-2">
-            Sections
-          </h2>
+          <h2 className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand mb-1">Sections</h2>
           <nav aria-label="Footer sections">
-            <ul className="flex flex-wrap gap-x-2 gap-y-1 text-neutral-300 font-medium">
+            <ul className="flex flex-wrap gap-x-5 -ml-1 text-white font-bold">
               {SITE_CONFIG.sections.map((sec) => (
                 <li key={sec.slug}>
                   <SpaLink
                     href={categoryHref(sec.slug)}
                     onNavigate={() => onSelectCategory(sec.slug === 'home' ? 'all' : (sec.slug as CategoryType))}
-                    className="inline-block py-1 px-1 hover:text-white hover:underline transition"
+                    className="inline-flex items-center min-h-11 px-1 hover:underline underline-offset-4"
                   >
                     {sec.label}
                   </SpaLink>
@@ -54,14 +49,14 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
           </nav>
         </div>
 
-        {/* Corporate & Legal Navigation: real links to each page; a plain click opens the pop-up instead */}
-        <nav aria-label="Company and legal" className="pt-3 border-t border-neutral-800 flex flex-wrap gap-x-5 gap-y-2 text-[11px] text-neutral-400">
+        {/* Company and legal: real links to each page; a plain click opens the pop-up instead */}
+        <nav aria-label="Company and legal" className="pt-3 border-t border-white/25 flex flex-wrap gap-x-5 -ml-1 text-[13px] text-neutral-200">
           {INFO_PAGES.map((page) => (
             <SpaLink
               key={page.id}
               href={page.path}
               onNavigate={() => setActiveInfoModal(page.id)}
-              className="py-1 hover:text-white hover:underline"
+              className="inline-flex items-center min-h-11 px-1 hover:text-white hover:underline underline-offset-4"
               aria-haspopup="dialog"
             >
               {page.linkLabel}
@@ -69,8 +64,8 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
           ))}
         </nav>
 
-        {/* Legal Disclaimer & Placeholders */}
-        <div className="pt-3 border-t border-neutral-800 text-[11px] text-neutral-400 space-y-1 leading-relaxed">
+        {/* Legal lines */}
+        <div className="pt-4 border-t border-white/25 text-xs text-neutral-300 space-y-1 leading-relaxed">
           <p>
             {SITE_CONFIG.name} is an independent Scottish regional news publication. We abide by established professional journalistic standards and the Editor's Code of Practice.
           </p>
@@ -85,7 +80,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
         open={!!activeInfoModal}
         onClose={() => setActiveInfoModal(null)}
         title={modalTitle}
-        className="bg-white text-neutral-900 max-w-lg w-full p-5 border border-neutral-300 shadow-xl"
+        className="bg-white text-neutral-900 max-w-lg w-full p-5 border-2 border-ink [&_:focus-visible]:outline-ink"
         renderHeader={(titleId) => (
           <div className="flex items-center justify-between border-b pb-2 mb-3">
             <h2 id={titleId} className="font-headline font-bold text-base text-neutral-900 uppercase">
@@ -94,7 +89,7 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
             <button
               type="button"
               onClick={() => setActiveInfoModal(null)}
-              className="text-neutral-600 hover:text-neutral-900 font-bold p-1.5 text-sm"
+              className="inline-flex items-center justify-center w-11 h-11 -mr-2 text-neutral-900 font-bold text-base hover:bg-neutral-100"
               aria-label="Close"
             >
               <span aria-hidden="true">✕</span>
@@ -104,14 +99,14 @@ export const Footer: React.FC<FooterProps> = ({ onSelectCategory }) => {
       >
         <InfoContent
           id={activeInfoModal as InfoPageId}
-          className="text-xs text-neutral-700 space-y-2 leading-relaxed max-h-[65vh] overflow-y-auto pr-1"
+          className="text-sm text-neutral-800 space-y-2 leading-relaxed max-h-[65vh] overflow-y-auto pr-1"
         />
 
         <div className="mt-4 pt-2 border-t flex justify-end">
           <button
             type="button"
             onClick={() => setActiveInfoModal(null)}
-            className="px-3 py-1.5 bg-neutral-900 text-white text-xs font-bold"
+            className="inline-flex items-center h-11 px-5 bg-brand-ink text-white text-sm font-extrabold hover:bg-brand hover:text-brand-ink"
           >
             Close
           </button>

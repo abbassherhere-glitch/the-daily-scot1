@@ -3,6 +3,7 @@
  *
  * - Key facts: a heading such as "Key facts" followed directly by a bullet list is shown as a summary box.
  * - Questions: a heading that ends in "?" followed by a paragraph is treated as a question and its answer.
+ *   Any heading that ends in "?" is also marked so both versions of the page can underline it in yellow.
  */
 
 const KEY_FACTS_HEADINGS = /^(key facts|key points|at a glance|what we know( so far)?|what you need to know)$/i;
@@ -61,4 +62,15 @@ export function storyQuestions(body: string): StoryQuestion[] {
     if (question.endsWith('?') && answer) out.push({ question, answer });
   }
   return out;
+}
+
+/** Class put on question subheadings (styled in src/index.css for the app and in functions/utils/seo.ts for the server page). */
+export const QUESTION_HEADING_CLASS = 'ds-question';
+
+/** Marks every h2/h3 whose text ends in "?" with QUESTION_HEADING_CLASS. Run it on HTML that is already sanitised. */
+export function markQuestionHeadings(html: string): string {
+  if (!html || html.indexOf('?') === -1) return html;
+  return html.replace(/<h([23])(\s[^>]*)?>((?:(?!<\/h\1>)[\s\S])*)<\/h\1>/gi, (whole, level: string, _attrs: string, inner: string) =>
+    plainText(inner).endsWith('?') ? `<h${level} class="${QUESTION_HEADING_CLASS}">${inner}</h${level}>` : whole,
+  );
 }

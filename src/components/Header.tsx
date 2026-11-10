@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Menu, X, Pause, Play, Sun, Moon, Mail, CloudSun } from 'lucide-react';
+import { Search, X, Pause, Play } from 'lucide-react';
 import { SpaLink, categoryHref, navigateTo } from './SpaLink';
 import { CategoryType, Article } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
-import { useTheme } from '../utils/theme';
 import { Dialog } from './Dialog';
 import { NewsletterBox } from './NewsletterBox';
 import { Logo } from './Logo';
+import { BlockLabel } from './BlockLabel';
 
 interface HeaderProps {
   currentCategory: CategoryType;
@@ -28,23 +28,7 @@ interface BreakingArticle {
   breaking_until?: string;
 }
 
-/** Sections shown in the desktop bar (the logo is the way home; Opinion joins on very wide screens). */
-const DESKTOP_SECTIONS = SITE_CONFIG.sections.filter((s) => s.slug !== 'home');
-
 const CONTACT_PATH = '/contact';
-
-function weatherCodeToText(code: number): string {
-  if (code === 0) return 'Clear';
-  if ([1, 2].includes(code)) return 'Partly Cloudy';
-  if (code === 3) return 'Overcast';
-  if ([45, 48].includes(code)) return 'Fog';
-  if ([51, 53, 55].includes(code)) return 'Drizzle';
-  if ([61, 63, 65].includes(code)) return 'Rain';
-  if ([71, 73, 75].includes(code)) return 'Snow';
-  if ([80, 81, 82].includes(code)) return 'Showers';
-  if ([95, 96, 99].includes(code)) return 'Thunderstorm';
-  return 'Cloudy';
-}
 
 // The ticker only has headline data; App loads the full story when a stub is opened.
 function toStub(art: BreakingArticle): Article {
@@ -68,63 +52,22 @@ function toStub(art: BreakingArticle): Article {
   };
 }
 
-const ICON_BUTTON =
-  'inline-flex items-center justify-center w-9 h-9 rounded-full text-ink-soft hover:text-ink hover:bg-surface-2 transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2';
+const NAV_LINK =
+  'inline-flex items-center min-h-11 px-2.5 sm:px-3 border-b-4 text-[13px] font-bold uppercase tracking-wide whitespace-nowrap text-white';
 
 export const Header: React.FC<HeaderProps> = ({
   currentCategory,
   onSelectCategory,
   onOpenSearch,
-  onOpenSaved,
   onSelectArticle,
-  savedCount,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [subscribeOpen, setSubscribeOpen] = useState(false);
-  const [weatherText, setWeatherText] = useState<string>('Glasgow');
   const [breakingNews, setBreakingNews] = useState<BreakingArticle[]>([]);
   // The marquee pauses on hover/focus (CSS) and stays paused if the reader presses Pause (WCAG 2.2.2)
   const [isUserPaused, setIsUserPaused] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const { theme, toggleTheme } = useTheme();
 
-  const dateStr = new Date().toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-
-  // 1. Live weather from Open-Meteo for the configured city
-  useEffect(() => {
-    let mounted = true;
-    const fetchWeather = async () => {
-      try {
-        const { latitude, longitude, name } = SITE_CONFIG.weatherLocation;
-        const res = await fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code`
-        );
-        if (!res.ok) throw new Error('Weather API error');
-        const data = (await res.json()) as { current: { temperature_2m: number; weather_code: number } };
-        if (mounted && data?.current) {
-          const temp = Math.round(data.current.temperature_2m);
-          const condition = weatherCodeToText(data.current.weather_code);
-          setWeatherText(`${name} ${temp}°C · ${condition}`);
-        }
-      } catch {
-        if (mounted) setWeatherText('Glasgow');
-      }
-    };
-
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  // 2. Breaking news (re-fetched every 60 seconds)
+  // 1. Breaking news (re-fetched every 60 seconds)
   useEffect(() => {
     let mounted = true;
     const fetchBreaking = async () => {
@@ -147,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
     };
   }, []);
 
-  // 3. Motion preference
+  // 2. Motion preference
   useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(mediaQuery.matches);
@@ -155,7 +98,6 @@ export const Header: React.FC<HeaderProps> = ({
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
-
 
   const [onContactPage, setOnContactPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === CONTACT_PATH);
   useEffect(() => {
@@ -166,14 +108,8 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isActive = (slug: string) => !onContactPage && (slug === 'home' ? currentCategory === 'all' : currentCategory === slug);
 
-  const handleContactClick = () => {
-    setMobileMenuOpen(false);
-    navigateTo(CONTACT_PATH);
-  };
-
   const handleSectionClick = (slug: string) => {
     onSelectCategory(slug === 'home' ? 'all' : (slug as CategoryType));
-    setMobileMenuOpen(false);
   };
 
   const animateTicker = !prefersReducedMotion && breakingNews.length > 0;
@@ -184,7 +120,7 @@ export const Header: React.FC<HeaderProps> = ({
       href={`/news/${encodeURIComponent(art.slug)}`}
       onNavigate={() => onSelectArticle(toStub(art))}
       tabIndex={hidden ? -1 : undefined}
-      className="text-[13px] font-medium text-ink hover:text-accent hover:underline underline-offset-4 whitespace-nowrap"
+      className="inline-flex items-center min-h-11 text-sm font-bold text-ink hover:underline underline-offset-4 whitespace-nowrap"
     >
       {art.title}
     </SpaLink>
@@ -192,212 +128,78 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      {/* 1. UTILITY LINE (scrolls away) */}
-      <div className="bg-surface border-b border-line text-ink-muted text-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-9 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="hidden sm:inline font-medium text-ink-soft">{dateStr}</span>
-            <span className="hidden sm:inline text-line-strong" aria-hidden="true">
-              •
-            </span>
-            <span className="flex items-center gap-1.5 truncate">
-              <CloudSun className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
-              {weatherText}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. STICKY GLASS HEADER */}
-      <header className="sticky top-0 z-40 w-full border-b border-line bg-[var(--ds-header)] backdrop-blur-xl backdrop-saturate-150 supports-[not(backdrop-filter:blur(1px))]:bg-surface">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center gap-3 lg:gap-6">
-          <SpaLink
-            href="/"
-            onNavigate={() => onSelectCategory('all')}
-            className="group flex items-center select-none shrink-0 rounded-lg focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
-          >
-            <Logo variant="horizontal" className="h-9 sm:h-11 w-auto rounded-[3px] shadow-sm transition-transform group-hover:-rotate-1" />
+      {/* 1. BLACK BAR: logo, search and the Morning Briefing button. Stays at the top while reading. */}
+      <header className="on-dark sticky top-0 z-40 w-full bg-brand-ink text-white">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="flex items-center select-none shrink-0">
+            <Logo variant="horizontal" className="h-8 sm:h-10 w-auto" />
             <span className="sr-only">{SITE_CONFIG.name} – homepage</span>
           </SpaLink>
 
-          {/* Desktop sections */}
-          <nav aria-label="Sections" className="hidden xl:flex flex-1 justify-center min-w-0">
-            <ul className="flex items-center gap-0.5">
-              {DESKTOP_SECTIONS.map((sec) => {
-                const active = isActive(sec.slug);
-                return (
-                  <li key={sec.slug} className={sec.slug === 'opinion' ? 'hidden 2xl:block' : ''}>
-                    <SpaLink
-                      href={categoryHref(sec.slug)}
-                      onNavigate={() => handleSectionClick(sec.slug)}
-                      aria-current={active ? 'page' : undefined}
-                      className={`relative block px-3 py-2 rounded-full text-[13.5px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent ${
-                        active ? 'text-accent bg-accent/10' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
-                      }`}
-                    >
-                      {sec.label}
-                    </SpaLink>
-                  </li>
-                );
-              })}
-              <li>
-                <SpaLink
-                  href={CONTACT_PATH}
-                  onNavigate={handleContactClick}
-                  aria-current={onContactPage ? 'page' : undefined}
-                  className={`relative block px-3 py-2 rounded-full text-[13.5px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent ${
-                    onContactPage ? 'text-accent bg-accent/10' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
-                  }`}
-                >
-                  Contact Us
-                </SpaLink>
-              </li>
-            </ul>
-          </nav>
-
-          {/* Actions */}
-          <div className="ml-auto xl:ml-0 flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <button type="button" onClick={onOpenSearch} className={ICON_BUTTON} aria-label="Search news">
-              <Search className="w-[18px] h-[18px]" aria-hidden="true" />
-            </button>
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               type="button"
-              onClick={toggleTheme}
-              className={ICON_BUTTON}
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Light mode' : 'Dark mode'}
+              onClick={onOpenSearch}
+              className="inline-flex items-center justify-center gap-2 min-w-11 h-11 px-2 sm:px-3 text-sm font-bold text-white hover:underline underline-offset-4"
             >
-              {theme === 'dark' ? (
-                <Sun className="w-[18px] h-[18px]" aria-hidden="true" />
-              ) : (
-                <Moon className="w-[18px] h-[18px]" aria-hidden="true" />
-              )}
+              <Search className="w-5 h-5" aria-hidden="true" />
+              <span className="max-sm:sr-only">Search</span>
             </button>
             <button
               type="button"
               onClick={() => setSubscribeOpen(true)}
               aria-haspopup="dialog"
-              className="hidden sm:inline-flex items-center gap-1.5 ml-1 h-9 px-4 rounded-full bg-[#005EB8] text-white text-[13px] font-semibold shadow-sm hover:bg-[#004d99] hover:shadow transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-2"
+              className="inline-flex items-center h-11 px-3 sm:px-4 bg-brand text-brand-ink text-[13px] sm:text-sm font-extrabold whitespace-nowrap hover:bg-white"
             >
-              <Mail className="w-4 h-4" aria-hidden="true" />
-              Subscribe
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`${ICON_BUTTON} xl:hidden`}
-              aria-label={mobileMenuOpen ? 'Close sections menu' : 'Open sections menu'}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-sections-menu"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
+              <span className="max-[359px]:hidden">Morning&nbsp;</span>Briefing
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Tablet / mobile: horizontally scrolling section pills */}
-        <nav aria-label="Sections" className="xl:hidden border-t border-line">
-          <ul className="max-w-7xl mx-auto px-3 sm:px-6 flex items-center gap-1 overflow-x-auto scrollbar-none py-1.5">
-            {SITE_CONFIG.sections.map((sec) => {
-              const active = isActive(sec.slug);
-              return (
-                <li key={sec.slug} className="shrink-0">
-                  <SpaLink
-                    href={categoryHref(sec.slug)}
-                    onNavigate={() => handleSectionClick(sec.slug)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`block px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 ${
-                      active ? 'bg-ink text-page' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
-                    }`}
-                  >
-                    {sec.label}
-                  </SpaLink>
-                </li>
-              );
-            })}
-            <li className="shrink-0">
-              <SpaLink
-                href={CONTACT_PATH}
-                onNavigate={handleContactClick}
-                aria-current={onContactPage ? 'page' : undefined}
-                className={`block px-3 py-1.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2 ${
-                  onContactPage ? 'bg-ink text-page' : 'text-ink-soft hover:text-ink hover:bg-surface-2'
-                }`}
-              >
-                Contact Us
-              </SpaLink>
-            </li>
-          </ul>
-        </nav>
-
-        {/* Menu drawer */}
-        {mobileMenuOpen && (
-          <div id="mobile-sections-menu" className="xl:hidden border-t border-line bg-surface shadow-card">
-            <ul className="max-w-7xl mx-auto px-3 sm:px-6 py-3 grid grid-cols-2 sm:grid-cols-3 gap-1">
-              {SITE_CONFIG.sections.map((sec) => {
-                const active = isActive(sec.slug);
-                return (
-                  <li key={sec.slug}>
-                    <SpaLink
-                      href={categoryHref(sec.slug)}
-                      onNavigate={() => handleSectionClick(sec.slug)}
-                      aria-current={active ? 'page' : undefined}
-                      className={`block px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
-                        active ? 'bg-accent/10 text-accent' : 'text-ink hover:bg-surface-2'
-                      }`}
-                    >
-                      {sec.label}
-                    </SpaLink>
-                  </li>
-                );
-              })}
-              <li>
+      {/* 2. SECTION LINKS: white on black, wrapping onto as many rows as the screen needs. */}
+      <nav aria-label="Sections" className="on-dark w-full bg-brand-ink border-t border-white/25">
+        <ul className="max-w-7xl mx-auto px-0.5 sm:px-3 flex flex-wrap">
+          {SITE_CONFIG.sections.map((sec) => {
+            const active = isActive(sec.slug);
+            return (
+              <li key={sec.slug}>
                 <SpaLink
-                  href={CONTACT_PATH}
-                  onNavigate={handleContactClick}
-                  aria-current={onContactPage ? 'page' : undefined}
-                  className={`block px-3 py-2.5 rounded-lg text-sm font-semibold transition ${
-                    onContactPage ? 'bg-accent/10 text-accent' : 'text-ink hover:bg-surface-2'
-                  }`}
+                  href={categoryHref(sec.slug)}
+                  onNavigate={() => handleSectionClick(sec.slug)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`${NAV_LINK} ${active ? 'border-brand' : 'border-transparent hover:border-white/60'}`}
                 >
-                  Contact Us
+                  {sec.label}
                 </SpaLink>
               </li>
-            </ul>
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 pb-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  setSubscribeOpen(true);
-                }}
-                aria-haspopup="dialog"
-                className="w-full inline-flex items-center justify-center gap-2 h-11 rounded-xl bg-[#005EB8] text-white text-sm font-semibold"
-              >
-                <Mail className="w-4 h-4" aria-hidden="true" />
-                Subscribe to the newsletter
-              </button>
-            </div>
-          </div>
-        )}
-      </header>
+            );
+          })}
+          <li>
+            <SpaLink
+              href={CONTACT_PATH}
+              onNavigate={() => navigateTo(CONTACT_PATH)}
+              aria-current={onContactPage ? 'page' : undefined}
+              className={`${NAV_LINK} ${onContactPage ? 'border-brand' : 'border-transparent hover:border-white/60'}`}
+            >
+              Contact Us
+            </SpaLink>
+          </li>
+        </ul>
+      </nav>
 
       {/* 3. BREAKING NEWS BAR (hidden when nothing is breaking) */}
       {/* Not a live region: moving headlines would interrupt screen readers constantly. */}
       {breakingNews.length > 0 && (
-        <section aria-label="Breaking news" className="bg-surface border-b border-line">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 h-11 flex items-center gap-3">
-            <span className="shrink-0 inline-flex items-center gap-2 rounded-full bg-[#D92525] text-white text-[11px] font-bold uppercase tracking-wider pl-2.5 pr-3 py-1">
-              <span className="relative flex w-2 h-2" aria-hidden="true">
-                <span className="absolute inline-flex w-full h-full rounded-full bg-white opacity-75 animate-ping motion-reduce:animate-none" />
-                <span className="relative inline-flex w-2 h-2 rounded-full bg-white" />
-              </span>
+        <section aria-label="Breaking news" className="bg-surface border-b-2 border-ink no-print">
+          <div className="max-w-7xl mx-auto pl-3 sm:pl-6 flex items-center gap-3">
+            <BlockLabel tone="alert" className="shrink-0">
               Breaking
-            </span>
+            </BlockLabel>
 
             {animateTicker ? (
               <div
-                className="ds-marquee-host flex-1 min-w-0 flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_28px,black_calc(100%-28px),transparent)]"
+                className="ds-marquee-host flex-1 min-w-0 flex overflow-hidden"
                 data-paused={isUserPaused ? 'true' : 'false'}
                 style={{ ['--ds-marquee-duration' as string]: tickerDuration }}
               >
@@ -410,14 +212,14 @@ export const Header: React.FC<HeaderProps> = ({
                     {breakingNews.map((art) => (
                       <li key={`${copy}-${art.id}`} className="flex items-center gap-10">
                         {breakingLink(art, copy === 1)}
-                        <span className="w-1 h-1 rounded-full bg-line-strong" aria-hidden="true" />
+                        <span className="w-1.5 h-1.5 bg-ink" aria-hidden="true" />
                       </li>
                     ))}
                   </ul>
                 ))}
               </div>
             ) : (
-              <ul className="flex-1 min-w-0 flex items-center gap-6 overflow-x-auto scrollbar-none">
+              <ul className="flex-1 min-w-0 flex items-center gap-6 overflow-x-auto scrollbar-none pr-3">
                 {breakingNews.map((art) => (
                   <li key={art.id} className="shrink-0">
                     {breakingLink(art)}
@@ -432,32 +234,32 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => setIsUserPaused((v) => !v)}
                 aria-pressed={isUserPaused}
                 aria-label={isUserPaused ? 'Resume moving breaking headlines' : 'Pause moving breaking headlines'}
-                className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-full border border-line text-ink-muted hover:text-ink hover:bg-surface-2 transition"
+                className="shrink-0 inline-flex items-center justify-center w-11 h-11 border-l border-line text-ink hover:bg-surface-2"
               >
-                {isUserPaused ? <Play className="w-3 h-3" aria-hidden="true" /> : <Pause className="w-3 h-3" aria-hidden="true" />}
+                {isUserPaused ? <Play className="w-4 h-4" aria-hidden="true" /> : <Pause className="w-4 h-4" aria-hidden="true" />}
               </button>
             )}
           </div>
         </section>
       )}
 
-      {/* Newsletter sign-up */}
+      {/* Morning Briefing sign-up */}
       <Dialog
         open={subscribeOpen}
         onClose={() => setSubscribeOpen(false)}
-        title="Subscribe to the newsletter"
-        overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        className="relative w-full max-w-md"
+        title="Sign up for the Morning Briefing"
+        overlayClassName="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70"
+        className="on-dark relative w-full max-w-md border-2 border-brand"
       >
         <button
           type="button"
           onClick={() => setSubscribeOpen(false)}
           aria-label="Close"
-          className="absolute top-3 right-3 z-10 inline-flex items-center justify-center w-8 h-8 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+          className="absolute top-0 right-0 z-10 inline-flex items-center justify-center w-11 h-11 text-white hover:bg-white hover:text-brand-ink"
         >
-          <X className="w-4 h-4" aria-hidden="true" />
+          <X className="w-5 h-5" aria-hidden="true" />
         </button>
-        <NewsletterBox className="rounded-2xl! p-6! shadow-2xl" />
+        <NewsletterBox className="p-6! pt-10!" />
       </Dialog>
     </>
   );

@@ -33,9 +33,9 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-[#0B2545] text-white p-5 flex items-center justify-between">
+        <div className="bg-[#111111] text-white p-5 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <MapPin className="w-5 h-5 text-[#005EB8]" />
+            <MapPin className="w-5 h-5 text-[#004a94]" />
             <div>
               <h3 className="font-headline text-lg font-bold">Glasgow & Strathclyde Weather</h3>
               <p className="text-xs text-neutral-300">Live Strathclyde meteorological bulletin</p>
@@ -53,11 +53,11 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
         <div className="p-6 bg-[#FAF7F2] border-b border-neutral-200">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-white rounded-xl shadow-xs border border-neutral-200 text-[#005EB8]">
+              <div className="p-3 bg-white rounded-xl shadow-xs border border-neutral-200 text-[#004a94]">
                 <CloudRain className="w-10 h-10" />
               </div>
               <div>
-                <div className="text-4xl font-headline font-extrabold text-[#0B2545]">
+                <div className="text-4xl font-headline font-extrabold text-[#111111]">
                   {weather.temp}°C
                 </div>
                 <div className="text-sm font-semibold text-neutral-800">
@@ -71,15 +71,15 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
 
             <div className="grid grid-cols-2 gap-3 text-xs bg-white p-3 rounded-lg border border-neutral-200">
               <div className="flex items-center gap-1.5 text-neutral-600">
-                <Wind className="w-3.5 h-3.5 text-[#005EB8]" />
+                <Wind className="w-3.5 h-3.5 text-[#004a94]" />
                 <span>{weather.windSpeed}</span>
               </div>
               <div className="flex items-center gap-1.5 text-neutral-600">
-                <Droplets className="w-3.5 h-3.5 text-[#005EB8]" />
+                <Droplets className="w-3.5 h-3.5 text-[#004a94]" />
                 <span>Humidity: {weather.humidity}</span>
               </div>
               <div className="col-span-2 flex items-center gap-1.5 text-neutral-700 font-medium">
-                <Waves className="w-3.5 h-3.5 text-[#005EB8]" />
+                <Waves className="w-3.5 h-3.5 text-[#004a94]" />
                 <span>{weather.clydeTide}</span>
               </div>
             </div>
@@ -93,7 +93,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
         {/* Glasgow Neighbourhoods */}
         <div className="p-5 space-y-4 max-h-80 overflow-y-auto">
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B2545] mb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#111111] mb-2">
               District Stations
             </h4>
             <div className="divide-y divide-neutral-100 border border-neutral-200 rounded-lg overflow-hidden bg-white">
@@ -102,7 +102,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
                   <span className="font-medium text-neutral-800">{d.name}</span>
                   <div className="flex items-center gap-3">
                     <span className="text-neutral-500">{d.cond}</span>
-                    <span className="font-bold text-[#0B2545]">{d.temp}°C</span>
+                    <span className="font-bold text-[#111111]">{d.temp}°C</span>
                   </div>
                 </div>
               ))}
@@ -111,7 +111,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
 
           {/* 4-Day Scottish Outlook */}
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B2545] mb-2">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-[#111111] mb-2">
               4-Day Outlook
             </h4>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -120,7 +120,7 @@ export const WeatherModal: React.FC<WeatherModalProps> = ({ weather, isOpen, onC
                 return (
                   <div key={i} className="bg-neutral-50 border border-neutral-200 rounded p-2 text-center text-xs">
                     <div className="font-bold text-neutral-800">{day.day}</div>
-                    <Icon className="w-5 h-5 mx-auto my-1.5 text-[#005EB8]" />
+                    <Icon className="w-5 h-5 mx-auto my-1.5 text-[#004a94]" />
                     <div className="font-semibold text-neutral-900">{day.high}° / {day.low}°</div>
                     <div className="text-[10px] text-neutral-500 mt-0.5 truncate">{day.cond}</div>
                   </div>

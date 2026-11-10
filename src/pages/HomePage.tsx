@@ -19,28 +19,23 @@ interface HomePageProps {
 
 const SectionHeading: React.FC<{
   title: string;
-  accent: string;
   href?: string;
   linkLabel?: string;
-  srLabel?: string;
   onNavigate?: () => void;
-}> = ({ title, accent, href, linkLabel = 'See all', srLabel, onNavigate }) => (
-  <div className="flex items-center justify-between gap-4 mb-5 sm:mb-6 border-t border-line pt-4">
-    <div className="flex items-center gap-3 min-w-0">
-      <span className={`w-1.5 h-6 rounded-full shrink-0 ${accent}`} aria-hidden="true" />
-      <h2 className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink truncate">{title}</h2>
-    </div>
-    {href && onNavigate && (
+  id?: string;
+}> = ({ title, href, linkLabel, onNavigate, id }) => (
+  <div className="flex items-end justify-between gap-4 mb-5 sm:mb-6 border-b-[3px] border-ink">
+    <h2 id={id} className="inline-block bg-brand text-brand-ink px-3 py-1.5 font-display font-extrabold text-xl sm:text-2xl uppercase">
+      {title}
+    </h2>
+    {href && onNavigate && linkLabel && (
       <SpaLink
         href={href}
         onNavigate={onNavigate}
-        className="group/link shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold text-accent hover:bg-accent/10 transition"
+        className="shrink-0 inline-flex items-center gap-1 min-h-11 text-sm font-extrabold text-ink underline decoration-2 underline-offset-4 hover:decoration-4"
       >
-        <span>
-          {linkLabel}
-          {srLabel && <span className="sr-only"> {srLabel}</span>}
-        </span>
-        <ArrowRight className="w-4 h-4 transition-transform group-hover/link:translate-x-0.5" aria-hidden="true" />
+        {linkLabel}
+        <ArrowRight className="w-4 h-4" aria-hidden="true" />
       </SpaLink>
     )}
   </div>
@@ -77,7 +72,7 @@ const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a
 
   return (
     <section aria-label="Story lists">
-      <div role="tablist" aria-label="Story lists" className="flex border-b border-line">
+      <div role="tablist" aria-label="Story lists" className="flex border-b-[3px] border-ink">
         {TABS.map((tab, i) => {
           const selected = tab.id === active;
           const Icon = tab.icon;
@@ -95,8 +90,8 @@ const StoryTabs: React.FC<{ lists: Record<TabId, Article[]>; onSelectArticle: (a
               tabIndex={selected ? 0 : -1}
               onClick={() => setActive(tab.id)}
               onKeyDown={(e) => onKeyDown(e, i)}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 -mb-px border-b-2 px-2 py-2.5 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-accent ${
-                selected ? 'border-ink text-ink' : 'border-transparent text-ink-muted hover:text-ink'
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 min-h-11 px-2 text-[13px] font-extrabold uppercase tracking-wide ${
+                selected ? 'bg-brand text-brand-ink' : 'text-ink hover:bg-surface-2'
               }`}
             >
               <Icon className="w-3.5 h-3.5" aria-hidden="true" />
@@ -212,9 +207,9 @@ export const HomePage: React.FC<HomePageProps> = ({
 
       {/* Area filter notice if active */}
       {selectedArea && selectedArea !== 'All' && (
-        <div className="rounded-xl bg-accent/10 text-ink px-4 py-2.5 text-sm font-medium flex items-center justify-between">
+        <div className="bg-brand text-brand-ink px-4 py-2.5 text-sm font-bold flex items-center justify-between">
           <span>Showing news for: {selectedArea}</span>
-          <span className="text-ink-muted">{filteredList.length} stories</span>
+          <span>{filteredList.length} stories</span>
         </div>
       )}
 
@@ -225,14 +220,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             <ArticleCard article={lead} variant="lead" fillHeight={secondary.length > 0} onSelect={onSelectArticle} />
           </div>
           {secondary.length > 0 && (
-            <div className="lg:col-span-4 lg:border-l lg:border-line lg:pl-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6 lg:gap-5 content-start">
+            <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6 lg:gap-5 content-start">
               {secondary.map((art, i) => (
                 <ArticleCard
                   key={art.id}
                   article={art}
                   variant="overlay"
-                  className={i > 0 ? 'lg:border-t lg:border-line lg:pt-5' : ''}
-                  onSelect={onSelectArticle}
+                                    onSelect={onSelectArticle}
                 />
               ))}
             </div>
@@ -243,12 +237,7 @@ export const HomePage: React.FC<HomePageProps> = ({
       {/* 2. FEED + TABBED LISTS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
         <section className="lg:col-span-8" aria-labelledby="home-latest-heading">
-          <div className="flex items-center gap-3 mb-5 sm:mb-6 border-t border-line pt-4">
-            <span className="w-1.5 h-6 rounded-full bg-[#D92525] shrink-0" aria-hidden="true" />
-            <h2 id="home-latest-heading" className="font-display font-extrabold text-[22px] sm:text-2xl tracking-tight text-ink">
-              Today&rsquo;s stories
-            </h2>
-          </div>
+          <SectionHeading id="home-latest-heading" title="Today&rsquo;s stories" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
             {feed.map((art) => (
               <ArticleCard key={art.id} article={art} variant="grid-card" onSelect={onSelectArticle} />
@@ -256,7 +245,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </section>
 
-        <aside className="lg:col-span-4 space-y-8 lg:border-l lg:border-line lg:pl-8" aria-label="More stories">
+        <aside className="lg:col-span-4 space-y-8 " aria-label="More stories">
           <StoryTabs
             lists={{ latest: layout.latest, trending: layout.trending, 'most-read': layout.mostRead }}
             onSelectArticle={onSelectArticle}
@@ -277,9 +266,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section>
           <SectionHeading
             title="Glasgow"
-            accent="bg-blue-600"
             href={categoryHref('glasgow')}
-            srLabel="Glasgow news"
+            linkLabel="All Glasgow news"
             onNavigate={() => onSelectCategory('glasgow')}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-10">
@@ -295,9 +283,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         <section>
           <SectionHeading
             title="Scottish Sport"
-            accent="bg-teal-500"
             href={categoryHref('sport')}
-            linkLabel="All sport"
+            linkLabel="All Sport news"
             onNavigate={() => onSelectCategory('sport')}
           />
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6">
@@ -305,7 +292,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               <ArticleCard article={sportLead} variant="lead" onSelect={onSelectArticle} />
             </div>
             {sportRest.length > 0 && (
-              <div className="lg:col-span-5 lg:border-l lg:border-line lg:pl-6">
+              <div className="lg:col-span-5 ">
                 <ul className="divide-y divide-line">
                   {sportRest.map((art) => (
                     <li key={art.id}>
@@ -325,9 +312,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           <div className="lg:col-span-8">
             <SectionHeading
               title="Property & Business"
-              accent="bg-amber-500"
               href={categoryHref('property')}
-              linkLabel="More property"
+              linkLabel="All Property news"
               onNavigate={() => onSelectCategory('property')}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10">
@@ -337,7 +323,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
           </div>
           <div className="lg:col-span-4 lg:pt-[60px]">
-            <NewsletterBox className="rounded-2xl! p-6! shadow-card lg:sticky lg:top-24" />
+            <NewsletterBox className="p-6! lg:sticky lg:top-24" />
           </div>
         </section>
       )}

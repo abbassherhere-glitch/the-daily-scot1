@@ -7,6 +7,8 @@ import {
   SITE_NAME,
   SectionLink,
   bodyToHtml,
+  markQuestionHeadings,
+  splitKeyFacts,
   breadcrumbLd,
   escapeAttr,
   escapeText,
@@ -32,8 +34,8 @@ import {
 
 /** Stories listed on a section page (the app shows the same number) */
 const SECTION_STORIES = 50;
-/** "More from <section>" links under a story */
-const RELATED_STORIES = 6;
+/** "More on <section>" stories under a story (the app shows the same number: see MORE_ON_SECTION in ArticlePage) */
+const RELATED_STORIES = 3;
 
 interface CategoryRow extends SectionLink {
   description: string | null;
@@ -47,6 +49,7 @@ interface ArticleRow {
   body: string;
   category: string;
   category_name?: string;
+  area?: string;
   hero_image?: string;
   image_caption?: string;
   photo_credit?: string;
@@ -136,10 +139,10 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       const seo = sectionSeo(section.slug, section.name, section.description);
       const canonical = `${origin}/news/${encodeURIComponent(section.slug)}`;
       const main =
-        `<nav aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li><li>${escapeText(section.name)}</li></ol></nav>` +
-        `<h1>${escapeText(sectionHeading(section.slug, section.name))}</h1>` +
+        `<nav aria-label="Breadcrumb"><ol><li><a class="lab lab-k" href="/">Home</a></li><li><span class="lab">${escapeText(section.name)}</span></li></ol></nav>` +
+        `<h1 class="hd"><span>${escapeText(sectionHeading(section.slug, section.name))}</span></h1>` +
         `<p>${escapeText(section.description || seo.description)}</p>` +
-        (stories.length ? `<ul>${headlineListHtml(stories)}</ul>` : '<p>There are no stories in this section yet.</p>');
+        (stories.length ? `<ul class="list">${headlineListHtml(stories)}</ul>` : '<p>There are no stories in this section yet.</p>');
 
       return renderSeoPage(
         response,
@@ -188,7 +191,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
     const article = await db
       .prepare(
         `SELECT
-           a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.hero_image, a.image_caption, a.photo_credit,
+           a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.area, a.hero_image, a.image_caption, a.photo_credit,
            a.tags, a.seo_title, a.meta_description, a.published_at, a.updated_at,
            c.name AS category_name,
            ${BYLINE_SELECT}
@@ -276,28 +279,38 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
 
     const credit = article.photo_credit ? `Photograph: ${article.photo_credit}` : '';
     const caption = [article.image_caption, credit].filter(Boolean).join(' · ');
+    // Same order and blocks as the app's story page: photo, black headline panel, byline, key facts, story, more
+    const keyFacts = splitKeyFacts(bodyHtml);
+    const storyHtml = markQuestionHeadings(keyFacts ? keyFacts.body : bodyHtml);
+    const area = (article.area || '').trim();
     const main =
       '<article>' +
-      `<nav aria-label="Breadcrumb"><ol><li><a href="/">Home</a></li>` +
-      `<li><a href="/news/${encodeURIComponent(article.category)}">${escapeText(categoryName)}</a></li></ol></nav>` +
+      (heroUrl
+        ? `<figure class="hero"><img src="${escapeAttr(heroUrl)}" alt="${escapeAttr(article.image_caption || article.title)}" /></figure>`
+        : '') +
+      '<div class="panel">' +
+      `<nav aria-label="Breadcrumb"><ol><li><a class="lab lab-w" href="/">Home</a></li>` +
+      `<li><a class="lab" href="/news/${encodeURIComponent(article.category)}">${escapeText(categoryName)}</a></li>` +
+      (area && area.toLowerCase() !== categoryName.toLowerCase() ? `<li><span class="lab lab-w">${escapeText(area)}</span></li>` : '') +
+      '</ol></nav>' +
       `<h1>${escapeText(article.title)}</h1>` +
       (article.standfirst ? `<p>${escapeText(article.standfirst)}</p>` : '') +
-      `<p>By ${
+      '</div>' +
+      (heroUrl && caption ? `<p class="cap">${escapeText(caption)}</p>` : '') +
+      `<p class="byline">By ${
         authorUrl
           ? `<a href="/author/${encodeURIComponent(article.author_slug as string)}">${escapeText(authorName)}</a>`
           : escapeText(authorName)
       }` +
       (published ? ` · <time datetime="${escapeAttr(published)}">${escapeText(humanDate(article.published_at))}</time>` : '') +
       '</p>' +
-      (heroUrl
-        ? `<figure><img src="${escapeAttr(heroUrl)}" alt="${escapeAttr(article.image_caption || article.title)}" />` +
-          (caption ? `<figcaption>${escapeText(caption)}</figcaption>` : '') +
-          '</figure>'
+      (keyFacts
+        ? `<aside class="kf"><h2>${escapeText(keyFacts.heading)}</h2><ul>${keyFacts.facts.map((f) => `<li>${escapeText(f)}</li>`).join('')}</ul></aside>`
         : '') +
-      `<div>${bodyHtml}</div>` +
+      `<div class="body">${storyHtml}</div>` +
       '</article>' +
       (related.length
-        ? `<aside><h2>More from ${escapeText(categoryName)}</h2><ul>${headlineListHtml(related, 3)}</ul></aside>`
+        ? `<aside class="more"><h2 class="hd"><span>More on ${escapeText(categoryName)}</span></h2><ul class="list">${headlineListHtml(related, 3)}</ul></aside>`
         : '');
 
     return renderSeoPage(
