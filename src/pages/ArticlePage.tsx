@@ -258,6 +258,23 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             </figcaption>
           </figure>
 
+          {/* Key facts summary box */}
+          {article.keyFacts && article.keyFacts.length > 0 && (
+            <aside
+              aria-label={article.keyFactsHeading || 'Key facts'}
+              className="max-w-[680px] border-l-4 border-[#005EB8] bg-neutral-50 px-4 py-3 font-sans"
+            >
+              <h2 className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">
+                {article.keyFactsHeading || 'Key facts'}
+              </h2>
+              <ul className="list-disc pl-5 space-y-1.5 text-[15px] leading-snug text-neutral-900">
+                {article.keyFacts.map((fact, i) => (
+                  <li key={i}>{fact}</li>
+                ))}
+              </ul>
+            </aside>
+          )}
+
           {/* Body Paragraphs with Inline "Read More" Links */}
           <div className="max-w-[680px] space-y-4 text-[18px] leading-[1.65] font-serif text-neutral-900">
             {article.content.map((para, i) => (
