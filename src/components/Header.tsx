@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, Pause, Play } from 'lucide-react';
+import { Search, X, Pause, Play, Sun, Moon } from 'lucide-react';
+import { useTheme } from '../utils/theme';
 import { SpaLink, categoryHref, navigateTo } from './SpaLink';
 import { CategoryType, Article } from '../types/news';
 import { SITE_CONFIG } from '../config/site';
@@ -63,6 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectArticle,
 }) => {
   const [subscribeOpen, setSubscribeOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   const [breakingNews, setBreakingNews] = useState<BreakingArticle[]>([]);
   // The marquee pauses on hover/focus (CSS) and stays paused if the reader presses Pause (WCAG 2.2.2)
   const [isUserPaused, setIsUserPaused] = useState(false);
@@ -189,6 +191,19 @@ export const Header: React.FC<HeaderProps> = ({
             >
               Contact Us
             </SpaLink>
+          </li>
+          {/* Colour theme: follows the device until the reader chooses */}
+          <li className="lg:ml-auto">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-pressed={theme === 'dark'}
+              className={`${NAV_LINK} gap-2 border-transparent hover:border-white/60`}
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" aria-hidden="true" /> : <Moon className="w-4 h-4" aria-hidden="true" />}
+              Dark mode
+              <span className="sr-only">{theme === 'dark' ? ' (on)' : ' (off)'}</span>
+            </button>
           </li>
         </ul>
       </nav>

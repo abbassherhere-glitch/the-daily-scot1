@@ -116,7 +116,7 @@ export const NewsletterBox: React.FC<{ className?: string }> = ({ className = ''
             required
             autoComplete="email"
             aria-label="Email address"
-            className="w-full h-11 bg-white text-brand-ink placeholder-neutral-500 text-base px-3 border-2 border-white"
+            className="w-full h-11 bg-[#fff] text-brand-ink placeholder-neutral-500 text-base px-3 border-2 border-white"
           />
           {TURNSTILE_SITE_KEY && <div ref={widgetRef} className="min-h-[65px]" />}
           {error && (

@@ -318,6 +318,17 @@ const SSR_CSS = [
   '.ssr .now li::before{content:"";position:absolute;left:0;top:.95rem;width:.625rem;height:.625rem;background:#f7e14b;border-radius:50%}',
   '.ssr .now a{font-weight:800;text-decoration:none}',
   '.ssr .now time{display:block;color:#f7e14b}',
+  // Dark mode (the class is on <html> before first paint): light text on the charcoal page; yellow blocks keep black text
+  '.dark .ssr{color:#f4f4f1}',
+  '.dark .ssr time,.dark .ssr .cap{color:#a8a8a3}',
+  '.dark .ssr .hd,.dark .ssr .byline{border-color:#f4f4f1}',
+  '.dark .ssr .hd span,.dark .ssr .banner,.dark .ssr .banner time,.dark .ssr .kf{color:#111}',
+  '.dark .ssr .kf h2{border-color:#111}',
+  '.dark .ssr .list>li{border-color:rgba(255,255,255,.2)}',
+  '.dark .ssr .lab-k{background:#f4f4f1;color:#111}',
+  '.dark .ssr .body a{color:#8ab8ff}',
+  '.dark .ssr .now time{color:#f7e14b}',
+  '.dark .ssr .ds-question{text-decoration-thickness:.16em;text-underline-offset:.14em}',
   '@media(min-width:640px){.ssr header>p{padding:.75rem 1.5rem}.ssr header img{height:2.5rem}.ssr header nav ul{padding:0 .75rem}.ssr main{padding:1rem 1.5rem}.ssr h1{font-size:2.5rem}.ssr .hero{margin:-1rem -1.5rem 0}.ssr .hero img{aspect-ratio:2/1}.ssr .panel{margin:-5rem 0 0;padding:2rem}.ssr .panel p{font-size:1.125rem}}',
 ].join('');
 

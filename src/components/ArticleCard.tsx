@@ -104,7 +104,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 1. LEAD: large photo with the headline on a solid black panel that overlaps the bottom of it
   if (variant === 'lead') {
     return (
-      <article className={`group relative ${fillHeight ? 'lg:flex lg:flex-col lg:h-full' : ''} ${className}`}>
+      <article className={`ds-lift group relative ${fillHeight ? 'lg:flex lg:flex-col lg:h-full' : ''} ${className}`}>
         <div
           className={`relative overflow-hidden bg-surface-2 aspect-[16/9] ${
             fillHeight ? 'lg:aspect-auto lg:flex-1 lg:min-h-[300px] lg:[&>img]:absolute lg:[&>img]:inset-0' : ''
@@ -149,7 +149,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 2. TEXT-ONLY HEADLINE
   if (variant === 'text-only') {
     return (
-      <article className={`group relative py-3 ${className}`}>
+      <article className={`ds-lift group relative py-3 ${className}`}>
         <div className="flex flex-wrap items-center gap-2 mb-1.5">
           <StoryLabels section={label} area={article.locationTag} />
           {time && <span className="text-xs text-ink-muted">{time}</span>}
@@ -164,7 +164,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 3. THUMB LEFT: compact row with a small photo (lists, tabbed modules)
   if (variant === 'thumb-left') {
     return (
-      <article className={`group relative flex gap-3.5 items-start py-3.5 ${className}`}>
+      <article className={`ds-lift group relative flex gap-3.5 items-start py-3.5 ${className}`}>
         <div className="relative w-24 sm:w-28 aspect-[4/3] shrink-0 overflow-hidden bg-surface-2">
           <CardImage src={article.heroImage} />
           {rank !== undefined && (
@@ -193,7 +193,7 @@ export const ArticleCard: React.FC<ArticleCardProps> = ({
   // 4. CARD ('grid-card', and 'overlay' for the secondary stories beside a lead): photo, labels, headline
   const secondary = variant === 'overlay';
   return (
-    <article className={`group relative flex flex-col ${className}`}>
+    <article className={`ds-lift group relative flex flex-col ${className}`}>
       <div className="relative aspect-[16/10] overflow-hidden bg-surface-2">
         <CardImage src={article.heroImage} />
       </div>

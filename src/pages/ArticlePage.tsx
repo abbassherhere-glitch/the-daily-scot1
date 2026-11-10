@@ -1,8 +1,9 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Share2, Bookmark, Check } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard, sectionName } from '../components/ArticleCard';
 import { BLOCK_LABEL, BlockLabel } from '../components/BlockLabel';
+import { ReadingProgress } from '../components/ReadingProgress';
 import { markQuestionHeadings } from '../config/storyBlocks';
 import { formatUkDateTime, shownUpdateIso } from '../config/updates';
 
@@ -27,7 +28,7 @@ const STRETCHED_LINK =
   "after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-ink";
 
 const SHARE_BUTTON =
-  'inline-flex items-center justify-center gap-1.5 h-11 px-3.5 bg-surface border-2 border-ink text-ink text-sm font-bold hover:bg-brand';
+  'inline-flex items-center justify-center gap-1.5 h-11 px-3.5 bg-surface border-2 border-ink text-ink text-sm font-bold hover:bg-brand hover:text-brand-ink';
 
 const READ_MORE_BOX = 'my-6 border-y-2 border-ink py-3 font-sans text-base';
 
@@ -43,6 +44,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
   onToggleSave,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
+  const storyRef = useRef<HTMLDivElement>(null);
   const [liveMostRead, setLiveMostRead] = useState<Article[]>([]);
 
   useEffect(() => {
@@ -127,6 +129,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
 
   return (
     <article className="max-w-7xl mx-auto pb-6">
+      <ReadingProgress targetRef={storyRef} />
       {/* 1. LEAD PHOTO, full width, with the headline on a black panel overlapping the bottom of it */}
       <div className="bg-surface-2 aspect-[16/10] sm:aspect-[2/1] lg:aspect-[21/9] overflow-hidden">
         <img
@@ -145,7 +148,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
               <SpaLink
                 href="/"
                 onNavigate={() => onSelectCategory('all')}
-                className={`${BLOCK_LABEL} bg-white text-brand-ink hover:bg-brand`}
+                className={`${BLOCK_LABEL} bg-[#fff] text-brand-ink hover:bg-brand`}
               >
                 Home
               </SpaLink>
@@ -251,9 +254,9 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             type="button"
             onClick={(e) => onToggleSave(article.id, e)}
             aria-pressed={isSaved}
-            className={`sm:ml-auto ${SHARE_BUTTON} ${isSaved ? 'bg-brand!' : ''}`}
+            className={`sm:ml-auto ${SHARE_BUTTON} ${isSaved ? 'bg-brand! text-brand-ink!' : ''}`}
           >
-            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-ink' : ''}`} aria-hidden="true" />
+            <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-brand-ink' : ''}`} aria-hidden="true" />
             <span>{isSaved ? 'Saved' : 'Save story'}</span>
           </button>
         </div>
@@ -284,7 +287,7 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             )}
 
             {/* Story text with inline "Read more" links */}
-            <div className="max-w-[680px] text-[18px] leading-[1.65] text-ink">
+            <div ref={storyRef} className="max-w-[680px] text-[18px] leading-[1.65] text-ink">
               {article.content.map((para, i) => (
                 <React.Fragment key={i}>
                   <div
