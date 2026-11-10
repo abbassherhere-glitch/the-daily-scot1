@@ -10,6 +10,8 @@ interface ClosureMapEditorProps {
   closedLine: LngLat[];
   diversionLine: LngLat[];
   onChange: (next: { pin: LngLat | null; closedLine: LngLat[]; diversionLine: LngLat[] }) => void;
+  /** Story pins: only the pin can be placed, with no line tools */
+  pinOnly?: boolean;
 }
 
 const MODES: { id: DrawMode; label: string; help: string }[] = [
@@ -34,7 +36,7 @@ const lineData = (points: LngLat[]) => ({
  * Newsroom map for a closure: click to place the pin, or to draw the closed stretch and the diversion one
  * point at a time. Nothing needs typing; the latitude / longitude boxes in the form stay available as a fallback.
  */
-export const ClosureMapEditor: React.FC<ClosureMapEditorProps> = ({ pin, closedLine, diversionLine, onChange }) => {
+export const ClosureMapEditor: React.FC<ClosureMapEditorProps> = ({ pin, closedLine, diversionLine, onChange, pinOnly = false }) => {
   const boxRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const libRef = useRef<typeof import('maplibre-gl') | null>(null);
@@ -141,7 +143,7 @@ export const ClosureMapEditor: React.FC<ClosureMapEditorProps> = ({ pin, closedL
   return (
     <div className="space-y-2">
       <div role="group" aria-label="What a click on the map does" className="flex flex-wrap gap-2">
-        {MODES.map((m) => (
+        {MODES.filter((m) => !pinOnly || m.id === 'pin').map((m) => (
           <button key={m.id} type="button" aria-pressed={mode === m.id} onClick={() => setMode(m.id)} className={button(mode === m.id)}>
             {m.label}
           </button>
@@ -174,7 +176,7 @@ export const ClosureMapEditor: React.FC<ClosureMapEditorProps> = ({ pin, closedL
         )}
       </div>
       <p className="text-[11px] text-neutral-400">
-        Map: {MAP_CREDIT.map((c) => c.label).join(' · ')}. Closed stretch: {closedLine.length} points. Diversion: {diversionLine.length} points.
+        Map: {MAP_CREDIT.map((c) => c.label).join(' · ')}.{pinOnly ? '' : ` Closed stretch: ${closedLine.length} points. Diversion: ${diversionLine.length} points.`}
       </p>
     </div>
   );

@@ -2,6 +2,8 @@ import { Env, EventContext } from '../types';
 import { BYLINE_JOIN, BYLINE_SELECT, STAFF_BYLINE_SLUG } from '../utils/byline';
 import { sanitizeHtml } from '../utils/sanitize';
 import { withContentUpdated } from '../utils/contentUpdated';
+import { loadClosureForStory, loadStoryPin } from '../utils/closures';
+import { CLOSURES_PATH, STATUS_LABELS, closureProgressText, formatClosureDateTime } from '../../src/config/closures';
 import { formatUkDateTime, lastChangedIso, shownUpdateIso } from '../../src/config/updates';
 import {
   HeadlineRow,
@@ -215,6 +217,12 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       .bind(article.category, article.slug, RELATED_STORIES)
       .all<HeadlineRow>();
 
+    // A linked road closure and / or the story's own map pin (the app draws a map; here they are plain text)
+    const [closure, mapPin] = await Promise.all([
+      loadClosureForStory(db, article.id).catch(() => null),
+      loadStoryPin(db, article.id).catch(() => null),
+    ]);
+
     const bodyHtml = await sanitizeHtml(bodyToHtml(article.body || ''));
     const questions = storyQuestions(bodyHtml);
     const canonical = `${origin}/news/${encodeURIComponent(article.slug)}`;
@@ -315,6 +323,18 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       (keyFacts
         ? `<aside class="kf"><h2>${escapeText(keyFacts.heading)}</h2><ul>${keyFacts.facts.map((f) => `<li>${escapeText(f)}</li>`).join('')}</ul></aside>`
         : '') +
+      (closure
+        ? '<aside class="dates">' +
+          `<p><span class="lab">Closure dates</span> <span class="lab ${closure.status === 'reopened' || closure.status === 'planned' ? 'lab-w' : 'lab-r'}">${escapeText(STATUS_LABELS[closure.status])}</span></p>` +
+          `<p><strong>${escapeText(closure.name)}</strong></p>` +
+          `<p>Starts: <b>${escapeText(formatClosureDateTime(closure.startsAt) || 'To be confirmed')}</b></p>` +
+          `<p>Ends: <b>${escapeText(formatClosureDateTime(closure.endsAt) || 'Until further notice')}</b></p>` +
+          (closureProgressText(closure) ? `<p>${escapeText(closureProgressText(closure))}</p>` : '') +
+          (closure.diversion ? `<p>Diversion: ${escapeText(closure.diversion)}</p>` : '') +
+          `<p><a href="${CLOSURES_PATH}">All Glasgow road closures</a></p>` +
+          '</aside>'
+        : '') +
+      (mapPin && mapPin.label ? `<p class="cap"><strong>Location:</strong> ${escapeText(mapPin.label)}</p>` : '') +
       `<div class="body">${storyHtml}</div>` +
       '</article>' +
       (related.length

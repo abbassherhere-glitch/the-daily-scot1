@@ -306,6 +306,10 @@ const SSR_CSS = [
   '.ssr .body img{max-width:100%;height:auto}',
   '.ssr .ds-question{text-decoration:underline;text-decoration-color:#f7e14b;text-decoration-thickness:.42em;text-underline-offset:-.2em;text-decoration-skip-ink:none}',
   '.ssr aside.more{margin-top:2rem}',
+  // Story linked to a road closure: black dates block with the times in yellow
+  '.ssr .dates{background:#111;color:#fff;padding:1.25rem;max-width:42.5rem;margin:0 0 1.5rem}',
+  '.ssr .dates b{color:#f7e14b;font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;font-size:1.125rem}',
+  '.ssr .dates a{color:#f7e14b;font-weight:800;text-decoration:underline}',
   // Homepage "Happening now" strip: black, with a yellow dot before each story
   '.ssr .now{background:#111;color:#fff;padding:1rem;margin:1rem 0}',
   '.ssr .now h2{font-size:.8125rem;letter-spacing:.14em;text-transform:uppercase;color:#f7e14b;font-family:inherit;margin-bottom:.5rem}',

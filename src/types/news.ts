@@ -1,3 +1,5 @@
+import type { Closure, StoryPin } from '../config/closures';
+
 export type CategoryType =
   | 'all'
   | 'news'
@@ -69,6 +71,10 @@ export interface Article {
   comments: Comment[];
   tags: string[];
   isPartial?: boolean; // true when loaded from a list endpoint without the body
+  /** Road closure linked to this story in the newsroom (shown as a dates bar and a map) */
+  closure?: Closure;
+  /** The story's own single map pin, for incidents and events */
+  mapPin?: StoryPin;
   seoTitle?: string; // search-result title written by the newsroom (replaces the headline in <title>)
   metaDescription?: string; // search-result description written by the newsroom
 }

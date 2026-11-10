@@ -1,3 +1,4 @@
+import { loadStoryPins, saveStoryPin } from '../../../utils/storyPin';
 import { Env, EventContext, User, ArticleRecord, ArticleStatus } from '../../../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
@@ -64,7 +65,11 @@ export async function onRequestGet(
 
     const { results } = await context.env.DB.prepare(query).bind(...params).all<ArticleRecord>();
 
-    return jsonResponse({ articles: results });
+    // Each story's optional map pin, so the editor can show and change it
+    const pins = await loadStoryPins(context.env.DB, results.map((r) => r.id));
+    const articles = results.map((r) => ({ ...r, ...(pins.get(r.id) || {}) }));
+
+    return jsonResponse({ articles });
   } catch (err: any) {
     console.error('Admin articles fetch failed:', err);
     return jsonResponse({ error: 'Failed to retrieve newsroom articles' }, 500);
@@ -207,7 +212,9 @@ export async function onRequestPost(
 
     if (status === 'published') await notifySearchEngines([finalSlug]);
 
-    return jsonResponse({ success: true, id, slug: finalSlug, status }, 201);
+    const warning = await saveStoryPin(context.env.DB, id, body);
+
+    return jsonResponse({ success: true, id, slug: finalSlug, status, ...(warning ? { warning } : {}) }, 201);
   } catch (err: any) {
     console.error('Failed to create article:', err);
     const msg = String(err?.message || '');
