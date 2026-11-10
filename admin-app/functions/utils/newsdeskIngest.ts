@@ -3,6 +3,7 @@ import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTi
 import { checkPublishRules, jsonResponse, normaliseLegalCheck, normaliseSourceType, VALID_LEGAL_CHECKS } from './articleRules';
 import { getClientIp, logAuditEvent } from './auth';
 import { notifySearchEngines } from './indexNow';
+import { markContentUpdated } from './contentUpdated';
 
 /**
  * What Newsdesk may ask of POST /api/admin/ingest once its request has passed the shared-secret
@@ -286,6 +287,11 @@ export async function handleNewsdeskIngest(
       return jsonResponse({ error: 'Another article already uses this URL slug.' }, 409);
     }
     return jsonResponse({ error: 'Failed to publish article' }, 500);
+  }
+
+  // The reader-facing "Updated" time moves only when the words of an existing story change
+  if (existing && (existing.title !== title || (existing.standfirst || '') !== standfirst || existing.body !== cleanBody)) {
+    await markContentUpdated(env.DB, id);
   }
 
   await logAuditEvent(env, user, existing ? 'NEWSDESK_UPDATE_ARTICLE' : 'NEWSDESK_PUBLISH_ARTICLE', {

@@ -299,6 +299,14 @@ const SSR_CSS = [
   '.ssr .body img{max-width:100%;height:auto}',
   '.ssr .ds-question{text-decoration:underline;text-decoration-color:#f7e14b;text-decoration-thickness:.42em;text-underline-offset:-.2em;text-decoration-skip-ink:none}',
   '.ssr aside.more{margin-top:2rem}',
+  // Homepage "Happening now" strip: black, with a yellow dot before each story
+  '.ssr .now{background:#111;color:#fff;padding:1rem;margin:1rem 0}',
+  '.ssr .now h2{font-size:.8125rem;letter-spacing:.14em;text-transform:uppercase;color:#f7e14b;font-family:inherit;margin-bottom:.5rem}',
+  '.ssr .now ul{list-style:none;margin:0;padding:0}',
+  '.ssr .now li{padding:.5rem 0 .5rem 1.25rem;position:relative}',
+  '.ssr .now li::before{content:"";position:absolute;left:0;top:.95rem;width:.625rem;height:.625rem;background:#f7e14b;border-radius:50%}',
+  '.ssr .now a{font-weight:800;text-decoration:none}',
+  '.ssr .now time{display:block;color:#f7e14b}',
   '@media(min-width:640px){.ssr header>p{padding:.75rem 1.5rem}.ssr header img{height:2.5rem}.ssr header nav ul{padding:0 .75rem}.ssr main{padding:1rem 1.5rem}.ssr h1{font-size:2.5rem}.ssr .hero{margin:-1rem -1.5rem 0}.ssr .hero img{aspect-ratio:2/1}.ssr .panel{margin:-5rem 0 0;padding:2rem}.ssr .panel p{font-size:1.125rem}}',
 ].join('');
 

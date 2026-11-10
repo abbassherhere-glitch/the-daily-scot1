@@ -4,6 +4,7 @@ import { Article, CategoryType } from '../types/news';
 import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
 import { NewsletterBox } from '../components/NewsletterBox';
+import { HappeningNow } from '../components/HappeningNow';
 import { SpaLink, categoryHref } from '../components/SpaLink';
 
 interface HomePageProps {
@@ -212,6 +213,9 @@ export const HomePage: React.FC<HomePageProps> = ({
           <span>{filteredList.length} stories</span>
         </div>
       )}
+
+      {/* Stories published or changed in the last hour */}
+      <HappeningNow onSelectArticle={onSelectArticle} />
 
       {/* 1. HERO BENTO — lead story + two stacked secondary stories */}
       {lead && (

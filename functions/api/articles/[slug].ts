@@ -1,6 +1,7 @@
 import { Env, EventContext, ArticleRecord } from '../../types';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { BYLINE_JOIN, BYLINE_SELECT } from '../../utils/byline';
+import { withContentUpdated } from '../../utils/contentUpdated';
 
 export async function onRequestGet(context: EventContext<Env, 'slug', any>): Promise<Response> {
   try {
@@ -12,11 +13,11 @@ export async function onRequestGet(context: EventContext<Env, 'slug', any>): Pro
       });
     }
 
-    const query = `
+    const query = (contentUpdated: string) => `
       SELECT 
         a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.area, 
         a.hero_image, a.image_caption, a.photo_credit, a.status, a.is_breaking, a.is_featured, 
-        a.tags, a.seo_title, a.meta_description, a.published_at, a.created_at, a.updated_at,
+        a.tags, a.seo_title, a.meta_description, a.published_at, a.created_at, a.updated_at, ${contentUpdated},
         ${BYLINE_SELECT},
         CASE WHEN a.byline_user_id IS NOT NULL THEN bu.bio ELSE NULL END AS author_bio,
         c.name AS category_name
@@ -27,9 +28,9 @@ export async function onRequestGet(context: EventContext<Env, 'slug', any>): Pro
       LIMIT 1
     `;
 
-    const article = await context.env.DB.prepare(query)
-      .bind(slug)
-      .first<ArticleRecord>();
+    const article = await withContentUpdated((column) =>
+      context.env.DB.prepare(query(column)).bind(slug).first<ArticleRecord>(),
+    );
 
     if (!article) {
       return new Response(JSON.stringify({ error: 'Article not found' }), {

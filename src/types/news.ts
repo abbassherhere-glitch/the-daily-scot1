@@ -56,6 +56,8 @@ export interface Article {
   author: Author;
   publishedAt: string; // ISO or human readable
   updatedAt?: string;
+  /** When the headline, standfirst or body last changed (not byline or label edits) */
+  contentUpdatedAt?: string;
   readTime: string;
   heroImage: string;
   heroCaption: string;

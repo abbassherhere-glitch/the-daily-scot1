@@ -4,6 +4,7 @@ import { Article, CategoryType } from '../types/news';
 import { ArticleCard, sectionName } from '../components/ArticleCard';
 import { BLOCK_LABEL, BlockLabel } from '../components/BlockLabel';
 import { markQuestionHeadings } from '../config/storyBlocks';
+import { formatUkDateTime, shownUpdateIso } from '../config/updates';
 import { AdBanner } from '../components/AdBanner';
 import { SpaLink, articleHref, authorHref, categoryHref, navigateTo } from '../components/SpaLink';
 import DOMPurify from 'dompurify';
@@ -94,6 +95,8 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
   const dateFormatted = `${pubDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}, ${pubDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase()}`;
 
   const sectionLabel = sectionName(article);
+  // Shown only when the story's words changed more than half an hour after it was published
+  const updatedIso = shownUpdateIso(article.publishedAt, article.contentUpdatedAt);
 
   // Inline "Read more" links: the two newest other stories
   const otherStories = allArticles.filter((a) => a.id !== article.id);
@@ -208,8 +211,13 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
             </div>
           </div>
 
-          <div className="text-xs text-ink-muted">
-            <span>Published: <time dateTime={article.publishedAt}>{dateFormatted}</time></span>
+          <div className="text-xs text-ink-muted sm:text-right">
+            <div>Published: <time dateTime={article.publishedAt}>{dateFormatted}</time></div>
+            {updatedIso && (
+              <div className="mt-1 font-bold text-ink">
+                Updated: <time dateTime={updatedIso}>{formatUkDateTime(updatedIso)}</time>
+              </div>
+            )}
           </div>
         </div>
 

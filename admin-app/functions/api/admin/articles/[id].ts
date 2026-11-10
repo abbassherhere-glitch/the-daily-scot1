@@ -1,3 +1,4 @@
+import { markContentUpdated } from '../../../utils/contentUpdated';
 import { Env, EventContext, User, ArticleRecord } from '../../../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from '../../../utils/sanitize';
 import { logAuditEvent, getClientIp, requireRole } from '../../../utils/auth';
@@ -270,6 +271,11 @@ export async function onRequestPut(
     );
 
     await context.env.DB.batch(statements);
+
+    // The reader-facing "Updated" time moves only when the words change, not on byline or label edits
+    if (existing.title !== title || (existing.standfirst || '') !== standfirst || existing.body !== cleanBody) {
+      await markContentUpdated(context.env.DB, id);
+    }
 
     let action = 'UPDATE_ARTICLE';
     if (existing.status !== 'published' && status === 'published') action = 'PUBLISH_ARTICLE';

@@ -1,6 +1,8 @@
 import { Env, EventContext } from '../types';
 import { BYLINE_JOIN, BYLINE_SELECT, STAFF_BYLINE_SLUG } from '../utils/byline';
 import { sanitizeHtml } from '../utils/sanitize';
+import { withContentUpdated } from '../utils/contentUpdated';
+import { formatUkDateTime, lastChangedIso, shownUpdateIso } from '../../src/config/updates';
 import {
   HeadlineRow,
   LATEST_SQL,
@@ -57,7 +59,7 @@ interface ArticleRow {
   seo_title?: string;
   meta_description?: string;
   published_at?: string;
-  updated_at?: string;
+  content_updated_at?: string | null;
   author_name?: string;
   author_slug?: string;
 }
@@ -188,21 +190,23 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
     }
 
     // ---- /news/<story-slug> ----
-    const article = await db
-      .prepare(
-        `SELECT
-           a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.area, a.hero_image, a.image_caption, a.photo_credit,
-           a.tags, a.seo_title, a.meta_description, a.published_at, a.updated_at,
-           c.name AS category_name,
-           ${BYLINE_SELECT}
-         FROM articles a
-         ${BYLINE_JOIN}
-         LEFT JOIN categories c ON a.category = c.slug
-         WHERE a.slug = ? AND ${PUBLISHED}
-         LIMIT 1`,
-      )
-      .bind(slug)
-      .first<ArticleRow>();
+    const article = await withContentUpdated((contentUpdated) =>
+      db
+        .prepare(
+          `SELECT
+             a.id, a.slug, a.title, a.standfirst, a.body, a.category, a.area, a.hero_image, a.image_caption, a.photo_credit,
+             a.tags, a.seo_title, a.meta_description, a.published_at, ${contentUpdated},
+             c.name AS category_name,
+             ${BYLINE_SELECT}
+           FROM articles a
+           ${BYLINE_JOIN}
+           LEFT JOIN categories c ON a.category = c.slug
+           WHERE a.slug = ? AND ${PUBLISHED}
+           LIMIT 1`,
+        )
+        .bind(slug)
+        .first<ArticleRow>(),
+    );
 
     if (!article) return notFoundPage(response, sections, origin);
 
@@ -218,7 +222,10 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
     const description = article.meta_description || article.standfirst || plainExcerpt(bodyHtml);
     const heroUrl = safeImageUrl(article.hero_image, origin);
     const published = toIso(article.published_at);
-    const modified = toIso(article.updated_at) || published;
+    // When the story's words last changed (never a byline or label edit); the publication time if they have not
+    const contentUpdated = toIso(article.content_updated_at || undefined);
+    const modified = lastChangedIso(published, contentUpdated);
+    const shownUpdate = shownUpdateIso(published, contentUpdated);
     const categoryName = article.category_name || article.category;
     const tags = parseTags(article.tags);
     const authorName = article.author_name || SITE_NAME;
@@ -303,6 +310,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
           : escapeText(authorName)
       }` +
       (published ? ` · <time datetime="${escapeAttr(published)}">${escapeText(humanDate(article.published_at))}</time>` : '') +
+      (shownUpdate ? ` · Updated: <time datetime="${escapeAttr(shownUpdate)}">${escapeText(formatUkDateTime(shownUpdate))}</time>` : '') +
       '</p>' +
       (keyFacts
         ? `<aside class="kf"><h2>${escapeText(keyFacts.heading)}</h2><ul>${keyFacts.facts.map((f) => `<li>${escapeText(f)}</li>`).join('')}</ul></aside>`

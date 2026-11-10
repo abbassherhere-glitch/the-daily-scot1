@@ -91,6 +91,8 @@ export interface ArticleRecord {
   published_at?: string;
   created_at: string;
   updated_at: string;
+  /** When the headline, standfirst or body last changed (migration 0004); null if never edited */
+  content_updated_at?: string | null;
   // Joined fields
   byline?: string | null;
   byline_slug?: string | null;
