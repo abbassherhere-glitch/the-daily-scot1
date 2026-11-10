@@ -2,6 +2,7 @@ import { ArticleRecord, Env, User } from '../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from './sanitize';
 import { checkPublishRules, jsonResponse, normaliseLegalCheck, normaliseSourceType, VALID_LEGAL_CHECKS } from './articleRules';
 import { getClientIp, logAuditEvent } from './auth';
+import { notifySearchEngines } from './indexNow';
 
 /**
  * What Newsdesk may ask of POST /api/admin/ingest once its request has passed the shared-secret
@@ -294,6 +295,8 @@ export async function handleNewsdeskIngest(
     ip,
     details: `Newsdesk ${existing ? 'updated' : 'published'} "${title}" (${id}, Newsdesk article ${externalId}) in section ${category}`,
   });
+
+  await notifySearchEngines([slug]);
 
   return jsonResponse(
     {
