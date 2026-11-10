@@ -351,6 +351,8 @@ function transformD1RowToArticle(row: any): Article {
     views: Number(row.total_views) || 0,
     comments: [],
     tags,
+    closure: row.closure || undefined,
+    mapPin: row.map_pin || undefined,
     seoTitle: row.seo_title || undefined,
     metaDescription: row.meta_description || undefined,
   };

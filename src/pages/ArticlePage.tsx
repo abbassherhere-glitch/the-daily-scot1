@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Share2, Bookmark, Check } from 'lucide-react';
 import { Article, CategoryType } from '../types/news';
 import { ArticleCard, sectionName } from '../components/ArticleCard';
 import { BLOCK_LABEL, BlockLabel } from '../components/BlockLabel';
 import { markQuestionHeadings } from '../config/storyBlocks';
 import { formatUkDateTime, shownUpdateIso } from '../config/updates';
+
+// Only stories with a closure or a pin show a map, so its code is fetched for those stories alone
+const StoryMapBlock = lazy(() => import('../components/StoryMap').then((m) => ({ default: m.StoryMap })));
+const ClosureDatesBlock = lazy(() => import('../components/StoryMap').then((m) => ({ default: m.ClosureDatesBar })));
 import { AdBanner } from '../components/AdBanner';
 import { SpaLink, articleHref, authorHref, categoryHref, navigateTo } from '../components/SpaLink';
 import DOMPurify from 'dompurify';
@@ -269,6 +273,14 @@ export const ArticlePage: React.FC<ArticlePageProps> = ({
                   ))}
                 </ul>
               </aside>
+            )}
+
+            {/* Road closure dates and map, or the story's own map pin */}
+            {(article.closure || article.mapPin) && (
+              <Suspense fallback={null}>
+                {article.closure && <ClosureDatesBlock closure={article.closure} />}
+                <StoryMapBlock closure={article.closure} pin={article.mapPin} />
+              </Suspense>
             )}
 
             {/* Story text with inline "Read more" links */}

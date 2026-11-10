@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist admin-app/dist",
     "lint": "tsc --noEmit",
-    "db:migrate": "wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0002_production_setup.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0003_bylines.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0004_content_updated_at.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0005_road_closures.sql"
+    "db:migrate": "wrangler d1 execute daily-scot-db --remote --file=./migrations/0001_init.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0002_production_setup.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0003_bylines.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0004_content_updated_at.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0005_road_closures.sql && wrangler d1 execute daily-scot-db --remote --file=./migrations/0006_story_map_pin.sql"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",

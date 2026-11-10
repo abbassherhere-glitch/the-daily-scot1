@@ -186,6 +186,50 @@ export function closureSummary(c: Closure): string {
     .join(' ');
 }
 
+export interface ClosureProgress {
+  /** Which day of the closure today is, counting the first day as 1 */
+  day: number;
+  /** How many days the closure lasts in total */
+  total: number;
+  /** How much of the bar to fill, 0 to 100 */
+  percent: number;
+}
+
+/** "Day 3 of 18" for a closure that has started and has both dates; null otherwise. */
+export function closureProgress(c: Pick<Closure, 'startsAt' | 'endsAt'>, now = Date.now()): ClosureProgress | null {
+  const start = time(c.startsAt);
+  const end = time(c.endsAt);
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start || now < start) return null;
+  const DAY = 86_400_000;
+  const total = Math.max(1, Math.ceil((end - start) / DAY));
+  const day = Math.min(total, Math.floor((Math.min(now, end) - start) / DAY) + 1);
+  return { day, total, percent: Math.round((day / total) * 100) };
+}
+
+/** The words shown beside the progress bar: "Day 3 of 18", "Starts Mon 16 Nov, 8:00 pm", "Now reopened"... */
+export function closureProgressText(c: Pick<Closure, 'startsAt' | 'endsAt' | 'status'>, now = Date.now()): string {
+  if (c.status === 'reopened') return 'Now reopened';
+  const progress = closureProgress(c, now);
+  if (progress) return now > time(c.endsAt) ? 'Closure period has ended' : `Day ${progress.day} of ${progress.total}`;
+  const start = time(c.startsAt);
+  if (!Number.isNaN(start) && now < start) return `Starts ${formatClosureDateTime(c.startsAt)}`;
+  return c.endsAt ? '' : 'No end date given yet';
+}
+
+/** A single pin on a story's map (incidents and events) */
+export interface StoryPin {
+  latitude: number;
+  longitude: number;
+  label: string;
+}
+
+/** Story pins can be anywhere in Scotland; positions outside this box are rejected as typing mistakes */
+export const SCOTLAND_BOUNDS = { west: -8.8, east: -0.5, south: 54.5, north: 61.0 };
+
+export function inScotland(lng: number, lat: number): boolean {
+  return lng >= SCOTLAND_BOUNDS.west && lng <= SCOTLAND_BOUNDS.east && lat >= SCOTLAND_BOUNDS.south && lat <= SCOTLAND_BOUNDS.north;
+}
+
 /**
  * Stories that count as transport news for the "Latest transport stories" list. The server builds the list
  * with these words (in the headline or tags), so the app and the server-rendered page always agree.

@@ -2,6 +2,7 @@ import { Env, EventContext, ArticleRecord } from '../../types';
 import { sanitizeHtml } from '../../utils/sanitize';
 import { BYLINE_JOIN, BYLINE_SELECT } from '../../utils/byline';
 import { withContentUpdated } from '../../utils/contentUpdated';
+import { loadClosureForStory, loadStoryPin } from '../../utils/closures';
 
 export async function onRequestGet(context: EventContext<Env, 'slug', any>): Promise<Response> {
   try {
@@ -42,7 +43,13 @@ export async function onRequestGet(context: EventContext<Env, 'slug', any>): Pro
     // Ensure body HTML is sanitized
     article.body = await sanitizeHtml(article.body);
 
-    return new Response(JSON.stringify({ article }), {
+    // Extras for the story page's map: a linked road closure and / or the story's own pin. Never worth failing over.
+    const [closure, mapPin] = await Promise.all([
+      loadClosureForStory(context.env.DB, article.id).catch(() => null),
+      loadStoryPin(context.env.DB, article.id).catch(() => null),
+    ]);
+
+    return new Response(JSON.stringify({ article: { ...article, closure, map_pin: mapPin } }), {
       status: 200,
       headers: {
         'Content-Type': 'application/json',

@@ -1,3 +1,4 @@
+import { saveStoryPin } from '../../../utils/storyPin';
 import { markContentUpdated } from '../../../utils/contentUpdated';
 import { Env, EventContext, User, ArticleRecord } from '../../../types';
 import { sanitizeHtml, sanitizePlainText, generateSlug, sanitizeUrl, toSqlDateTime } from '../../../utils/sanitize';
@@ -297,7 +298,9 @@ export async function onRequestPut(
       await notifySearchEngines([slug, existing.slug]);
     }
 
-    return jsonResponse({ success: true, id, status, slug });
+    const warning = await saveStoryPin(context.env.DB, id, body);
+
+    return jsonResponse({ success: true, id, status, slug, ...(warning ? { warning } : {}) });
   } catch (err: any) {
     console.error('Failed to update article:', err);
     const msg = String(err?.message || '');

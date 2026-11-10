@@ -6,6 +6,8 @@
  * empty list rather than failing, so the rest of the site is unaffected.
  */
 import {
+  StoryPin,
+  inScotland,
   CLOSURE_KINDS,
   CLOSURE_STATUSES,
   Closure,
@@ -150,4 +152,26 @@ export async function transportStories(db: Db, limit = TRANSPORT_STORIES): Promi
     .bind(...patterns, limit)
     .all<TransportStoryRow>();
   return results;
+}
+
+/**
+ * A story's own map pin, if it has one. The columns arrive with migration 0006; until that has been run
+ * (or if the story has no pin) this returns null.
+ */
+export async function loadStoryPin(db: Db, articleId: string): Promise<StoryPin | null> {
+  try {
+    const { results } = await db
+      .prepare('SELECT map_latitude, map_longitude, map_label FROM articles WHERE id = ? LIMIT 1')
+      .bind(articleId)
+      .all<{ map_latitude: number | null; map_longitude: number | null; map_label: string | null }>();
+    const row = results[0];
+    if (!row || row.map_latitude === null || row.map_longitude === null) return null;
+    const latitude = Number(row.map_latitude);
+    const longitude = Number(row.map_longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !inScotland(longitude, latitude)) return null;
+    return { latitude, longitude, label: row.map_label || '' };
+  } catch (err) {
+    if (!/no such column/i.test(String((err as { message?: string })?.message || err))) throw err;
+    return null;
+  }
 }

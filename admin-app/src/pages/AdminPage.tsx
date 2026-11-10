@@ -60,6 +60,7 @@ import {
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
 import { ModalFrame } from '../components/ModalFrame';
 import { ClosuresPanel } from '../components/ClosuresPanel';
+import { ClosureMapEditor } from '../components/ClosureMapEditor';
 
 /** D1 UTC timestamp ('YYYY-MM-DD HH:MM:SS' or ISO) -> value for a datetime-local input (local time). */
 function utcToLocalInput(value?: string | null): string {
@@ -147,6 +148,11 @@ export const AdminPage: React.FC = () => {
   const [formEmbargoUntil, setFormEmbargoUntil] = useState('');
   const [formPublishAt, setFormPublishAt] = useState('');
   const [formCorrectionNote, setFormCorrectionNote] = useState('');
+  // Optional single map pin on the story (incidents, events)
+  const [formMapLat, setFormMapLat] = useState('');
+  const [formMapLng, setFormMapLng] = useState('');
+  const [formMapLabel, setFormMapLabel] = useState('');
+  const [formMapOpen, setFormMapOpen] = useState(false);
 
   // Byline (public credit line). The real poster stays recorded server-side as the author.
   const [bylineOptions, setBylineOptions] = useState<BylineOption[]>([{ value: 'staff', label: STAFF_BYLINE }]);
@@ -251,6 +257,10 @@ export const AdminPage: React.FC = () => {
     setFormLegalChecked(false);
     setFormEmbargoUntil('');
     setFormCorrectionNote('');
+    setFormMapLat('');
+    setFormMapLng('');
+    setFormMapLabel('');
+    setFormMapOpen(false);
     setFormBylineChoice('staff');
     setFormBylineGuestName('');
     setFormBylineExtra(null);
@@ -287,6 +297,10 @@ export const AdminPage: React.FC = () => {
     setFormLegalChecked(Boolean(article.legal_checked));
     setFormEmbargoUntil(utcToLocalInput(article.embargo_until));
     setFormCorrectionNote(article.correction_note || '');
+    setFormMapLat(article.map_latitude === null || article.map_latitude === undefined ? '' : String(article.map_latitude));
+    setFormMapLng(article.map_longitude === null || article.map_longitude === undefined ? '' : String(article.map_longitude));
+    setFormMapLabel(article.map_label || '');
+    setFormMapOpen(false);
     const choice = bylineChoiceFor(article);
     setFormBylineChoice(choice);
     setFormBylineGuestName(choice === 'guest' ? article.byline || '' : '');
@@ -419,6 +433,10 @@ export const AdminPage: React.FC = () => {
       breaking_until: formIsBreaking ? localInputToIso(formBreakingUntil) || undefined : undefined,
       published_at: finalStatus === 'scheduled' ? localInputToIso(formPublishAt) : undefined,
       correction_note: formCorrectionNote.trim() || undefined,
+      // Optional map pin: both empty removes it
+      map_latitude: formMapLat.trim(),
+      map_longitude: formMapLng.trim(),
+      map_label: formMapLabel.trim(),
       // Validated server-side against the allowed options; never trusted as-is
       byline_choice: formBylineChoice,
       byline_guest_name: formBylineChoice === 'guest' ? formBylineGuestName.trim() : undefined,
@@ -427,10 +445,10 @@ export const AdminPage: React.FC = () => {
     try {
       if (editorMode === 'create') {
         const res = await createAdminArticle(payload);
-        showToast(`Article saved as ${res.status.toUpperCase()}`);
+        showToast((res as any).warning || `Article saved as ${res.status.toUpperCase()}`);
       } else if (currentEditId) {
         const res = await updateAdminArticle(currentEditId, payload);
-        showToast((res as any).message || `Article updated: ${res.status.toUpperCase()}`);
+        showToast((res as any).warning || (res as any).message || `Article updated: ${res.status.toUpperCase()}`);
       }
       setIsDirty(false);
       setIsEditorOpen(false);
@@ -1637,6 +1655,59 @@ export const AdminPage: React.FC = () => {
                   className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400 focus:ring-2 focus:ring-sky-400"
                 />
               </div>
+
+              {/* Optional map pin (incidents, events) */}
+              <fieldset className="bg-neutral-800 border border-neutral-700 p-3 rounded space-y-3">
+                <legend className="px-1 text-[11px] font-bold uppercase tracking-wider text-neutral-400">
+                  Map pin (optional)
+                </legend>
+                <p className="text-xs text-neutral-400">
+                  Shows a small map with one pin on the story, for an incident or event. Leave empty for no map.
+                  Road closures have their own screen: link the story there instead.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label htmlFor="admin-field-map-lat" className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Latitude</label>
+                    <input id="admin-field-map-lat" inputMode="decimal" value={formMapLat} placeholder="55.8642"
+                      onChange={(e) => { setFormMapLat(e.target.value); setIsDirty(true); }}
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400" />
+                  </div>
+                  <div>
+                    <label htmlFor="admin-field-map-lng" className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Longitude</label>
+                    <input id="admin-field-map-lng" inputMode="decimal" value={formMapLng} placeholder="-4.2518"
+                      onChange={(e) => { setFormMapLng(e.target.value); setIsDirty(true); }}
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400" />
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor="admin-field-map-label" className="block text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-1">Caption for the pin</label>
+                    <input id="admin-field-map-label" type="text" maxLength={160} value={formMapLabel} placeholder="Sauchiehall Street, near Rose Street"
+                      onChange={(e) => { setFormMapLabel(e.target.value); setIsDirty(true); }}
+                      className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-1.5 text-white text-xs outline-none focus:ring-2 focus:ring-sky-400" />
+                  </div>
+                </div>
+                {formMapOpen ? (
+                  <ClosureMapEditor
+                    pinOnly
+                    pin={
+                      formMapLat !== '' && formMapLng !== '' && Number.isFinite(Number(formMapLat)) && Number.isFinite(Number(formMapLng))
+                        ? [Number(formMapLng), Number(formMapLat)]
+                        : null
+                    }
+                    closedLine={[]}
+                    diversionLine={[]}
+                    onChange={(next) => {
+                      setFormMapLat(next.pin ? String(next.pin[1]) : '');
+                      setFormMapLng(next.pin ? String(next.pin[0]) : '');
+                      setIsDirty(true);
+                    }}
+                  />
+                ) : (
+                  <button type="button" onClick={() => setFormMapOpen(true)}
+                    className="px-3 py-2 rounded text-xs font-bold bg-neutral-700 text-white hover:bg-neutral-600">
+                    Choose the position on a map
+                  </button>
+                )}
+              </fieldset>
 
               {/* Editorial Flags (Editor/Owner only) */}
               <div className="bg-neutral-800 border border-neutral-700 p-3 rounded flex items-center gap-6">
