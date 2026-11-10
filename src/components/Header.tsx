@@ -7,6 +7,7 @@ import { Dialog } from './Dialog';
 import { NewsletterBox } from './NewsletterBox';
 import { Logo } from './Logo';
 import { BlockLabel } from './BlockLabel';
+import { LiveTravelLine } from './ClosuresPromo';
 
 interface HeaderProps {
   currentCategory: CategoryType;
@@ -99,14 +100,18 @@ export const Header: React.FC<HeaderProps> = ({
     return () => mediaQuery.removeEventListener('change', handler);
   }, []);
 
-  const [onContactPage, setOnContactPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === CONTACT_PATH);
+  // Read the address on every render (the app re-renders the header on each navigation); the listener covers
+  // navigation that happens without the app's state changing.
+  const [, setPathTick] = useState(0);
   useEffect(() => {
-    const sync = () => setOnContactPage(window.location.pathname.replace(/\/+$/, '') === CONTACT_PATH);
+    const sync = () => setPathTick((n) => n + 1);
     window.addEventListener('popstate', sync);
     return () => window.removeEventListener('popstate', sync);
   }, []);
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  const onContactPage = path === CONTACT_PATH;
 
-  const isActive = (slug: string) => !onContactPage && (slug === 'home' ? currentCategory === 'all' : currentCategory === slug);
+  const isActive = (slug: string) => (slug === 'home' ? path === '/' : path.startsWith('/news/') && currentCategory === slug);
 
   const handleSectionClick = (slug: string) => {
     onSelectCategory(slug === 'home' ? 'all' : (slug as CategoryType));
@@ -187,6 +192,9 @@ export const Header: React.FC<HeaderProps> = ({
           </li>
         </ul>
       </nav>
+
+      {/* Live travel: the most important current road closure (hidden when there is none) */}
+      <LiveTravelLine />
 
       {/* 3. BREAKING NEWS BAR (hidden when nothing is breaking) */}
       {/* Not a live region: moving headlines would interrupt screen readers constantly. */}

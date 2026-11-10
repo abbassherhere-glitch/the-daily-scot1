@@ -20,8 +20,10 @@ const SECURITY_HEADERS: Record<string, string> = {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://challenges.cloudflare.com https://api.open-meteo.com https://cloudflareinsights.com",
+    // tiles.openfreemap.org is the street map background (see src/config/map.ts); keep in step with public/_headers
+    "connect-src 'self' https://tiles.openfreemap.org https://challenges.cloudflare.com https://api.open-meteo.com https://cloudflareinsights.com",
     'frame-src https://challenges.cloudflare.com',
+    "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

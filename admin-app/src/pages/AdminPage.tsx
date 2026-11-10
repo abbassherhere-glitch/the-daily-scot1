@@ -59,6 +59,7 @@ import {
 } from '../services/adminApi';
 import { CATEGORIES, GLASGOW_DISTRICTS, GLASGOW_IMAGE_PRESETS } from '../constants';
 import { ModalFrame } from '../components/ModalFrame';
+import { ClosuresPanel } from '../components/ClosuresPanel';
 
 /** D1 UTC timestamp ('YYYY-MM-DD HH:MM:SS' or ISO) -> value for a datetime-local input (local time). */
 function utcToLocalInput(value?: string | null): string {
@@ -90,7 +91,7 @@ function bylineLabel(article: any): string {
 
 export const AdminPage: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<AdminUser | null>(null);
-  const [activeTab, setActiveTab] = useState<'articles' | 'review_queue' | 'users' | 'audit' | 'newsletter'>('articles');
+  const [activeTab, setActiveTab] = useState<'articles' | 'review_queue' | 'closures' | 'users' | 'audit' | 'newsletter'>('articles');
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -699,6 +700,20 @@ export const AdminPage: React.FC = () => {
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={() => setActiveTab('closures')}
+            aria-pressed={activeTab === 'closures'}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded text-xs font-bold uppercase tracking-wider transition ${
+              activeTab === 'closures'
+                ? 'bg-[#005EB8] text-white shadow-xs'
+                : 'bg-neutral-800 border border-neutral-700 text-neutral-300 hover:bg-neutral-700'
+            }`}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            <span>Road Closures</span>
+          </button>
+
           {(isOwner || isEditor) && (
             <>
               <button
@@ -1126,6 +1141,9 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* ROAD CLOSURES (same roles as stories) */}
+        {activeTab === 'closures' && <ClosuresPanel canDelete={isOwner || isEditor} />}
 
         {/* TAB 5: SUBSCRIBERS (Owner & Editor) */}
         {activeTab === 'newsletter' && (isOwner || isEditor) && (

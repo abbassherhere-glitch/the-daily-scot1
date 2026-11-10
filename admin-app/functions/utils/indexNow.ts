@@ -8,9 +8,14 @@
 const SITE_HOST = 'thedailyscot.co.uk';
 const INDEXNOW_KEY = 'f9719bd84df3b7f14b1560be4853e550';
 
-/** Never throws and never holds a save up for long: a failed notification only means a slower pick-up. */
+/** Stories, by slug. Never throws and never holds a save up for long: a failed notification only means a slower pick-up. */
 export async function notifySearchEngines(slugs: string[]): Promise<void> {
-  const urlList = [...new Set(slugs.filter(Boolean))].map((slug) => `https://${SITE_HOST}/news/${slug}`);
+  await notifySearchEnginesOfPaths(slugs.filter(Boolean).map((slug) => `/news/${slug}`));
+}
+
+/** Any pages of the site, by path (for example '/glasgow-road-closures'). Never throws. */
+export async function notifySearchEnginesOfPaths(paths: string[]): Promise<void> {
+  const urlList = [...new Set(paths.filter((p) => p && p.startsWith('/')))].map((path) => `https://${SITE_HOST}${path}`);
   if (urlList.length === 0) return;
   try {
     const res = await fetch('https://api.indexnow.org/indexnow', {

@@ -1,3 +1,5 @@
+import { closuresLastUpdated } from './utils/closures';
+import { CLOSURES_PATH } from '../src/config/closures';
 import { withContentUpdated } from './utils/contentUpdated';
 import { lastChangedIso } from '../src/config/updates';
 import { Env, EventContext } from './types';
@@ -69,6 +71,8 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n';
 
     xml += entry(`${domain}/`, homeUpdated);
+    // The road closures page: its date is the newest change to any closure
+    xml += entry(`${domain}${CLOSURES_PATH}`, (await closuresLastUpdated(db).catch(() => null)) || undefined);
     categories.forEach((cat) => {
       xml += entry(`${domain}/news/${encodeURIComponent(cat.slug)}`, sectionUpdated.get(cat.slug));
     });
