@@ -46,6 +46,9 @@ export interface Article {
   subcategory?: string;
   locationTag?: string; // e.g. "West End", "Southside", "City Centre", "Holyrood"
   content: string[]; // multi-paragraph text
+  /** Summary bullets shown in a box above the story (from a "Key facts" list in the body) */
+  keyFacts?: string[];
+  keyFactsHeading?: string;
   pullQuote?: {
     text: string;
     attribution: string;
