@@ -37,32 +37,36 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
   const remainingStories = filteredArticles.slice(1);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-2 pb-6 sm:pb-8 space-y-6">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb">
-        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-extrabold tracking-wider text-ink">
           <li>
-            <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
+            <SpaLink
+              href="/"
+              onNavigate={() => onSelectCategory('all')}
+              className="inline-flex items-center min-h-11 underline decoration-2 underline-offset-4 hover:decoration-4"
+            >
               Home
             </SpaLink>
           </li>
           <li aria-hidden="true">
-            <ChevronRight className="w-3 h-3 text-neutral-500" />
+            <ChevronRight className="w-3 h-3 text-ink-muted" />
           </li>
-          <li className="text-neutral-900" aria-current="page">
+          <li className="text-ink-muted" aria-current="page">
             {categoryMeta.label}
           </li>
         </ol>
       </nav>
 
-      {/* Category Section Header (Flat brand bar) */}
-      <div className="border-b border-line pb-5">
-        <h1 className="font-display font-extrabold text-3xl sm:text-[40px] text-ink tracking-tight">
-          {sectionHeading(category, categoryMeta.label)}
-        </h1>
-        <p className="text-sm sm:text-base text-ink-muted mt-2">
-          {categoryMeta.description}
-        </p>
+      {/* Section heading: yellow block sitting on a thick black rule */}
+      <div>
+        <div className="border-b-4 border-ink">
+          <h1 className="inline-block bg-brand text-brand-ink px-3 sm:px-4 py-2 font-display font-extrabold text-3xl sm:text-[44px] sm:leading-[1.1] uppercase">
+            {sectionHeading(category, categoryMeta.label)}
+          </h1>
+        </div>
+        <p className="text-base text-ink-soft mt-3 max-w-3xl">{categoryMeta.description}</p>
       </div>
 
       {/* Leaderboard slot */}
@@ -81,7 +85,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
             />
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10 border-t border-line pt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-10 border-t-[3px] border-ink pt-6">
             {remainingStories.map((art) => (
               <ArticleCard
                 key={art.id}
@@ -93,7 +97,7 @@ export const CategoryPage: React.FC<CategoryPageProps> = ({
           </div>
         </div>
 
-        <aside className="lg:col-span-4 space-y-6 lg:border-l lg:border-line lg:pl-8">
+        <aside className="lg:col-span-4 space-y-6 ">
           <AdBanner type="mpu" />
 
         </aside>

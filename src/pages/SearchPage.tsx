@@ -59,7 +59,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-5 bg-white">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
-        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#004a94]">
           <li>
             <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
               Home
@@ -75,7 +75,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
       </nav>
 
       {/* Flat Search Header */}
-      <div className="border-b-4 border-[#0B2545] pb-4">
+      <div className="border-b-4 border-[#111111] pb-4">
         <h1 className="font-headline font-black text-2xl sm:text-3xl text-neutral-900 uppercase tracking-tight">
           Search Articles
         </h1>
@@ -91,7 +91,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search Glasgow news, sport, traffic, property..."
-              className="w-full border border-neutral-500 p-2.5 pr-10 text-sm font-sans focus:outline-2 focus:outline-[#005EB8] focus:border-[#005EB8] [&::-webkit-search-cancel-button]:hidden"
+              className="w-full border border-neutral-500 p-2.5 pr-10 text-sm font-sans focus:outline-2 focus:outline-[#004a94] focus:border-[#004a94] [&::-webkit-search-cancel-button]:hidden"
               autoFocus
             />
             {query && (
@@ -136,7 +136,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
           onClick={() => setSelectedCategory('all')}
           className={`px-2.5 py-1 font-bold uppercase transition ${
             selectedCategory === 'all'
-              ? 'bg-[#005EB8] text-white'
+              ? 'bg-[#004a94] text-white'
               : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
           }`}
         >
@@ -150,7 +150,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             onClick={() => setSelectedCategory(c.id)}
             className={`px-2.5 py-1 font-semibold transition ${
               selectedCategory === c.id
-                ? 'bg-[#005EB8] text-white'
+                ? 'bg-[#004a94] text-white'
                 : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
             }`}
           >

@@ -61,7 +61,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
         <button
           type="button"
           onClick={() => navigateTo(window.location.pathname + window.location.search)}
-          className="px-4 py-2 bg-[#0B2545] text-white text-sm font-bold"
+          className="px-4 py-2 bg-[#111111] text-white text-sm font-bold"
         >
           Retry
         </button>
@@ -72,13 +72,13 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
   if (state === 'notfound' || !data) {
     return (
       <section className="max-w-xl mx-auto text-center py-20 px-4">
-        <p className="text-xs font-black uppercase tracking-wider text-[#005EB8] mb-2">Error 404</p>
+        <p className="text-xs font-black uppercase tracking-wider text-[#004a94] mb-2">Error 404</p>
         <h1 className="font-headline font-black text-3xl text-neutral-900 mb-3">Author not found</h1>
         <p className="text-neutral-600 mb-6">There are no published stories with this byline.</p>
         <SpaLink
           href="/"
           onNavigate={() => onSelectCategory('all')}
-          className="px-4 py-2 bg-[#0B2545] text-white text-sm font-bold"
+          className="px-4 py-2 bg-[#111111] text-white text-sm font-bold"
         >
           Go to the homepage
         </SpaLink>
@@ -95,7 +95,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-6 bg-white">
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="border-b border-neutral-200 pb-2">
-        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#005EB8]">
+        <ol className="flex items-center gap-1.5 text-xs uppercase font-black tracking-wider text-[#004a94]">
           <li>
             <SpaLink href="/" onNavigate={() => onSelectCategory('all')} className="hover:underline inline-block py-1">
               Home
@@ -111,17 +111,17 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
       </nav>
 
       {/* Author header (name and bio from Staff Users) */}
-      <div className="border-b-4 border-[#0B2545] pb-3 flex items-start gap-4">
+      <div className="border-b-4 border-[#111111] pb-3 flex items-start gap-4">
         {author.photo ? (
           <img
             src={author.photo}
             alt=""
-            className="w-16 h-16 rounded-full object-cover border border-neutral-300 shrink-0"
+            className="w-16 h-16 object-cover bg-surface-2 shrink-0"
           />
         ) : (
           <div
             aria-hidden="true"
-            className="w-16 h-16 rounded-full bg-[#0B2545] text-white flex items-center justify-center font-headline font-black text-2xl shrink-0"
+            className="w-16 h-16 bg-brand text-brand-ink flex items-center justify-center font-headline font-black text-2xl shrink-0"
           >
             {author.name.charAt(0)}
           </div>
@@ -130,7 +130,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
           <h1 className="font-headline font-black text-3xl sm:text-4xl text-neutral-900 tracking-tight">
             {author.name}
           </h1>
-          <p className="text-[11px] uppercase font-black tracking-wider text-[#005EB8] mt-0.5">{author.role}</p>
+          <p className="text-[11px] uppercase font-black tracking-wider text-[#004a94] mt-0.5">{author.role}</p>
           {author.bio && <p className="text-sm text-neutral-700 font-serif mt-2 max-w-3xl">{author.bio}</p>}
           <p className="text-xs text-neutral-500 mt-2">
             {total} {total === 1 ? 'story' : 'stories'}
@@ -146,7 +146,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
           {articles.length === 0 ? (
             <p className="text-sm text-neutral-600 py-8">
               There are no more stories on this page.{' '}
-              <SpaLink href={pageHref(1)} onNavigate={() => navigateTo(pageHref(1))} className="text-[#005EB8] underline">
+              <SpaLink href={pageHref(1)} onNavigate={() => navigateTo(pageHref(1))} className="text-[#004a94] underline">
                 Go to the latest stories
               </SpaLink>
             </p>
@@ -169,7 +169,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
                 <SpaLink
                   href={pageHref(page - 1)}
                   onNavigate={() => navigateTo(pageHref(page - 1))}
-                  className="flex items-center gap-1 font-bold text-[#005EB8] hover:underline"
+                  className="flex items-center gap-1 font-bold text-[#004a94] hover:underline"
                   rel="prev"
                 >
                   <ChevronLeft className="w-4 h-4" aria-hidden="true" /> Newer stories
@@ -185,7 +185,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
                     <li key={p} className="flex items-center gap-1">
                       {i > 0 && list[i - 1] !== p - 1 && <span className="text-neutral-400 px-1">…</span>}
                       {p === page ? (
-                        <span aria-current="page" className="px-2.5 py-1 bg-[#0B2545] text-white font-bold text-xs">
+                        <span aria-current="page" className="px-2.5 py-1 bg-[#111111] text-white font-bold text-xs">
                           {p}
                         </span>
                       ) : (
@@ -206,7 +206,7 @@ export const AuthorPage: React.FC<AuthorPageProps> = ({ slug, page, onSelectArti
                 <SpaLink
                   href={pageHref(page + 1)}
                   onNavigate={() => navigateTo(pageHref(page + 1))}
-                  className="flex items-center gap-1 font-bold text-[#005EB8] hover:underline"
+                  className="flex items-center gap-1 font-bold text-[#004a94] hover:underline"
                   rel="next"
                 >
                   Older stories <ChevronRight className="w-4 h-4" aria-hidden="true" />

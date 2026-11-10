@@ -37,7 +37,7 @@ export async function renderHomepage(context: EventContext<Env, any, any>, respo
     const main =
       '<h1>The Daily Scot – latest news from Glasgow and Scotland</h1>' +
       `<p>${escapeText(SITE_DESCRIPTION)}</p>` +
-      `<ul>${headlineListHtml(latest.results)}</ul>`;
+      `<ul class="list">${headlineListHtml(latest.results)}</ul>`;
 
     return renderSeoPage(
       response,
