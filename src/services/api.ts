@@ -1,6 +1,7 @@
 import { Article, CategoryType } from '../types/news';
 import { INITIAL_ARTICLES, CATEGORIES } from '../data/mockArticles';
 import { STAFF_BYLINE, bylineSlug } from '../components/SpaLink';
+import { splitKeyFacts } from '../config/storyBlocks';
 
 // Check if running in local development or AI Studio preview
 const isDevOrPreview =
@@ -312,7 +313,8 @@ function transformD1RowToArticle(row: any): Article {
     tags = ['Glasgow'];
   }
 
-  const contentParagraphs = parseBodyToBlocks(row.body || '');
+  const keyFacts = typeof row.body === 'string' ? splitKeyFacts(row.body) : null;
+  const contentParagraphs = parseBodyToBlocks(keyFacts ? keyFacts.body : row.body || '');
 
   return {
     id: row.id,
@@ -324,6 +326,8 @@ function transformD1RowToArticle(row: any): Article {
     locationTag: row.area || undefined,
     // List endpoints omit the body; mark those as partial so the full story is fetched when opened.
     content: contentParagraphs,
+    keyFacts: keyFacts?.facts,
+    keyFactsHeading: keyFacts?.heading,
     isPartial: typeof row.body !== 'string',
     // The public API returns the story's byline (never the account that posted it).
     // Stories with no byline are credited to The Daily Scot Staff.
