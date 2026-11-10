@@ -1,6 +1,8 @@
 import { Env, EventContext } from './types';
 import { infoPageByPath, infoPageIndexable } from '../src/config/infoPages';
 import { renderHomepage } from './utils/homepage';
+import { renderClosuresPage } from './utils/closuresPage';
+import { CLOSURES_PATH } from '../src/config/closures';
 import {
   escapeText,
   fetchShell,
@@ -20,6 +22,7 @@ import {
  * so /made-up-address would look like a real page to Google. Here:
  *   - the homepage gets its own tags, structured data and headlines (see utils/homepage.ts);
  *   - the company / legal pages (/about, /privacy...) get their own title, description and canonical link;
+ *   - /glasgow-road-closures lists every road closure as text (see utils/closuresPage.ts);
  *   - /search is the one other page the app draws, and is kept out of Google;
  *   - anything else that comes back as the app shell is answered with a real 404.
  * Files (images, scripts, robots.txt...) are returned untouched.
@@ -38,6 +41,8 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
   if (path === '/') return renderHomepage(context, response);
 
   try {
+    if (path === CLOSURES_PATH) return await renderClosuresPage(context, response);
+
     const sections = await loadSections(context.env.DB);
 
     const info = infoPageByPath(path);

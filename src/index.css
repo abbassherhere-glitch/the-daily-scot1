@@ -186,3 +186,41 @@
 #main-content h1[tabindex='-1']:focus {
   outline: none;
 }
+
+/* Map pins: numbered black squares, yellow when selected. The ::after pads the touch target to 44px. */
+.ds-pin {
+  /* positioned by the map library (absolute); the ::after below hangs off it */
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ds-ink);
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  font-family: var(--font-headline);
+  font-weight: 800;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ds-pin::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+}
+.ds-pin:empty {
+  width: 22px;
+  height: 22px;
+  background: var(--ds-alert);
+}
+.ds-pin-selected {
+  background: var(--ds-brand);
+  color: var(--ds-brand-ink);
+  border-color: var(--ds-ink);
+  width: 38px;
+  height: 38px;
+  font-size: 17px;
+}
+.maplibregl-map { font-family: var(--font-sans); }

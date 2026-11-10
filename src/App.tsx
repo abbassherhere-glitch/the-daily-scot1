@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { Article, CategoryType } from './types/news';
 import { 
   getPublicArticles, 
@@ -17,12 +17,16 @@ import { ArticlePage } from './pages/ArticlePage';
 import { SearchPage } from './pages/SearchPage';
 import { AuthorPage } from './pages/AuthorPage';
 import { InfoPage } from './pages/InfoPage';
+import { CLOSURES_DESCRIPTION, CLOSURES_PATH, CLOSURES_TITLE } from './config/closures';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { SpaLink } from './components/SpaLink';
 import { SITE_CONFIG } from './config/site';
 import { HOME_TITLE, SITE_DESCRIPTION, sectionSeo, withBrand } from './config/seoText';
 import { InfoPageId, infoPageByPath, infoPageIndexable } from './config/infoPages';
 import { HeadSeo, applyHeadSeo, serverWroteHead } from './utils/seoHead';
+
+// The road closures page is loaded only when it is opened, so its code (and the map's) stays out of every other page
+const ClosuresPage = lazy(() => import('./pages/ClosuresPage'));
 
 async function safeGetArticle(slug: string): Promise<Article | null> {
   try {
@@ -35,7 +39,7 @@ async function safeGetArticle(slug: string): Promise<Article | null> {
 
 export default function App() {
   const [articles, setArticles] = useState<Article[]>([]);
-  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'author' | 'info' | 'notfound'>('home');
+  const [currentView, setCurrentView] = useState<'home' | 'category' | 'article' | 'search' | 'author' | 'info' | 'closures' | 'notfound'>('home');
   // Company / legal pages (/about, /privacy...)
   const [infoPageId, setInfoPageId] = useState<InfoPageId | null>(null);
   // Author pages (/author/<slug>?page=N). authorName: undefined while loading, null when not found.
@@ -82,6 +86,10 @@ export default function App() {
         setCurrentView('home');
       } else if (path === '/search') {
         setCurrentView('search');
+      } else if (path.replace(/\/+$/, '') === CLOSURES_PATH) {
+        setCurrentArticle(null);
+        setCurrentCategory('all');
+        setCurrentView('closures');
       } else if (infoPageByPath(path)) {
         setCurrentArticle(null);
         setCurrentCategory('all');
@@ -251,6 +259,8 @@ export default function App() {
         canonical: `${origin}${info.path}`,
         noindex: !infoPageIndexable(info),
       };
+    } else if (currentView === 'closures') {
+      seo = { title: withBrand(CLOSURES_TITLE), description: CLOSURES_DESCRIPTION, canonical: `${origin}${CLOSURES_PATH}` };
     } else if (currentView === 'notfound') {
       seo = {
         title: withBrand('Page not found'),
@@ -402,6 +412,12 @@ export default function App() {
 
         {currentView === 'info' && infoPageId && (
           <InfoPage id={infoPageId} onSelectCategory={handleSelectCategory} />
+        )}
+
+        {currentView === 'closures' && (
+          <Suspense fallback={<p className="max-w-7xl mx-auto px-4 sm:px-6 py-10 text-ink-muted">Loading road closures…</p>}>
+            <ClosuresPage onSelectArticle={handleSelectArticle} onSelectCategory={handleSelectCategory} />
+          </Suspense>
         )}
 
         {currentView === 'notfound' && (

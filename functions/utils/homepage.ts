@@ -15,6 +15,8 @@ import {
   toIso,
 } from './seo';
 import { happeningNow } from './contentUpdated';
+import { loadClosures } from './closures';
+import { CLOSURES_HEADING, CLOSURES_PATH, STATUS_LABELS, closureDatesText, currentClosures } from '../../src/config/closures';
 import { HAPPENING_NOW_MINUTES, HAPPENING_NOW_STORIES, formatUkDateTime } from '../../src/config/updates';
 
 const HOME_STORIES = 30;
@@ -32,12 +34,23 @@ export async function renderHomepage(context: EventContext<Env, any, any>, respo
     const url = new URL(context.request.url);
     const origin = siteOrigin(context.env);
 
-    const [sections, latest, now] = await Promise.all([
+    const [sections, latest, now, closures] = await Promise.all([
       context.env.DB.prepare('SELECT slug, name FROM categories ORDER BY sort_order').all<SectionLink>(),
       context.env.DB.prepare(`${LATEST_SQL} ORDER BY a.published_at DESC LIMIT ?`).bind(HOME_STORIES).all<HeadlineRow>(),
       // The strip is a nicety: a problem with it must never take the homepage down
       happeningNow(context.env.DB, HAPPENING_NOW_MINUTES, HAPPENING_NOW_STORIES).catch(() => []),
+      loadClosures(context.env.DB).catch(() => []),
     ]);
+
+    // Same three closures as the app's yellow panel (src/components/ClosuresPromo.tsx)
+    const top = currentClosures(closures).slice(0, 3);
+    const closuresPanel = top.length
+      ? `<section class="banner"><h2><a href="${CLOSURES_PATH}">${escapeText(CLOSURES_HEADING)}</a></h2><ul>` +
+        top
+          .map((c) => `<li><strong>${escapeText(STATUS_LABELS[c.status])}: ${escapeText(c.name)}</strong> ${escapeText(closureDatesText(c))}</li>`)
+          .join('') +
+        `</ul><p><a href="${CLOSURES_PATH}">See the map and every closure</a></p></section>`
+      : '';
 
     // Same stories as the app's "Happening now" strip (src/components/HappeningNow.tsx)
     const happening = now.length
@@ -58,6 +71,7 @@ export async function renderHomepage(context: EventContext<Env, any, any>, respo
       '<h1>The Daily Scot – latest news from Glasgow and Scotland</h1>' +
       `<p>${escapeText(SITE_DESCRIPTION)}</p>` +
       happening +
+      closuresPanel +
       `<ul class="list">${headlineListHtml(latest.results)}</ul>`;
 
     return renderSeoPage(

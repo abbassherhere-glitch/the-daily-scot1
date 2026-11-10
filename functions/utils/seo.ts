@@ -264,6 +264,13 @@ const SSR_CSS = [
   '.ssr .lab{display:inline-block;background:#f7e14b;color:#111;font-size:.6875rem;line-height:1;font-weight:800;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;padding:.25rem .5rem}',
   '.ssr .lab-w{background:#fff}',
   '.ssr .lab-k{background:#111;color:#fff}',
+  '.ssr .lab-r{background:#c81e1e;color:#fff}',
+  // Yellow banner (road closures page) and yellow promo panel (homepage)
+  '.ssr .banner{background:#f7e14b;padding:1.25rem 1rem;margin:0 0 1rem}',
+  '.ssr .banner h1,.ssr .banner h2{margin:0 0 .25rem}',
+  '.ssr .banner time{color:#111;font-size:inherit;font-weight:700}',
+  '.ssr .banner ul{list-style:square;margin:.5rem 0;padding-left:1.25rem}',
+  '.ssr .banner a{font-weight:800}',
   '.ssr h1,.ssr h2,.ssr h3{font-family:"Plus Jakarta Sans",Inter,system-ui,sans-serif;font-weight:800;letter-spacing:-.02em}',
   '.ssr h1{font-size:2rem;line-height:1.1;margin:.5rem 0;text-wrap:balance}',
   '.ssr h2,.ssr h3{font-size:1.25rem;line-height:1.2;margin:0}',

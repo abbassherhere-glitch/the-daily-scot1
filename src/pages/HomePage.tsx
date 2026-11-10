@@ -5,6 +5,7 @@ import { ArticleCard } from '../components/ArticleCard';
 import { AdBanner } from '../components/AdBanner';
 import { NewsletterBox } from '../components/NewsletterBox';
 import { HappeningNow } from '../components/HappeningNow';
+import { ClosuresPromo } from '../components/ClosuresPromo';
 import { SpaLink, categoryHref } from '../components/SpaLink';
 
 interface HomePageProps {
@@ -237,6 +238,9 @@ export const HomePage: React.FC<HomePageProps> = ({
           )}
         </section>
       )}
+
+      {/* Road closures: the top three in force now */}
+      <ClosuresPromo />
 
       {/* 2. FEED + TABBED LISTS */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10">
