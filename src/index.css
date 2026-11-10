@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
-/* Dark mode is switched off while the yellow and black design beds in; the variant stays so older classes compile. */
+/* Dark mode is a class on <html>: set before first paint by the inline script in index.html (the reader's saved
+   choice, otherwise their device setting) and switched with the toggle in the header. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* ------------------------------------------------------------------------------------------------
@@ -27,6 +28,33 @@
   --ds-brand-ink: #111111;
   --ds-alert: #c81e1e;
   color-scheme: light;
+}
+
+/* Dark mode: the same yellow and black, on a charcoal page so the solid black panels still read as blocks.
+   Contrast on the page background: main text 15:1, muted text 7:1, links 8:1. */
+.dark {
+  --ds-page: #1b1b1b;
+  --ds-surface: #262626;
+  --ds-surface-2: #333333;
+  --ds-ink: #f4f4f1;
+  --ds-ink-soft: #d6d6d1;
+  --ds-ink-muted: #a8a8a3;
+  --ds-line: rgba(255, 255, 255, 0.2);
+  --ds-line-strong: rgba(255, 255, 255, 0.45);
+  --ds-accent: #8ab8ff;
+  --ds-accent-ink: #111111;
+  color-scheme: dark;
+}
+
+/* Yellow blocks always carry black text, in either mode: inside one, the neutral colours are the dark ones. */
+.bg-brand,
+.dark .bg-brand {
+  --ds-ink: #111111;
+  --ds-ink-soft: #333333;
+  --ds-ink-muted: #444444;
+  --ds-line: rgba(17, 17, 17, 0.3);
+  --ds-line-strong: rgba(17, 17, 17, 0.5);
+  --ds-accent: #111111;
 }
 
 @theme inline {
@@ -120,7 +148,7 @@
 .story-body > blockquote {
   margin: 1.5rem 0;
   padding: 1rem 1.25rem;
-  background: var(--ds-ink);
+  background: var(--ds-brand-ink);
   color: #ffffff;
   font-weight: 600;
 }
@@ -170,6 +198,60 @@
   .ds-marquee { animation: none; }
 }
 
+/* On a dark page the yellow bar sits under the words instead of behind them, so light text never crosses yellow. */
+.dark .ds-question {
+  text-decoration-thickness: 0.16em;
+  text-underline-offset: 0.14em;
+}
+
+/* Cards lift slightly on hover: only with a mouse, and only for readers who have not asked for less motion. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .ds-lift {
+    transition: transform 150ms ease-out;
+  }
+  .ds-lift:hover {
+    transform: translateY(-4px);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------
+   Dark mode for the older pages (search, author, info, dialogs) that still use fixed light-theme
+   utility classes. Unlayered, so these win over Tailwind's utilities layer. Blocks that must stay
+   white in dark mode use bg-[#fff] instead of bg-white, so they are not caught here.
+   ------------------------------------------------------------------------------------------------ */
+.dark .bg-white { background-color: var(--ds-surface); }
+.dark .bg-neutral-50,
+.dark .bg-neutral-100 { background-color: var(--ds-surface-2); }
+.dark .hover\:bg-neutral-50:hover,
+.dark .hover\:bg-neutral-100:hover,
+.dark .hover\:bg-neutral-200:hover { background-color: rgba(255, 255, 255, 0.1); }
+.dark .bg-neutral-200 { background-color: #404040; }
+.dark .text-neutral-900,
+.dark .text-neutral-800,
+.dark .text-\[\#111111\] { color: var(--ds-ink); }
+.dark .hover\:text-neutral-900:hover { color: #ffffff; }
+.dark .text-neutral-700,
+.dark .text-neutral-600 { color: var(--ds-ink-soft); }
+.dark .text-neutral-500 { color: var(--ds-ink-muted); }
+.dark .text-\[\#004a94\],
+.dark .hover\:text-\[\#004a94\]:hover,
+.dark .group:hover .group-hover\:text-\[\#004a94\] { color: var(--ds-accent); }
+.dark .border-neutral-100,
+.dark .border-neutral-200,
+.dark .border-neutral-200\/80,
+.dark .border-neutral-300,
+.dark .border-neutral-500 { border-color: var(--ds-line-strong); }
+.dark .divide-neutral-100 > :not(:last-child),
+.dark .divide-neutral-200 > :not(:last-child) { border-color: var(--ds-line); }
+.dark .border-\[\#111111\] { border-color: var(--ds-ink); }
+.dark .bg-red-50 { background-color: #3b1212; }
+.dark .text-red-900,
+.dark .text-red-700 { color: #ffd7d7; }
+.dark .border-red-200 { border-color: #7f1d1d; }
+.dark input,
+.dark textarea,
+.dark select { color-scheme: dark; }
+
 /* Print styling */
 @media print {
   header, footer, nav, .no-print {
@@ -196,7 +278,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--ds-ink);
+  background: var(--ds-brand-ink);
   color: #ffffff;
   border: 2px solid #ffffff;
   font-family: var(--font-headline);
@@ -218,7 +300,7 @@
 .ds-pin-selected {
   background: var(--ds-brand);
   color: var(--ds-brand-ink);
-  border-color: var(--ds-ink);
+  border-color: var(--ds-brand-ink);
   width: 38px;
   height: 38px;
   font-size: 17px;

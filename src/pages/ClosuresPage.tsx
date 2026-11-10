@@ -129,7 +129,7 @@ const ClosuresPage: React.FC<ClosuresPageProps> = ({ onSelectArticle, onSelectCa
                   setSelectedId(null);
                 }}
                 className={`inline-flex items-center h-11 px-4 border-2 border-ink text-sm font-extrabold ${
-                  active ? 'bg-ink text-white' : 'bg-surface text-ink hover:bg-brand'
+                  active ? 'bg-ink text-page' : 'bg-surface text-ink hover:bg-brand hover:text-brand-ink'
                 }`}
               >
                 {f.label}
@@ -189,7 +189,7 @@ const ClosuresPage: React.FC<ClosuresPageProps> = ({ onSelectArticle, onSelectCa
                         <p className="flex flex-wrap gap-1.5 mb-2">
                           <BlockLabel
                             tone={statusTone(c)}
-                            className={c.status === 'reopened' ? 'outline outline-1 outline-ink' : c.status === 'planned' && selected ? 'bg-white!' : ''}
+                            className={c.status === 'reopened' ? 'outline outline-1 outline-ink' : c.status === 'planned' && selected ? 'bg-[#fff]!' : ''}
                           >
                             {STATUS_LABELS[c.status]}
                           </BlockLabel>

@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 
 /**
- * Light / dark colour theme. Not in use at the moment: the site is light only while the yellow and black
- * design beds in, and nothing calls useTheme(). Kept for when dark mode returns.
+ * Light / dark colour theme. The site follows the reader's device setting until they use the toggle; after
+ * that their choice is remembered on this device. The first paint is handled by the inline script in index.html.
  */
 export type Theme = 'light' | 'dark';
 
 const STORAGE_KEY = 'ds-theme';
-const THEME_COLOR = { light: '#111111', dark: '#111111' } as const;
+const DARK_QUERY = '(prefers-color-scheme: dark)';
 
 function currentTheme(): Theme {
   return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -15,10 +15,9 @@ function currentTheme(): Theme {
 
 function applyTheme(theme: Theme): void {
   document.documentElement.classList.toggle('dark', theme === 'dark');
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLOR[theme]);
 }
 
-/** The reader's saved choice, if any. */
+/** The reader's saved choice, if they have made one. */
 export function savedTheme(): Theme | null {
   try {
     const value = localStorage.getItem(STORAGE_KEY);
@@ -31,10 +30,17 @@ export function savedTheme(): Theme | null {
 export function useTheme(): { theme: Theme; toggleTheme: () => void } {
   const [theme, setTheme] = useState<Theme>(() => (typeof document === 'undefined' ? 'light' : currentTheme()));
 
-  // Day mode is the default; dark mode only when the reader has chosen it (see index.html).
+  // Follow the device when it switches (for example at sunset), unless the reader has chosen for themselves
   useEffect(() => {
-    applyTheme(theme);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const media = window.matchMedia(DARK_QUERY);
+    const onChange = (e: MediaQueryListEvent) => {
+      if (savedTheme()) return;
+      const next: Theme = e.matches ? 'dark' : 'light';
+      applyTheme(next);
+      setTheme(next);
+    };
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
   }, []);
 
   const toggleTheme = useCallback(() => {

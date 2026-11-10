@@ -26,6 +26,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=Plus+Jakarta+Sans:wght@500..800&display=swap" rel="stylesheet">
+    <!-- Colour theme, set before the first paint so the page never flashes the wrong colours:
+         the reader's saved choice if they have used the toggle, otherwise their device's setting. -->
+    <script>
+      try {
+        var t = localStorage.getItem('ds-theme');
+        if (t === 'dark' || (t !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="bg-page text-ink antialiased selection:bg-brand selection:text-brand-ink">
     <div id="root"></div>

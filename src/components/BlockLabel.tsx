@@ -12,8 +12,8 @@ export type BlockLabelTone = 'section' | 'area' | 'area-inv' | 'alert';
 
 const TONES: Record<BlockLabelTone, string> = {
   section: 'bg-brand text-brand-ink',
-  area: 'bg-ink text-white',
-  'area-inv': 'bg-white text-brand-ink',
+  area: 'bg-ink text-page',
+  'area-inv': 'bg-[#fff] text-brand-ink',
   alert: 'bg-alert text-white',
 };
 
