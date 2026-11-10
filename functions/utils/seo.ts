@@ -12,6 +12,7 @@
 import { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, sectionHeading, withBrand } from '../../src/config/seoText';
 
 export { SITE_NAME, SITE_DESCRIPTION, HOME_TITLE, sectionSeo, sectionHeading, withBrand };
+export { splitKeyFacts, storyQuestions } from '../../src/config/storyBlocks';
 
 /** Other names people type when looking for the site; helps Google show the right site name. */
 export const SITE_ALTERNATE_NAMES = ['Daily Scot', 'TheDailyScot', 'The Daily Scot Glasgow', 'thedailyscot.co.uk'];
