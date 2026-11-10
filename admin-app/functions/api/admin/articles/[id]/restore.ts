@@ -1,3 +1,4 @@
+import { markContentUpdated } from '../../../../utils/contentUpdated';
 import { Env, EventContext, User, ArticleRecord, ArticleRevision } from '../../../../types';
 import { requireRole, logAuditEvent, getClientIp } from '../../../../utils/auth';
 
@@ -77,6 +78,9 @@ export async function onRequestPost(
       );
     }
     await context.env.DB.batch(statements);
+    if (existing.title !== revision.previous_title || existing.body !== revision.previous_body) {
+      await markContentUpdated(context.env.DB, id);
+    }
 
     await logAuditEvent(
       context.env,

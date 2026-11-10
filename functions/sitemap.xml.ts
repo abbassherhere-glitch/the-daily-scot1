@@ -1,3 +1,5 @@
+import { withContentUpdated } from './utils/contentUpdated';
+import { lastChangedIso } from '../src/config/updates';
 import { Env, EventContext } from './types';
 import { STAFF_BYLINE_SLUG } from './utils/byline';
 import { INFO_PAGES, infoPageIndexable } from '../src/config/infoPages';
@@ -24,14 +26,17 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
     const db = context.env.DB;
 
     const [{ results: articles }, { results: categories }, { results: sectionDates }, { results: authors }] = await Promise.all([
-      db
-        .prepare(
-          `SELECT slug, hero_image, updated_at FROM articles
-           WHERE status = 'published' AND datetime(published_at) <= datetime('now')
-           ORDER BY published_at DESC LIMIT ?`,
-        )
-        .bind(MAX_STORIES)
-        .all<{ slug: string; hero_image: string | null; updated_at: string }>(),
+      // A story's <lastmod> is when its words last changed (or it was published), not its last housekeeping save
+      withContentUpdated((contentUpdated) =>
+        db
+          .prepare(
+            `SELECT a.slug, a.hero_image, a.published_at, ${contentUpdated} FROM articles a
+             WHERE a.status = 'published' AND datetime(a.published_at) <= datetime('now')
+             ORDER BY a.published_at DESC LIMIT ?`,
+          )
+          .bind(MAX_STORIES)
+          .all<{ slug: string; hero_image: string | null; published_at: string; content_updated_at: string | null }>(),
+      ),
       db.prepare('SELECT slug FROM categories ORDER BY sort_order').all<{ slug: string }>(),
       // When each section last changed, so <lastmod> is true rather than "now"
       db
@@ -76,7 +81,7 @@ export async function onRequestGet(context: EventContext<Env, any, any>): Promis
       const image = safeImageUrl(art.hero_image, domain);
       xml += entry(
         `${domain}/news/${encodeURIComponent(art.slug)}`,
-        toIso(art.updated_at),
+        lastChangedIso(toIso(art.published_at), toIso(art.content_updated_at || undefined)),
         image ? `    <image:image>\n      <image:loc>${escapeXml(image)}</image:loc>\n    </image:image>\n` : '',
       );
     });

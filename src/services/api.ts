@@ -340,6 +340,7 @@ function transformD1RowToArticle(row: any): Article {
     },
     publishedAt: toIsoDate(row.published_at || row.created_at),
     updatedAt: row.updated_at ? toIsoDate(row.updated_at) : undefined,
+    contentUpdatedAt: row.content_updated_at ? toIsoDate(row.content_updated_at) : undefined,
     readTime: `${Math.max(2, Math.ceil((row.body || '').split(' ').length / 180))} min read`,
     heroImage: row.hero_image || '/placeholder-hero.svg',
     heroCaption: row.image_caption || '',
