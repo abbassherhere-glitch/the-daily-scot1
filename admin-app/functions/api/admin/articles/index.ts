@@ -10,6 +10,7 @@ import {
   restrictStatusForRole,
 } from '../../../utils/articleRules';
 import { resolveByline } from '../../../utils/byline';
+import { notifySearchEngines } from '../../../utils/indexNow';
 
 export async function onRequestGet(
   context: EventContext<Env, any, { user: User }>
@@ -203,6 +204,8 @@ export async function onRequestPost(
       ip: getClientIp(context.request),
       details: `Created article "${title}" (${id}) with status ${status}, credited to "${byline.byline}"`,
     });
+
+    if (status === 'published') await notifySearchEngines([finalSlug]);
 
     return jsonResponse({ success: true, id, slug: finalSlug, status }, 201);
   } catch (err: any) {

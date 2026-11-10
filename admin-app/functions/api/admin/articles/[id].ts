@@ -10,6 +10,7 @@ import {
   restrictStatusForRole,
 } from '../../../utils/articleRules';
 import { displayByline, resolveByline } from '../../../utils/byline';
+import { notifySearchEngines } from '../../../utils/indexNow';
 
 
 export async function onRequestGet(
@@ -284,6 +285,11 @@ export async function onRequestPut(
         `${action}: "${title}" (${id}) transitioned from ${existing.status} to ${status}` +
         (bylineChanged ? `; byline changed from "${displayByline(existing)}" to "${displayByline(byline)}"` : ''),
     });
+
+    // New, changed and withdrawn stories are all worth a fresh look from search engines
+    if (status === 'published' || existing.status === 'published') {
+      await notifySearchEngines([slug, existing.slug]);
+    }
 
     return jsonResponse({ success: true, id, status, slug });
   } catch (err: any) {
