@@ -22,6 +22,7 @@ import {
   safeImageUrl,
   sectionSeo,
   sectionHeading,
+  storyQuestions,
   shellHtml,
   siteOrigin,
   toIso,
@@ -208,6 +209,7 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
       .all<HeadlineRow>();
 
     const bodyHtml = await sanitizeHtml(bodyToHtml(article.body || ''));
+    const questions = storyQuestions(bodyHtml);
     const canonical = `${origin}/news/${encodeURIComponent(article.slug)}`;
     const title = withBrand(article.seo_title || article.title);
     const description = article.meta_description || article.standfirst || plainExcerpt(bodyHtml);
@@ -255,6 +257,20 @@ export async function onRequest(context: EventContext<Env, any, any>): Promise<R
           { name: categoryName, url: `${origin}/news/${encodeURIComponent(article.category)}` },
           { name: article.title, url: canonical },
         ]),
+        // Question headings in the story, with the paragraph that answers each
+        ...(questions.length >= 2
+          ? [
+              {
+                '@type': 'FAQPage',
+                '@id': `${canonical}#questions`,
+                mainEntity: questions.map((q) => ({
+                  '@type': 'Question',
+                  name: q.question,
+                  acceptedAnswer: { '@type': 'Answer', text: q.answer },
+                })),
+              },
+            ]
+          : []),
       ],
     };
 
